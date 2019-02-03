@@ -10,7 +10,7 @@ import cPickle as pickle
 from random import shuffle
 from tqdm import tqdm
 # import matplotlib.pyplot as plt
-get_ipython().run_line_magic('matplotlib', 'inline')
+#get_ipython().run_line_magic('matplotlib', 'inline')
 
 import torch
 import torch.nn as nn
