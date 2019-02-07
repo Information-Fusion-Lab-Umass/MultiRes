@@ -1,0 +1,36 @@
+features:
+  activity_details:
+    resample_freq_min: 1
+    aggregates: ["mode", "min", "max", "count"]
+
+  audio_details:
+    resample_freq_min: 1
+
+  call_log_details:
+    resample_freq_min: 2
+    aggregates: ["count"]
+
+  conversation_details:
+    resample_freq_min: 2
+    aggregates: ["sum"]
+
+  # Phone Charge details are aggregated every 6 hours.
+  phonecharge_details:
+    resample_freq_min: 360
+
+  # Dark Details are aggregated every 12 hours.
+  dark_details:
+    resample_freq_min: 720
+
+  # Dark Details are aggregated every day.
+  sleep_details:
+    resample_freq_min: 1440
+
+  gps_details:
+    resample_freq_min: 15
+
+students:
+  # We use data only for students that have good data.
+  student_list: []
+  # This list will override the student_list while selecting students.
+  student_ignore_list: [0,3,13]
