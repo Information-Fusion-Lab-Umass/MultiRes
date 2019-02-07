@@ -1,0 +1,7 @@
+# Don't track the content of these folders.
+data/
+
+# ignore pycharm project files
+.idea/
+__pycache__/
+.ipynb_checkpoints/
