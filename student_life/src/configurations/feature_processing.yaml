@@ -1,33 +1,52 @@
 features:
   activity_details:
     resample_freq_min: 1
-    aggregates: ["mode", "min", "max", "count"]
+    simple_aggregates: ["min", "max", "count"]
+    custom_aggregates: ["mode"]
 
   audio_details:
     resample_freq_min: 1
-
-  call_log_details:
-    resample_freq_min: 2
-    aggregates: ["count"]
+    simple_aggregates: ["min", "max", "count"]
+    custom_aggregates: ["mode"]
 
   conversation_details:
-    resample_freq_min: 2
-    aggregates: ["sum"]
+    resample_freq_min: 60
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
 
-  # Phone Charge details are aggregated every 6 hours.
+  # Phone Charge details are aggregated every 12 hours.
   phonecharge_details:
-    resample_freq_min: 360
+    resample_freq_min: 720 # Daily
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
 
-  # Dark Details are aggregated every 12 hours.
+  # Dark Details are aggregated every 6 hours.
   dark_details:
-    resample_freq_min: 720
+    resample_freq_min: 360
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
 
   # Dark Details are aggregated every day.
   sleep_details:
     resample_freq_min: 1440
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
 
   gps_details:
     resample_freq_min: 15
+    simple_aggregates: []
+    custom_aggregates: ["mode"]
+
+# Todo(@abhinavshaw) : Check this feature out. Data Doesn't make sense.
+#  call_log_details:
+#    resample_freq_min: 60
+#    simple_aggregates: ["count"]
+#    custom_aggregates: []
+#
+#  sms_details:
+#    resample_freq_min: 15
+#    simple_aggregates: []
+#     custom_aggregates: ["mode"]
 
 students:
   # We use data only for students that have good data.
