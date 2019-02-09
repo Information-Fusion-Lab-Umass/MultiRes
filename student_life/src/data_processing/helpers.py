@@ -78,3 +78,4 @@ def get_flattened_student_data_from_list(student_data, student_id):
         flattened_df = flattened_df.join(feature_df_dropped_student_id, how='left', sort=True)
 
     return flattened_df
+
