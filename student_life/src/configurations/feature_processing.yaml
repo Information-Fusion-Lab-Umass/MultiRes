@@ -37,6 +37,11 @@ features:
     simple_aggregates: []
     custom_aggregates: ["mode"]
 
+  stress_details:
+    resample_freq_min: 1440
+    simple_aggregates: []
+    custom_aggregates: ["mode"]
+
 # Todo(@abhinavshaw) : Check this feature out. Data Doesn't make sense.
 #  call_log_details:
 #    resample_freq_min: 60

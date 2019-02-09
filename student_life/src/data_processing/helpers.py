@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from src.utils.aggregation_utils import mode
 
@@ -51,13 +52,29 @@ def get_resampled_aggregated_data(feature_data, feature_config, student_id):
 
     return aggregated_data
 
-# def get_flattened_student_data_from_list(student_data, stress_data):
-#
-#     # Generating DataRange form stress data.
-#     stress_data
-#
-#     for data in enumerate(student_data):
-#
-#
-#
-#     return pd.DataFrame()
+
+def get_flattened_student_data_from_list(student_data, student_id):
+    """
+
+    @param student_data: A list of data frame with various features from the student_life data-set.
+    @param student_id: Student id of the student.
+    @return: flattened data-set after applying a left join.
+    """
+
+    for feature_df in student_data:
+        assert "student_id" in feature_df .columns, "Invalid Student data, student id " \
+                                                      "missing in one of the data frames."
+    # Pre-processing
+    feature_data_first = student_data[0]
+    start_date = feature_data_first.index[0].round("1min")
+    end_date = feature_data_first.index[-1].round("1min")
+    flattened_df_index = pd.date_range(start_date, end_date, freq="min")
+    flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
+                                index=flattened_df_index,
+                                columns=["student_id"])
+
+    for idx, feature_df in enumerate(student_data):
+        feature_df_dropped_student_id = feature_df.drop("student_id", axis=1, inplace=False)
+        flattened_df = flattened_df.join(feature_df_dropped_student_id, how='left', sort=True)
+
+    return flattened_df
