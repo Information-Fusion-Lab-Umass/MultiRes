@@ -3,6 +3,8 @@ import numpy as np
 
 from src.utils.aggregation_utils import mode
 
+kDefaultBaseFreq = 'min'
+
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     """
@@ -62,13 +64,13 @@ def get_flattened_student_data_from_list(student_data, student_id):
     """
 
     for feature_df in student_data:
-        assert "student_id" in feature_df .columns, "Invalid Student data, student id " \
-                                                      "missing in one of the data frames."
+        assert "student_id" in feature_df.columns, "Invalid Student data, student id " \
+                                                   "missing in one of the feature data frames."
     # Pre-processing
     feature_data_first = student_data[0]
-    start_date = feature_data_first.index[0].round("1min")
-    end_date = feature_data_first.index[-1].round("1min")
-    flattened_df_index = pd.date_range(start_date, end_date, freq="min")
+    start_date = feature_data_first.index[0].floor("D")
+    end_date = feature_data_first.index[-1].floor("D")
+    flattened_df_index = pd.date_range(start_date, end_date, freq=kDefaultBaseFreq)
     flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
                                 index=flattened_df_index,
                                 columns=["student_id"])
@@ -79,3 +81,47 @@ def get_flattened_student_data_from_list(student_data, student_id):
 
     return flattened_df
 
+
+def replace_neg_one_with_nan(df):
+    """
+
+    @param df: DataFrame to be processed.
+    @return: Replaces -1(int) or -1.0(double) all rows to np.nan.
+    """
+    # Converting any missing values to NaN.
+    return df.replace(to_replace={-1: np.nan, -1.0: np.nan}, value=None, inplace=False)
+
+
+def remove_days_with_no_stress_label(flattened_student_data):
+    """
+
+    @param flattened_student_data: Flattened data of student. Must contain stress_level_mode as
+                                   one of the columns.
+    @return: processed data frame where sequences belonging to the same day are removed where there
+            are no stress label.
+    """
+
+    assert "stress_level_mode" in flattened_student_data.columns, "stress_level no found, cannot process data."
+
+    stress_not_null_df = flattened_student_data[flattened_student_data['stress_level_mode'].notnull()]
+    stress_not_null_indices = stress_not_null_df.index
+    td = pd.Timedelta('1 days')
+
+    for idx, time_index in enumerate(stress_not_null_indices):
+        floored_time_index = time_index.floor("D")
+        if idx == 0:
+            time_indices_to_keep = pd.date_range(floored_time_index,
+                                                 floored_time_index + td,
+                                                 freq=kDefaultBaseFreq,
+                                                 closed="left")
+        else:
+            time_indices_to_keep = time_indices_to_keep.union(
+                pd.date_range(floored_time_index,
+                              floored_time_index + td,
+                              freq=kDefaultBaseFreq,
+                              closed="left"))
+
+    indices_to_be_dropped = flattened_student_data.index.difference(time_indices_to_keep)
+    flattened_student_data_dropped = flattened_student_data.drop(indices_to_be_dropped)
+
+    return flattened_student_data_dropped

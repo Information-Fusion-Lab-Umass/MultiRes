@@ -59,7 +59,7 @@ def mode(array_like):
     @return: Mode of the array.
     """
     result = Counter(array_like).most_common()
-    return result[0][0] if len(result) > 0 else -1
+    return result[0][0] if len(result) > 0 else np.nan
 
 
 def extend_complex_features(feature_name, resampled_df, columns=None):
