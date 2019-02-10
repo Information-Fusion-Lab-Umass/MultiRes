@@ -1,0 +1,60 @@
+features:
+  activity_details:
+    resample_freq_min: 1
+    simple_aggregates: ["min", "max", "count"]
+    custom_aggregates: ["mode"]
+
+  audio_details:
+    resample_freq_min: 1
+    simple_aggregates: ["min", "max", "count"]
+    custom_aggregates: ["mode"]
+
+  conversation_details:
+    resample_freq_min: 60
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
+
+  # Phone Charge details are aggregated every 12 hours.
+  phonecharge_details:
+    resample_freq_min: 720 # Daily
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
+
+  # Dark Details are aggregated every 6 hours.
+  dark_details:
+    resample_freq_min: 360
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
+
+  # Dark Details are aggregated every day.
+  sleep_details:
+    resample_freq_min: 1440
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
+
+  gps_details:
+    resample_freq_min: 15
+    simple_aggregates: []
+    custom_aggregates: ["mode"]
+
+  stress_details:
+    resample_freq_min: 1440
+    simple_aggregates: []
+    custom_aggregates: ["mode"]
+
+# Todo(@abhinavshaw) : Check this feature out. Data Doesn't make sense.
+#  call_log_details:
+#    resample_freq_min: 60
+#    simple_aggregates: ["count"]
+#    custom_aggregates: []
+#
+#  sms_details:
+#    resample_freq_min: 15
+#    simple_aggregates: []
+#     custom_aggregates: ["mode"]
+
+students:
+  # We use data only for students that have good data.
+  student_list: []
+  # This list will override the student_list while selecting students.
+  student_ignore_list: [0,3,13]
