@@ -1,4 +1,4 @@
-def getStudentistAfterIgnoring(students, students_to_be_ignored):
+def get_student_list_after_ignoring(students, students_to_be_ignored):
     """
     @param students: A list of students that are to be considered. Has to be integer IDs
     @param students_to_be_ignored: List of students to be ignored.
@@ -11,7 +11,7 @@ def getStudentistAfterIgnoring(students, students_to_be_ignored):
     return students
 
 
-def getStudentsFromFolderNames(prefix, folder_names):
+def get_students_from_folder_names(prefix, folder_names):
     """
 
     @param prefix: Prefix to be removed

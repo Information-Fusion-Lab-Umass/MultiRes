@@ -7,7 +7,7 @@ import pandas as pd
 from src.definitions import ROOT_DIR
 from src.utils.read_utils import read_yaml
 from src.utils.write_utils import df_to_csv
-from src.utils.student_utils import getStudentistAfterIgnoring, getStudentsFromFolderNames
+from src.utils import student_utils
 from src.data_processing import helper
 
 
@@ -24,15 +24,15 @@ STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
 
 # Student Processing.
 STUDENTS_TO_BE_IGNORED = STUDENT_CONFIG["student_ignore_list"]
-available_students_str = os.listdir(MINIMAL_PROCESSED_DATA_PATH)
-available_students = getStudentsFromFolderNames(STUDENT_FOLDER_NAME_PREFIX, available_students_str)
+AVAILABLE_STUDENTS_STR = os.listdir(MINIMAL_PROCESSED_DATA_PATH)
+AVAILABLE_STUDENTS = student_utils.get_students_from_folder_names(STUDENT_FOLDER_NAME_PREFIX, AVAILABLE_STUDENTS_STR)
 
 # Ignoring the students.
-available_students = getStudentistAfterIgnoring(available_students, STUDENTS_TO_BE_IGNORED)
+AVAILABLE_STUDENTS = student_utils.get_student_list_after_ignoring(AVAILABLE_STUDENTS, STUDENTS_TO_BE_IGNORED)
 
 ############## Main Loop To Process Data ##################
 
-for student_id in available_students:
+for student_id in AVAILABLE_STUDENTS:
 
     student_data = []
 
@@ -49,7 +49,7 @@ for student_id in available_students:
     student_data_flattened = helper.get_flattened_student_data_from_list(student_data, student_id)
     student_data_flattened = helper.replace_neg_one_with_nan(student_data_flattened)
     student_data_flattened_processed = helper.remove_days_with_no_stress_label(student_data_flattened)
-    missing_value_mask = student_data_flattened_processed.notnull().astype(int)
+    missing_value_mask = student_data_flattened_processed.isnull().astype(int)
     time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 
     ############################### Writing the files to csv #############################
