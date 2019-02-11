@@ -1,12 +1,12 @@
 features:
   activity_details:
     resample_freq_min: 1
-    simple_aggregates: ["min", "max", "count"]
+    simple_aggregates: ["min", "max"]
     custom_aggregates: ["mode"]
 
   audio_details:
     resample_freq_min: 1
-    simple_aggregates: ["min", "max", "count"]
+    simple_aggregates: ["min", "max"]
     custom_aggregates: ["mode"]
 
   conversation_details:

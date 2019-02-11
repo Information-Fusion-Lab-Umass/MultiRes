@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
 
-from src.utils.aggregation_utils import mode
 
-kDefaultBaseFreq = 'min'
+from src.utils.aggregation_utils import mode
+from src.utils import validation_utils as validate
+
+DEFAULT_BASE_FREQ = 'min'
+DEFAULT_RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
@@ -15,6 +18,7 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     """
     def value(array_like):
         return student_id
+
     # List of custom aggregate function.
     custom_aggregates = []
     simple_aggregates = feature_config['simple_aggregates']
@@ -30,20 +34,21 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     return rule
 
 
-def get_resampled_aggregated_data(feature_data, feature_config, student_id):
+def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, student_id)->pd.DataFrame:
     """
+
     @attention : Imputes missing value with -1.
     @param feature_data: Un-resampled data for the feature.
     @param feature_config: Configs for the specific feature.
     @return: Aggregated data on the resampled frequency.
     """
-    assert "resample_freq_min" in feature_config.keys(), "Invalid config given!"
+    validate.validate_config_key('resample_freq_min', config=feature_config)
 
     # Extracting columns other than student id (These are the feature inference columns)
     feature_inference_cols = list(feature_data.columns.values)
     feature_inference_cols.remove("student_id")
     # Resampling and applying aggregate rule.
-    resample_freq_min = feature_config["resample_freq_min"]
+    resample_freq_min = feature_config[DEFAULT_RESAMPLE_FREQ_CONFIG_KEY]
     resampled_feature_data = feature_data.resample(rule=str(resample_freq_min) + "T")
     aggregation_rule = get_aggregation_rule(feature_inference_cols, feature_config, student_id)
     aggregated_data = resampled_feature_data.agg(aggregation_rule)
@@ -55,22 +60,20 @@ def get_resampled_aggregated_data(feature_data, feature_config, student_id):
     return aggregated_data
 
 
-def get_flattened_student_data_from_list(student_data, student_id):
+def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)->pd.DataFrame:
     """
 
     @param student_data: A list of data frame with various features from the student_life data-set.
     @param student_id: Student id of the student.
     @return: flattened data-set after applying a left join.
     """
+    validate.validate_student_id_in_data_list(student_data)
 
-    for feature_df in student_data:
-        assert "student_id" in feature_df.columns, "Invalid Student data, student id " \
-                                                   "missing in one of the feature data frames."
     # Pre-processing
     feature_data_first = student_data[0]
     start_date = feature_data_first.index[0].floor("D")
     end_date = feature_data_first.index[-1].floor("D")
-    flattened_df_index = pd.date_range(start_date, end_date, freq=kDefaultBaseFreq)
+    flattened_df_index = pd.date_range(start_date, end_date, freq=DEFAULT_BASE_FREQ)
     flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
                                 index=flattened_df_index,
                                 columns=["student_id"])
@@ -92,7 +95,7 @@ def replace_neg_one_with_nan(df):
     return df.replace(to_replace={-1: np.nan, -1.0: np.nan}, value=None, inplace=False)
 
 
-def remove_days_with_no_stress_label(flattened_student_data):
+def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame)->pd.DataFrame:
     """
 
     @param flattened_student_data: Flattened data of student. Must contain stress_level_mode as
@@ -101,7 +104,7 @@ def remove_days_with_no_stress_label(flattened_student_data):
             are no stress label.
     """
 
-    assert "stress_level_mode" in flattened_student_data.columns, "stress_level no found, cannot process data."
+    validate.validate_student_id_in_data(flattened_student_data)
 
     stress_not_null_df = flattened_student_data[flattened_student_data['stress_level_mode'].notnull()]
     stress_not_null_indices = stress_not_null_df.index
@@ -112,16 +115,45 @@ def remove_days_with_no_stress_label(flattened_student_data):
         if idx == 0:
             time_indices_to_keep = pd.date_range(floored_time_index,
                                                  floored_time_index + td,
-                                                 freq=kDefaultBaseFreq,
+                                                 freq=DEFAULT_BASE_FREQ,
                                                  closed="left")
         else:
             time_indices_to_keep = time_indices_to_keep.union(
                 pd.date_range(floored_time_index,
                               floored_time_index + td,
-                              freq=kDefaultBaseFreq,
+                              freq=DEFAULT_BASE_FREQ,
                               closed="left"))
 
     indices_to_be_dropped = flattened_student_data.index.difference(time_indices_to_keep)
     flattened_student_data_dropped = flattened_student_data.drop(indices_to_be_dropped)
 
     return flattened_student_data_dropped
+
+
+def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    """
+
+    @param flattened_student_data:
+    @return: Returns time deltas of the last observed data in a DataFrame.
+    """
+    time_deltas = pd.DataFrame(index=flattened_student_data.index,
+                               columns=flattened_student_data.columns,
+                               dtype=float)
+    last_observed_time = {}
+    for col in flattened_student_data.columns:
+        last_observed_time[col] = flattened_student_data.index[0]
+
+    cols = flattened_student_data.columns
+    rows = len(flattened_student_data)
+
+    for i in range(0, rows):
+        for col_idx, col in enumerate(cols):
+            is_col_nan = np.isnan(flattened_student_data.iloc[i][col])
+            if not is_col_nan:
+                last_observed_time[col] = flattened_student_data.index[i]
+
+            delta = time_deltas.index[i] - last_observed_time[col]
+            # converting to minutes.
+            time_deltas.iloc[i, col_idx] = delta.total_seconds() / 60
+
+    return time_deltas
