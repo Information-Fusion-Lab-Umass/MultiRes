@@ -4,31 +4,19 @@ Script to generate binned aggregates based on the configuration per feature.
 import os
 import pandas as pd
 
-from src.definitions import ROOT_DIR
+from src.definitions import MINIMAL_PROCESSED_DATA_PATH, \
+    FEATURE_CONFIG_FILE_PATH, STUDENT_FOLDER_NAME_PREFIX, BINNED_ON_VAR_FREQ_DATA_PATH
 from src.utils.read_utils import read_yaml
 from src.utils.write_utils import df_to_csv
 from src.utils import student_utils
 from src.data_processing import helper
 
 
-MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
-BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
-FEATURE_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/feature_processing.yaml")
-STUDENT_FOLDER_NAME_PREFIX = "student_"
-ORIGINAL_WORKING_DIR = os.getcwd()
-
 # Reading Configs.
 FEATURE_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
 AVAILABLE_FEATURE = FEATURE_CONFIG.keys()
 STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
-
-# Student Processing.
-STUDENTS_TO_BE_IGNORED = STUDENT_CONFIG["student_ignore_list"]
-AVAILABLE_STUDENTS_STR = os.listdir(MINIMAL_PROCESSED_DATA_PATH)
-AVAILABLE_STUDENTS = student_utils.get_students_from_folder_names(STUDENT_FOLDER_NAME_PREFIX, AVAILABLE_STUDENTS_STR)
-
-# Ignoring the students.
-AVAILABLE_STUDENTS = student_utils.get_student_list_after_ignoring(AVAILABLE_STUDENTS, STUDENTS_TO_BE_IGNORED)
+AVAILABLE_STUDENTS = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
 
 ############## Main Loop To Process Data ##################
 
@@ -63,3 +51,5 @@ for student_id in AVAILABLE_STUDENTS:
               path_to_folder=student_binned_data_dir_path)
     df_to_csv(time_deltas_min, file_name="time_deltas_min.csv",
               path_to_folder=student_binned_data_dir_path)
+
+    print("Processed for student_id: {}".format(student_id))
