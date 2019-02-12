@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import random
 import numpy as np
+import copy
 
 class RNN_osaka(nn.Module):
     def __init__(self, params):
@@ -20,13 +21,15 @@ class RNN_osaka(nn.Module):
         self.num_features = params['num_features']
         self.imputation_layer_dim_op = params['imputation_layer_dim_op']
         self.selected_feats = params['selected_feats']
+        self.fast_indexes = params['fast_features_indexes']
+        self.slow_indexes = params['slow_features_indexes']
         self.imputation_layer_dim_in = (self.selected_feats+1)*4
         self.input_dim = self.num_features * self.imputation_layer_dim_op
         self.hidden_dim = 2*self.input_dim
         
         self.dict_selected_feats = {}
-        for each_ind in range(self.num_features):
-            all_feats = range(self.num_features)
+        for each_ind in list(range(self.num_features)):
+            all_feats = list(range(self.num_features))
             all_feats.remove(each_ind)
             random.shuffle(all_feats)
             self.dict_selected_feats[each_ind] = [each_ind] + all_feats[:self.selected_feats]
@@ -37,16 +40,16 @@ class RNN_osaka(nn.Module):
 #         self.imputation_layer_op = nn.Linear(self.imputation_layer_dim, 1)
         
         if(self.bilstm_flag):
-            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim/2, num_layers = self.layers,
+            self.lstm = nn.LSTM(self.input_dim, int(self.hidden_dim/2), num_layers = self.layers,
                                 bidirectional=True, batch_first=True, dropout=self.dropout)
         else:
-            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers = self.layers, 
+            self.lstm = nn.LSTM(self.input_dim, int(self.hidden_dim), num_layers = self.layers, 
                                 bidirectional=False, batch_first=True, dropout=self.dropout)
         
         self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
         
         if(self.attn_category == 'dot'):
-            print "Dot Attention is being used!"
+            print("Dot Attention is being used!")
             self.attn = DotAttentionLayer(self.hidden_dim).cuda()
 
     
@@ -55,40 +58,47 @@ class RNN_osaka(nn.Module):
         if(self.bilstm_flag):
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                              batch_size,
-                                                             self.hidden_dim/2).fill_(0)),
+                                                             int(self.hidden_dim/2)).fill_(0)),
                    autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                             batch_size,
-                                                            self.hidden_dim/2).fill_(0)))
+                                                            int(self.hidden_dim/2)).fill_(0)))
         else:
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
-                                                             self.hidden_dim).fill_(0)),
+                                                             int(self.hidden_dim/2)).fill_(0)),
                    autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                             batch_size,
                                                             self.hidden_dim).fill_(0)))
     
     def forward(self, data, id_):
 #         features = self.LL(features)
+
+        #split the data into fast/slow features
+        fast_data, slow_data = self._split_data_fast_slow(data)
+
+        #BK: I think this is next?
+        #fast_features = self.get_imputed_feats(fast_data[id_][0], data[id_][1], self.dict_selected_feats)
+        #slow_features = self.get_imputed_feats(slow_data[id_][0], data[id_][1], self.dict_selected_feats)
         
         features = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats)
         lenghts = [features.shape[1]]
         lengths = torch.cuda.LongTensor(lenghts)
         lengths = autograd.Variable(lengths)
-        
         packed = pack_padded_sequence(features, lengths, batch_first = True)
-        
         batch_size = 1
+
         self.hidden = self.init_hidden(batch_size)
-        
         packed_output, self.hidden = self.lstm(packed, self.hidden)
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
-        
+        print(lstm_out.size())
+
         if(self.attn_category=='dot'):
             pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))
             tag_space = self.hidden2tag(pad_attn)
         else:
             tag_space = self.hidden2tag(lstm_out[:,-1,:])
         tag_score = F.log_softmax(tag_space, dim=1)
+        print(tag_score)
         return tag_score
     
     def get_imputed_feats(self, feats, flags, dict_selected_feats):
@@ -97,7 +107,7 @@ class RNN_osaka(nn.Module):
         all_features = []
         num_features = self.num_features
         input_ = {}
-        for feat_ind in range(num_features):
+        for feat_ind in list(range(num_features)):
             input_[feat_ind] = []
             feat = feats[:,feat_ind]
             feat_flag = flags[:,feat_ind]
@@ -142,7 +152,48 @@ class RNN_osaka(nn.Module):
         all_features = all_features.unsqueeze(0)
         all_features = autograd.Variable(all_features)
         return all_features
-    
+
+    def _split_data_fast_slow(self,data):
+        """
+        Returns fast/slow data the same structure as data
+        """
+        fast_data = copy.deepcopy(data)
+        slow_data = copy.deepcopy(data)
+
+        #NOTE: PYTHON2 is 
+        #for ID, current_data in data.iteritems():
+        #NOTE PYTHON3 is
+        for ID, current_data in data.items():
+            list_data = current_data[0] #get the data as a list
+            numpy_data = np.matrix(list_data) #convert it to numpy matrix
+            fast_feats = numpy_data[:,self.fast_indexes]
+            slow_feats = numpy_data[:,self.slow_indexes]
+
+            list_missing = current_data[1]#get the missing matrix
+            numpy_missing = np.matrix(list_missing)
+            fast_missing = numpy_missing[:,self.fast_indexes]
+            slow_missing = numpy_missing[:,self.slow_indexes]
+            
+            #print(fast_feats.shape)
+            #print(slow_feats.shape)
+            #some sanity checks
+            assert fast_feats.shape[1] == len(self.fast_indexes)
+            assert slow_feats.shape[1] == len(self.slow_indexes)
+            assert self.num_features == len(self.fast_indexes) + len(self.slow_indexes)
+
+            #A tuple is immutable, so you need to create a new one
+            #index 2 (timestamps) and index 3 (label) are unchanged
+            fast_data[ID] = (fast_feats.tolist(), fast_missing.tolist(), fast_data[ID][2], fast_data[ID][3])
+            slow_data[ID] = (slow_feats.tolist(), slow_missing.tolist(), slow_data[ID][2], slow_data[ID][3])
+
+          
+            
+        return fast_data, slow_data
+
+
+
+
+
     def prepare_batch(self, dict_data, ids):
         labels = []
         for each_id in ids:
