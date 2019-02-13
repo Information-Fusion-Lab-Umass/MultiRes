@@ -61,7 +61,9 @@ params = {'bilstm_flag':True,
         'batch_size':1,
         'same_device':True,
         'same_feat_other_device':False,
-        'model_name':'DBM-Phy-3rd-'}
+        'model_name':'DBM-Phy-3rd-',
+        'slow_features_indexes': [0, 1, 2, 3, 5, 6, 16, 27, 28, 31, 32],
+        'fast_features_indexes': [4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 29, 30, 33, 34, 35,36]}
 pickle.dump(params, open('../../Models/config_'+params['model_name']+'.pt','wb'))
 
 
