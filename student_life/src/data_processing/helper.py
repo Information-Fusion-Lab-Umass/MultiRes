@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-
 from src.utils.aggregation_utils import mode
 from src.utils import validation_utils as validate
 
