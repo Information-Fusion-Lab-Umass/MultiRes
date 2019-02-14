@@ -13,4 +13,5 @@
 # Log the jobid.
 echo $SLURM_JOBID - `hostname` >> ~/gypsum-jobs.txt
 
-PYTHONPATH=../ python src.data_processing.student_life_binned_aggregator
+cd ~/projects/MultiRes/student_life
+PYTHONPATH=../ python -m src.data_processing.student_life_binned_aggregator
