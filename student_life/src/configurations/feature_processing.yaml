@@ -65,7 +65,7 @@ students:
   student_ignore_list: [0,3,13]
 
 data_paths:
-  cluster_data: "/mnt/nfs/scratch1/abhinavshaw/"
+  cluster_data_path: "/mnt/nfs/scratch1/abhinavshaw/data"
 
 # This is true in gypsum cluster.
-cluster_mode: False
+cluster_mode: True

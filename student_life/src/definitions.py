@@ -25,7 +25,11 @@ MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minim
 BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
 
 # Data Folder Paths - CLUSTER
-# OverWrite Global Constants when cluster mode on.
-if read_yaml(FEATURE_CONFIG_FILE_PATH)['cluster_mode']:
-    MINIMAL_PROCESSED_DATA_PATH = pathlib.Path("/mnt/nfs/scratch1/abhinavshaw/student_life_minimal_processed_data")
-    BINNED_ON_VAR_FREQ_DATA_PATH = pathlib.Path("/mnt/nfs/scratch1/abhinavshaw/student_life_var_binned_data")
+# Overwrite Global Constants when cluster mode on.
+config = read_yaml(FEATURE_CONFIG_FILE_PATH)
+if config['cluster_mode']:
+    cluster_data_root = config['data_paths']['cluster_data_path']
+    MINIMAL_PROCESSED_DATA_PATH = pathlib.Path(
+        os.path.join(cluster_data_root, "student_life_minimal_processed_data"))
+    BINNED_ON_VAR_FREQ_DATA_PATH = pathlib.Path(
+        os.path.join(cluster_data_root, "student_life_var_binned_data"))
