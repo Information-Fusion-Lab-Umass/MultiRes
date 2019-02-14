@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
-import definitions
 
+from src import definitions
 from src.utils.aggregation_utils import mode
 from src.utils import validation_utils as validate
-
 
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
