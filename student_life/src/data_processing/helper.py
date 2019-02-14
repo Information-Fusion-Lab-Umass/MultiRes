@@ -1,11 +1,10 @@
 import pandas as pd
 import numpy as np
+import definitions
 
 from src.utils.aggregation_utils import mode
 from src.utils import validation_utils as validate
 
-DEFAULT_BASE_FREQ = 'min'
-DEFAULT_RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
@@ -47,7 +46,7 @@ def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, st
     feature_inference_cols = list(feature_data.columns.values)
     feature_inference_cols.remove("student_id")
     # Resampling and applying aggregate rule.
-    resample_freq_min = feature_config[DEFAULT_RESAMPLE_FREQ_CONFIG_KEY]
+    resample_freq_min = feature_config[definitions.RESAMPLE_FREQ_CONFIG_KEY]
     resampled_feature_data = feature_data.resample(rule=str(resample_freq_min) + "T")
     aggregation_rule = get_aggregation_rule(feature_inference_cols, feature_config, student_id)
     aggregated_data = resampled_feature_data.agg(aggregation_rule)
@@ -66,13 +65,13 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
     @param student_id: Student id of the student.
     @return: flattened data-set after applying a left join.
     """
-    validate.validate_student_id_in_data_list(student_data)
+    validate.validate_student_id_in_data(*student_data)
 
     # Pre-processing
     feature_data_first = student_data[0]
     start_date = feature_data_first.index[0].floor("D")
     end_date = feature_data_first.index[-1].floor("D")
-    flattened_df_index = pd.date_range(start_date, end_date, freq=DEFAULT_BASE_FREQ)
+    flattened_df_index = pd.date_range(start_date, end_date, freq=definitions.DEFAULT_BASE_FREQ)
     flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
                                 index=flattened_df_index,
                                 columns=["student_id"])
@@ -114,13 +113,13 @@ def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame)->pd.D
         if idx == 0:
             time_indices_to_keep = pd.date_range(floored_time_index,
                                                  floored_time_index + td,
-                                                 freq=DEFAULT_BASE_FREQ,
+                                                 freq=definitions.DEFAULT_BASE_FREQ,
                                                  closed="left")
         else:
             time_indices_to_keep = time_indices_to_keep.union(
                 pd.date_range(floored_time_index,
                               floored_time_index + td,
-                              freq=DEFAULT_BASE_FREQ,
+                              freq=definitions.DEFAULT_BASE_FREQ,
                               closed="left"))
 
     indices_to_be_dropped = flattened_student_data.index.difference(time_indices_to_keep)

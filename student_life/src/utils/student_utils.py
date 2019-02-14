@@ -54,7 +54,7 @@ def get_available_students(path):
     return get_student_list_after_ignoring(students, get_students_to_be_ignored())
 
 
-def get_binned_data_for_students(*student_id: int):
+def get_var_binned_data_for_students(*student_id: int):
     """
 
     @param student_id: The student id(s) for which binned data is required.

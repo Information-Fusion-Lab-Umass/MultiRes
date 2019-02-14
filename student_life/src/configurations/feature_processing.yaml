@@ -20,6 +20,11 @@ features:
     simple_aggregates: ["sum"]
     custom_aggregates: []
 
+  phonelock_details:
+    resample_freq_min: 720
+    simple_aggregates: ["sum"]
+    custom_aggregates: []
+
   # Dark Details are aggregated every 6 hours.
   dark_details:
     resample_freq_min: 360
@@ -58,3 +63,9 @@ students:
   student_list: []
   # This list will override the student_list while selecting students.
   student_ignore_list: [0,3,13]
+
+data_paths:
+  cluster_data: "/mnt/nfs/scratch1/abhinavshaw/"
+
+# This is true in gypsum cluster.
+cluster_mode: False
