@@ -2,7 +2,6 @@
 # coding: utf-8
 
 
-
 import pandas as pd
 import numpy as np
 import cPickle as pickle
@@ -29,23 +28,20 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 torch.__version__
 
 
-# In[2]:
 
 
 # Data split by fast and slow Format: (fast_data, fast_missing, fast_timesteps, fast_zero_flag ,slow_data, slow_missing, slow_timesteps ,slow_zero_flag, label)
 data = pickle.load(open('../../Data/final_Physionet_avg_new_split.pkl','rb'))
 keep_slow_data = True
 
-# In[3]:
 
 
 # This is just for testing
-data['train_ids'] = data['train_ids'][:10]
-data['val_ids'] = data['val_ids'][:10]
-data['test_ids'] = data['test_ids'][:10]
+#data['train_ids'] = data['train_ids'][:10]
+#data['val_ids'] = data['val_ids'][:10]
+#data['test_ids'] = data['test_ids'][:10]
 
 
-# In[4]:
 
 
 params = {'bilstm_flag':True,
