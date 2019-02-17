@@ -17,6 +17,10 @@ FEATURE_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
 AVAILABLE_FEATURE = FEATURE_CONFIG.keys()
 STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
 AVAILABLE_STUDENTS = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
+students = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
+
+if students:
+    AVAILABLE_STUDENTS = list(set(students).intersection(set(AVAILABLE_STUDENTS)))
 
 ############## Main Loop To Process Data ##################
 
@@ -25,7 +29,6 @@ for student_id in AVAILABLE_STUDENTS:
     student_data = []
 
     for idx, feature in enumerate(AVAILABLE_FEATURE):
-        feature_statistics = pd.DataFrame
         feature_data_path = os.path.join(MINIMAL_PROCESSED_DATA_PATH,
                                          STUDENT_FOLDER_NAME_PREFIX + str(student_id),
                                          feature + ".csv")
@@ -37,7 +40,7 @@ for student_id in AVAILABLE_STUDENTS:
     student_data_flattened = helper.get_flattened_student_data_from_list(student_data, student_id)
     student_data_flattened = helper.replace_neg_one_with_nan(student_data_flattened)
     student_data_flattened_processed = helper.remove_days_with_no_stress_label(student_data_flattened)
-    missing_value_mask = student_data_flattened_processed.isnull().astype(int)
+    missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
     time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 
     ############################### Writing the files to csv #############################
