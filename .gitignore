@@ -1,0 +1,6 @@
+Physionet_rev/slurm
+*.pyc
+data/
+
+Data/
+Models/

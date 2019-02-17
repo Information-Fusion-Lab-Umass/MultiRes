@@ -62,7 +62,7 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     plt.title(title)
     plt.legend()
     plt.savefig(fig_name)
-    plt.show()
+    # plt.show()
     print "=="*5+max_key+"=="*4
     print "TRAIN: "+str(get_prf_metrics(data[max_key],'train'))
     print "VAL: "+str(get_prf_metrics(data[max_key],'val'))

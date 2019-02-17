@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
 
 import pandas as pd
@@ -9,7 +8,7 @@ import numpy as np
 import cPickle as pickle
 from random import shuffle
 from tqdm import tqdm
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import random
 #get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -33,16 +32,17 @@ torch.__version__
 # In[2]:
 
 
-data = pickle.load(open('../../Data/final_Physionet_avg_new.pkl','rb'))
-
+# Data split by fast and slow Format: (fast_data, fast_missing, fast_timesteps, fast_zero_flag ,slow_data, slow_missing, slow_timesteps ,slow_zero_flag, label)
+data = pickle.load(open('../../Data/final_Physionet_avg_new_split.pkl','rb'))
+keep_slow_data = True
 
 # In[3]:
 
 
-# # This is just for testing
-# data['train_ids'] = data['train_ids'][:10]
-# data['val_ids'] = data['val_ids'][:10]
-# data['test_ids'] = data['test_ids'][:10]
+# This is just for testing
+data['train_ids'] = data['train_ids'][:10]
+data['val_ids'] = data['val_ids'][:10]
+data['test_ids'] = data['test_ids'][:10]
 
 
 # In[4]:
@@ -67,7 +67,6 @@ params = {'bilstm_flag':True,
 pickle.dump(params, open('../../Models/config_'+params['model_name']+'.pt','wb'))
 
 
-# In[5]:
 
 
 model_RNN = dbm.RNN_osaka(params).cuda()
@@ -76,7 +75,6 @@ loss_function = nn.NLLLoss()
 optimizer = optim.SGD(model_RNN.parameters(), lr=0.0001, weight_decay=0.000000002)
 
 
-# In[6]:
 
 
 mode = 'normal'
@@ -86,7 +84,6 @@ if(mode=='normal'):
     print "NORMAL mode with Flags"
 
 
-# In[7]:
 
 
 batch_size = 1
@@ -101,8 +98,6 @@ print "Test Data: "+str(len(data['test_ids']))
 print "==x=="*20
 
 
-# In[8]:
-
 
 start_epoch = 0
 end_epoch = 60
@@ -114,35 +109,40 @@ for iter_ in range(start_epoch, end_epoch):
     actual_train = []
     for each_ID in tqdm(data['train_ids']):
         model_RNN.zero_grad()
+
+        # Skip patients for which there is no slow data
+        if keep_slow_data == False:
+            if data['data'][each_ID][7] == 1:
+                continue
         tag_scores = model_RNN(data['data'], each_ID)
-        
+
         _, ind_ = torch.max(tag_scores, dim=1)
         preds_train+=ind_.tolist()
+
         # For this dataset the label is in -2
         curr_labels = [data['data'][each_ID][label_ind]]
         curr_labels = [batchify.label_mapping[x] for x in curr_labels]
         actual_train+=curr_labels
         curr_labels = torch.cuda.LongTensor(curr_labels)
         curr_labels = autograd.Variable(curr_labels)
-        
+
         loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
         total_loss+=loss.item()
 
         loss.backward()
         optimizer.step()
-    
-    df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train, 
+
+    df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train,
                                                               labels = [0,1])),
                                                              columns = [0,1])
     df_tr.index = ['Precision','Recall','F-score','Count']
     prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
-#     prf_tr, df_tr = evaluate_(model_RNN, data, 'train_ids')
     prf_test, df_test = eval_plot.evaluate_dbm(model_RNN, data, 'test_ids')
     prf_val, df_val = eval_plot.evaluate_dbm(model_RNN, data, 'val_ids')
-    
+
     df_all = pd.concat([df_tr, df_val, df_test],axis=1)
     dict_df_prf_mod['Epoch'+str(iter_)] = df_all
-    
+
     print '=='*5 + "Epoch No:"+str(iter_) +"=="*5
     print "Training Loss: "+str(total_loss)
     print "=="*4
@@ -164,18 +164,8 @@ for iter_ in range(start_epoch, end_epoch):
                               0, iter_+1, 
                               model_name)
 
-
-# In[9]:
-
-
 eval_plot.plot_graphs(dict_df_prf_mod, 'F-score', 
                               '../../Plots/'+model_name+str(iter_)+'.png',
                               0, iter_, 
                               model_name)
-
-
-# In[ ]:
-
-
-
 

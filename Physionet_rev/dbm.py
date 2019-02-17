@@ -102,9 +102,9 @@ class RNN_osaka(nn.Module):
         # num_features = self.num_features
         # Replaced above line with,
         if frequency_flag == 'fast':
-            num_features = len(self.fast_indexes)
+            num_features = self.num_features_fast
         else:
-            num_features = len(self.slow_indexes)
+            num_features = self.num_features_slow
 
         input_ = {}
 
@@ -127,20 +127,12 @@ class RNN_osaka(nn.Module):
                 if(each_flag==1):
                     imputation_feat = [last_val_observed, avg_val, 1, delta_t]
                     input_[feat_ind].append(imputation_feat)
-#                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat))
-#                     f_ = self.imputation_layer_in[feat_ind](input_)
                 elif(each_flag==0):
                     delta_t = 0
                     last_val_observed = feat[ind]
                     imputation_feat = [last_val_observed, avg_val, 0, delta_t]
                     input_[feat_ind].append(imputation_feat)
-#                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat)) 
-#                     input_ = input_.cuda()
-#                     f_ = self.imputation_layer_in[feat_ind](input_)
                 delta_t+=1
-#                 final_feat_list.append(f_)
-#             final_feat_list = torch.stack(final_feat_list)
-#             all_features.append(final_feat_list)
 
         # Pass each feature's tuple into a seperate FC Layer (d FC layers, running vertically)
         for feat_ind in range(num_features):
@@ -168,20 +160,23 @@ class RNN_osaka(nn.Module):
     def forward(self, data, id_):
 
             # Split the features based on their frequency of occurrence
-            data_fast, data_slow = self._split_data_fast_slow(data)
-            data_fast = self._remove_missing_rows(data_fast)
-            data_slow = self._remove_missing_rows(data_slow)
+            # data['data'][id]: (fast_data, fast_missing, fast_timesteps, fast_zero_flag ,slow_data, slow_missing, slow_timesteps ,slow_zero_flag, label)
+
+            # If there are values in the slow features
+            if data[id_][7] != 1:
+                features_slow = self.get_imputed_feats(data[id_][4], data[id_][5], self.dict_selected_feats, 'slow')  # Size: (1, timesteps, d*10)
+            features_fast = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats, 'fast')  # Size: (1, timesteps, d*10)
 
             # Pass features for both frequencies through model
-            pad_attn_slow = self.forward_slow(data_slow, id_)
-            pad_attn_fast = self.forward_fast(data_fast, id_)
-            # print "ATTN", pad_attn_slow.shape, pad_attn_fast.shape
-            # print "hidden2tag", self.hidden2tag
+            if data[id_][7] == 1:
+                pad_attn_slow = autograd.Variable(torch.cuda.FloatTensor(np.zeros((1, 2 * 10 * self.num_features_slow))))
+            else:
+                pad_attn_slow = self.forward_slow(features_slow)
+            pad_attn_fast = self.forward_fast(features_fast)
 
             # Concatenate outputs from both 'legs' of the model, and run through the FC layer hidden2tag
             if (self.attn_category == 'dot'):
                 pad_attn = torch.cat((pad_attn_slow, pad_attn_fast), 1)
-                # print "CAT ATTN", pad_attn.shape
                 tag_space = self.hidden2tag(pad_attn)
             else:
                 # Ignoring modifying code in this case, since attention is always being used
@@ -192,12 +187,10 @@ class RNN_osaka(nn.Module):
 
             return tag_score
 
-    def forward_slow(self, data, id_):
+    def forward_slow(self, features):
         """
         Runs the forward pass of the model for low frequency features, till the attention mechanism
         """
-        features = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats, 'slow')      # Size: (1, timesteps, d*10)
-        # print "features", features.shape
 
         lenghts = [features.shape[1]]                                                                        # timesteps
         lengths = torch.cuda.LongTensor(lenghts)
@@ -208,9 +201,6 @@ class RNN_osaka(nn.Module):
 
         # LSTM Layers
         self.hidden = self.init_hidden(batch_size, frequency_flag='slow')                                    # Tuple, length 2  Size of [0] and [1]: (2,1,d*10)
-        # print "hidden", self.hidden[0].shape, self.hidden[1].shape
-        # print "lstm", self.lstm_slow
-        # print "packed", type(packed), len(packed)
         packed_output, self.hidden = self.lstm_slow(packed, self.hidden)
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]                                   # Size: (1, timesteps, 2*d*10)
 
@@ -221,11 +211,10 @@ class RNN_osaka(nn.Module):
         return pad_attn
 
 
-    def forward_fast(self, data, id_):
+    def forward_fast(self, features):
         """
         Runs the forward pass of the model for high frequency features, till the attention mechanism
         """
-        features = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats, 'fast')      # Size: (1, timesteps, d*10)
 
         lenghts = [features.shape[1]]  # timesteps
         lengths = torch.cuda.LongTensor(lenghts)
@@ -286,71 +275,6 @@ class RNN_osaka(nn.Module):
         return sorted_features, sorted_labels, sorted_lens
 
 
-    def _split_data_fast_slow(self, data):
-        """
-        Returns fast/slow data the same structure as data
-        """
-        fast_data = copy.deepcopy(data)
-        slow_data = copy.deepcopy(data)
-
-        # NOTE: PYTHON2 is
-        for ID, current_data in data.iteritems():
-        # NOTE PYTHON3 is
-        # for ID, current_data in data.items():
-            list_data = current_data[0]  # get the data as a list
-            numpy_data = np.matrix(list_data)  # convert it to numpy matrix
-            fast_feats = numpy_data[:, self.fast_indexes]
-            slow_feats = numpy_data[:, self.slow_indexes]
-
-            list_missing = current_data[1]  # get the missing matrix
-            numpy_missing = np.matrix(list_missing)
-            fast_missing = numpy_missing[:, self.fast_indexes]
-            slow_missing = numpy_missing[:, self.slow_indexes]
-
-            #print "Fast features: ", fast_feats.shape
-            #print "Slow features: ", slow_feats.shape
-
-            # some sanity checks
-            assert fast_feats.shape[1] == len(self.fast_indexes)
-            assert slow_feats.shape[1] == len(self.slow_indexes)
-            assert self.num_features == len(self.fast_indexes) + len(self.slow_indexes)
-
-            # A tuple is immutable, so you need to create a new one
-            # index 2 (timestamps) and index 3 (label) are unchanged
-            fast_data[ID] = (fast_feats.tolist(), fast_missing.tolist(), fast_data[ID][2], fast_data[ID][3])
-            slow_data[ID] = (slow_feats.tolist(), slow_missing.tolist(), slow_data[ID][2], slow_data[ID][3])
-
-        return fast_data, slow_data
-
-
-    def _remove_missing_rows(self, data):
-        """
-        Removes rows that are all missing (missing flag is 1 for each feature)
-        """
-        for ID, current_data in data.items():
-            numpy_data = np.matrix(current_data[0])
-            numpy_missing = np.matrix(current_data[1])
-            timestamps = np.array(data[ID][2])
-            num_timestamps = numpy_data.shape[0]
-            rows_to_remove = []
-            for row in range(num_timestamps):
-                current_row = numpy_missing[row, :]
-                equal = np.array_equal(current_row, np.ones((1, numpy_data.shape[1])))
-                if equal:
-                    rows_to_remove.append(row)
-
-            numpy_data = np.delete(numpy_data, (rows_to_remove), axis=0)
-            numpy_missing = np.delete(numpy_missing, (rows_to_remove), axis=0)
-            timestamps = np.delete(timestamps, rows_to_remove)
-
-            assert numpy_data.shape[0] == numpy_missing.shape[0]
-            assert len(timestamps) == numpy_data.shape[0]
-
-            data[ID] = (numpy_data, numpy_missing, timestamps, data[ID][3])
-
-        return data
-
-
 class DotAttentionLayer(nn.Module):
     def __init__(self, hidden_size):
         super(DotAttentionLayer, self).__init__()
@@ -378,4 +302,3 @@ class DotAttentionLayer(nn.Module):
         output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)
 
         return output
-
