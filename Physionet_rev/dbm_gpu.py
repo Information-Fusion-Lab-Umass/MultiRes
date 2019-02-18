@@ -10,8 +10,9 @@ import numpy as np
 class RNN_osaka(nn.Module):
     def __init__(self, params):
         super(RNN_osaka, self).__init__()
-        
+
         self.bilstm_flag = params['bilstm_flag']
+        self.hidden_dim = params['hidden_dim']
         self.dropout = params['dropout']
         self.layers = params['layers']
         self.tagset_size = params['tagset_size']
@@ -19,50 +20,46 @@ class RNN_osaka(nn.Module):
         self.num_features = params['num_features']
         self.imputation_layer_dim_op = params['imputation_layer_dim_op']
         self.selected_feats = params['selected_feats']
-        # it was 4 in general dbm but 6 for future dbm
-        self.num_info = 6
-
-        self.imputation_layer_dim_in = (self.selected_feats+1)*self.num_info
+        self.imputation_layer_dim_in = (self.selected_feats+1)*4
         self.input_dim = self.num_features * self.imputation_layer_dim_op
-
-        # self.hidden_dim = params['hidden_dim']
         self.hidden_dim = 2*self.input_dim
-        
+
         self.dict_selected_feats = {}
         for each_ind in range(self.num_features):
-            all_feats = range(self.num_features)
+            all_feats = list(range(self.num_features))
             all_feats.remove(each_ind)
             random.shuffle(all_feats)
             self.dict_selected_feats[each_ind] = [each_ind] + all_feats[:self.selected_feats]
-        
+
 #         self.LL = nn.Linear(self.len_features, self.input_dim)
-        
-        self.imputation_layer_in = [nn.Linear(self.imputation_layer_dim_in,self.imputation_layer_dim_op).cuda() for x in range(self.num_features)]
+        # Correcting code here, wrapping in ModuleList.
+        self.imputation_layer_in = nn.ModuleList([nn.Linear(self.imputation_layer_dim_in,self.imputation_layer_dim_op).cuda() for x in range(self.num_features)])
+        # self.imputation_layer_in = [nn.Linear(self.imputation_layer_dim_in,self.imputation_layer_dim_op).cuda() for x in range(self.num_features)]
 #         self.imputation_layer_op = nn.Linear(self.imputation_layer_dim, 1)
-        
+
         if(self.bilstm_flag):
-            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim/2, num_layers = self.layers,
+            self.lstm = nn.LSTM(self.input_dim, int(self.hidden_dim/2), num_layers = self.layers,
                                 bidirectional=True, batch_first=True, dropout=self.dropout)
         else:
-            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers = self.layers, 
+            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers = self.layers,
                                 bidirectional=False, batch_first=True, dropout=self.dropout)
-        
+
         self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
-        
+
         if(self.attn_category == 'dot'):
-            print "Dot Attention is being used!"
+            print ("Dot Attention is being used!")
             self.attn = DotAttentionLayer(self.hidden_dim).cuda()
 
-    
+
     def init_hidden(self, batch_size):
     # num_layes, minibatch size, hidden_dim
         if(self.bilstm_flag):
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                              batch_size,
-                                                             self.hidden_dim/2).fill_(0)),
+                                                             int(self.hidden_dim/2)).fill_(0)),
                    autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                             batch_size,
-                                                            self.hidden_dim/2).fill_(0)))
+                                                            int(self.hidden_dim/2)).fill_(0)))
         else:
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
@@ -70,23 +67,23 @@ class RNN_osaka(nn.Module):
                    autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                             batch_size,
                                                             self.hidden_dim).fill_(0)))
-    
+
     def forward(self, data, id_):
 #         features = self.LL(features)
-        
+
         features = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats)
         lenghts = [features.shape[1]]
         lengths = torch.cuda.LongTensor(lenghts)
         lengths = autograd.Variable(lengths)
-        
+
         packed = pack_padded_sequence(features, lengths, batch_first = True)
-        
+
         batch_size = 1
         self.hidden = self.init_hidden(batch_size)
-        
+
         packed_output, self.hidden = self.lstm(packed, self.hidden)
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
-        
+
         if(self.attn_category=='dot'):
             pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))
             tag_space = self.hidden2tag(pad_attn)
@@ -94,7 +91,7 @@ class RNN_osaka(nn.Module):
             tag_space = self.hidden2tag(lstm_out[:,-1,:])
         tag_score = F.log_softmax(tag_space, dim=1)
         return tag_score
-    
+
     def get_imputed_feats(self, feats, flags, dict_selected_feats):
         feats = np.asarray(feats)
         flags = np.asarray(flags)
@@ -107,23 +104,30 @@ class RNN_osaka(nn.Module):
             feat_flag = flags[:,feat_ind]
             ind_keep = feat_flag==0
             ind_missing = feat_flag==1
-            avg_val = np.mean(feat[ind_keep])
-
+            if(sum(ind_keep)>0):
+                avg_val = np.mean(feat[ind_keep])
+            else:
+                avg_val = 0.0
             last_val_observed = avg_val
             delta_t = -1
             for ind, each_flag in enumerate(feat_flag):
                 if(each_flag==1):
-                    future_obs, future_delta_t = self.get_future_vals(feat, feat_flag, ind, avg_val)
-                    imputation_feat = [last_val_observed, avg_val, 1, delta_t, future_obs, future_delta_t]
-
+                    imputation_feat = [last_val_observed, avg_val, 1, delta_t]
                     input_[feat_ind].append(imputation_feat)
+#                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat))
+#                     f_ = self.imputation_layer_in[feat_ind](input_)
                 elif(each_flag==0):
                     delta_t = 0
                     last_val_observed = feat[ind]
-                    future_obs, future_delta_t = self.get_future_vals(feat, feat_flag, ind, avg_val)
-                    imputation_feat = [last_val_observed, avg_val, 0, delta_t, future_obs, future_delta_t]
+                    imputation_feat = [last_val_observed, avg_val, 0, delta_t]
                     input_[feat_ind].append(imputation_feat)
+#                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat))
+#                     input_ = input_.cuda()
+#                     f_ = self.imputation_layer_in[feat_ind](input_)
                 delta_t+=1
+#                 final_feat_list.append(f_)
+#             final_feat_list = torch.stack(final_feat_list)
+#             all_features.append(final_feat_list)
         for feat_ind in range(num_features):
             final_feat_list = []
             for ind, each_flag in enumerate(feat_flag):
@@ -140,16 +144,6 @@ class RNN_osaka(nn.Module):
         all_features = autograd.Variable(all_features)
         return all_features
 
-    def get_future_vals(self, feat, feat_flag, ind_curr, avg_val):
-        delta_t = 0
-        future_val = avg_val
-        for ind in range(ind_curr, len(feat_flag)):
-            delta_t+=1
-            if(feat_flag[ind]==0):
-                future_val = feat[ind]
-                break;
-        return future_val, delta_t
-    
     def prepare_batch(self, dict_data, ids):
         labels = []
         for each_id in ids:
@@ -158,7 +152,7 @@ class RNN_osaka(nn.Module):
         features = []
         max_len = 0
         actual_lens = []
-        
+
         for each_id in ids:
             t_features = dict_data[each_id][0]
             features.append(t_features)

@@ -12,13 +12,13 @@ def evaluate_(model, data, data_choice, batch_size, num_of_features, feature_ind
         feats, labels, lens = batchify.prepare_batch(data['data'],
                                                      curr_ids,
                                                     num_of_features,
-                                                    feature_ind, 
+                                                    feature_ind,
                                                     label_ind)
         label_scores = model(feats, lens)
-        
+
         val, ind = torch.max(label_scores, dim=1)
         preds+=ind.tolist()
-        
+
         labels = labels.tolist()
         actual+=labels
     df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
@@ -31,10 +31,10 @@ def evaluate_dbm(model, data, data_choice):
     actual = []
     for each_ID_t in data[data_choice]:
         label_scores = model(data['data'], each_ID_t)
-        
+
         val, ind = torch.max(label_scores, dim=1)
         preds+=ind.tolist()
-        
+
         labels = [data['data'][each_ID_t][-1]]
         labels = [batchify.label_mapping[x] for x in labels]
         actual+=labels
@@ -56,20 +56,20 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     ax1.plot(test_metric_vals, color='green',label='Test')
 
     fig.set_size_inches(11.5, 6.5)
-    
+
     plt.xlabel("Epochs")
     plt.ylabel(metric)
     plt.title(title)
     plt.legend()
     plt.savefig(fig_name)
     plt.show()
-    print "=="*5+max_key+"=="*4
-    print "TRAIN: "+str(get_prf_metrics(data[max_key],'train'))
-    print "VAL: "+str(get_prf_metrics(data[max_key],'val'))
-    print "TEST: "+str(get_prf_metrics(data[max_key],'test'))
-    print "=="*4+" Detailed Results "+"=="*4
-    print data[max_key]
-    
+    print ("=="*5+max_key+"=="*4)
+    print ("TRAIN: "+str(get_prf_metrics(data[max_key],'train')))
+    print ("VAL: "+str(get_prf_metrics(data[max_key],'val')))
+    print ("TEST: "+str(get_prf_metrics(data[max_key],'test')))
+    print ("=="*4+" Detailed Results "+"=="*4)
+    print (data[max_key])
+
 def get_prf_metrics(data, key):
     if(key=='train'):
         start_ind = 0
@@ -114,7 +114,7 @@ def get_metric_values(data, key, metric, start_epoch, end_epoch):
         # metrics: Precision, Recall and F-score
         f_score = data[key_].loc[metric][start_ind:end_ind]
         count_ = data[key_].loc['Count'][start_ind:end_ind]
-        
+
         weighted_sum = f_score*count_
         weighted_sum = sum(weighted_sum)/sum(count_)
         if(weighted_sum>max_):
