@@ -1,12 +1,11 @@
 import pandas as pd
 import numpy as np
 # from six.move import cPickle as pickle
-import pickle 
+import pickle
 from random import shuffle
 from tqdm import tqdm
 # import matplotlib.pyplot as plt
 import random
-%matplotlib inline
 
 import torch
 import torch.nn as nn
@@ -52,7 +51,7 @@ if(mode=='normal'):
     feature_ind = 0
     label_ind = -1
     print ("NORMAL mode with Flags")
-    
+
 model_RNN  = dbm.RNN_osaka(params)
 loss_function = nn.NLLLoss()
 optimizer = optim.SGD(model_RNN.parameters(), lr=0.0001, weight_decay=0.000000002)
@@ -81,7 +80,7 @@ for iter_ in range(start_epoch, end_epoch):
     for each_ID in tqdm(data['train_ids']):
         model_RNN.zero_grad()
         tag_scores = model_RNN(data['data'], each_ID)
-        
+
         _, ind_ = torch.max(tag_scores, dim=1)
         preds_train+=ind_.tolist()
         # For this dataset the label is in -2
@@ -91,16 +90,16 @@ for iter_ in range(start_epoch, end_epoch):
         actual_train+=curr_labels
         curr_labels = torch.LongTensor(curr_labels)
         curr_labels = autograd.Variable(curr_labels)
-        
+
         loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
         total_loss+=loss.item()
 
         loss.backward()
         optimizer.step()
-        
+
         break
-    
-    df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train, 
+
+    df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train,
                                                               labels = [0,1])),
                                                               columns = [0,1])
     df_tr.index = ['Precision','Recall','F-score','Count']
@@ -108,10 +107,10 @@ for iter_ in range(start_epoch, end_epoch):
 
     prf_test, df_test = eval_plot.evaluate_dbm(model_RNN, data, 'test_ids')
     prf_val, df_val = eval_plot.evaluate_dbm(model_RNN, data, 'val_ids')
-    
+
     df_all = pd.concat([df_tr, df_val, df_test],axis=1)
     dict_df_prf_mod['Epoch'+str(iter_)] = df_all
-    
+
     print ('=='*5 + "Epoch No:"+str(iter_) +"=="*5)
     print ("Training Loss: "+str(total_loss))
     print ("=="*4)
@@ -128,7 +127,7 @@ for iter_ in range(start_epoch, end_epoch):
     if(save_flag):
         torch.save(model_RNN, './student_life/models/'+model_name+str(iter_)+'.pt')
         pickle.dump(dict_df_prf_mod, open('./student_life/results/dict_prf_'+model_name+str(iter_)+'.pkl','wb'))
-        eval_plot.plot_graphs(dict_df_prf_mod, 'F-score', 
+        eval_plot.plot_graphs(dict_df_prf_mod, 'F-score',
                               './student_life/plots/'+model_name+str(iter_)+'.png',
-                                  0, iter_+1, 
+                                  0, iter_+1,
                               model_name)
