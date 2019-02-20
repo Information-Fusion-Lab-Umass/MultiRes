@@ -118,6 +118,7 @@ def get_test_train_split_split(all_ids):
 
 def get_data_for_pkl_file(*student_ids):
     """
+    @todo(abhinavshaw): Make validation strategy general for all students and not whole data.
     @attention: The student list is controlled by the configuration in the config.
     @return: The processed data for all the students in the config.
     """
