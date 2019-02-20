@@ -1,9 +1,7 @@
-import src.definitions as definitions
-
+from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
 from src.utils import validation_utils as validations
-
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_GETTER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_GETTER_ROOT]
@@ -16,14 +14,6 @@ FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_FEATURE_LIST_CONFI
 LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_LABEL_LIST_CONFIG_KEY]
 
 
-def get_var_binned_data_for_students():
-    """
-    @attention: The students returned in the data are controlled by the conflict DATA_GETTER_CONFIG.
-    @return:
-    """
-    return student_utils.get_var_binned_data_for_students(*VAR_BINNED_DATA_STUDENTS)
-
-
 def convert_df_to_tuple(*data_frames):
     data_frames_as_list = []
 
@@ -31,6 +21,25 @@ def convert_df_to_tuple(*data_frames):
         data_frames_as_list.append(df.values.tolist())
 
     return tuple(data_frames_as_list)
+
+
+def get_split_for_single_day(training_values, missing_values, time_delta, y_labels, label_idx):
+    """
+
+    @param training_values:
+    @param missing_values:
+    @param time_delta:
+    @param y_label:
+    @return: Return split for a single day. i.e. One label corresponds to several data points,
+             takes in raw data frame and the label for which the split has to be calculated.
+    """
+    day_string_format = '%Y-%m-%d'
+    day_string = label_idx.to_pydatetime().strftime(day_string_format)
+
+    return (training_values.loc[day_string, :].values.tolist(),
+            missing_values.loc[day_string, :].values.tolist(),
+            time_delta.loc[day_string, :].values.tolist(),
+            int(y_labels.loc[day_string, :].values[0]))
 
 
 def split_data_to_train_test_val(training_values, missing_values, time_deltas, y_labels):
@@ -46,51 +55,30 @@ def split_data_to_train_test_val(training_values, missing_values, time_deltas, y
     assert len(training_values) == len(missing_values) and len(training_values) == len(time_deltas) and len(
         training_values) == len(y_labels), "Lengths of the DataFrame do not match."
 
-    data_len = len(training_values)
+    data_list = []
+    # todo(abhinavshaw): make it general for all the labels.
+    y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
 
-    percent_train_split = 60
-    percent_val_split = 20
-    # Rest is test split.
+    for label_idx in range(len(y_labels)):
+        month_day = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day)
+        data_list.append((month_day, get_split_for_single_day(training_values,
+                                                              missing_values,
+                                                              time_deltas,
+                                                              y_labels,
+                                                              y_labels.index[label_idx])))
 
-    train_index_end = int(data_len * (percent_train_split / 100))
-    val_index_end = int(data_len * (percent_val_split / 100))
 
-    train_split_values = training_values.iloc[:train_index_end, :]
-    train_split_missing_values = missing_values.iloc[:train_index_end, :]
-    train_split_time_deltas = time_deltas.iloc[:train_index_end, :]
-    train_y_labels = y_labels.iloc[:train_index_end, :]
-
-    val_split_values = training_values.iloc[train_index_end:train_index_end + val_index_end, :]
-    val_split_missing_values = missing_values.iloc[train_index_end:train_index_end + val_index_end, :]
-    val_split_time_deltas = time_deltas.iloc[train_index_end:train_index_end + val_index_end, :]
-    val_y_labels = y_labels.iloc[train_index_end:train_index_end + val_index_end, :]
-
-    test_split_values = training_values.iloc[train_index_end + val_index_end:, :]
-    test_split_missing_values = missing_values.iloc[train_index_end + val_index_end:, :]
-    test_split_time_deltas = time_deltas.iloc[train_index_end + val_index_end:, :]
-    test_y_labels = y_labels.iloc[train_index_end + val_index_end:, :]
-
-    train_tuple = convert_df_to_tuple(train_split_values,
-                                      train_split_missing_values,
-                                      train_split_time_deltas,
-                                      train_y_labels)
-    val_tuple = convert_df_to_tuple(val_split_values,
-                                    val_split_missing_values,
-                                    val_split_time_deltas,
-                                    val_y_labels)
-    test_tuple = convert_df_to_tuple(test_split_values,
-                                     test_split_missing_values,
-                                     test_split_time_deltas,
-                                     test_y_labels)
-
-    return train_tuple, val_tuple, test_tuple
+    return data_list
 
 
 def process_student_data(data_tuple, student_id: int):
     """
+    @todo(abhinavshaw): Revisit logic to generate labels.
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
     """
+    assert len(LABEL_LIST) == 1, "Feature List greater than one, check logic to generate labels."
+
     validations.validate_student_id_in_data(*data_tuple)
 
     (student_data, missing_data, time_delta) = data_tuple
@@ -105,45 +93,56 @@ def process_student_data(data_tuple, student_id: int):
 
     # Filling missing Values
     training_values.fillna(value=-1, inplace=True)
-    y_labels.fillna(method='ffill', inplace=True)
-    result = split_data_to_train_test_val(training_values, missing_values, time_deltas, y_labels)
+    data_list = split_data_to_train_test_val(training_values,
+                                             missing_values,
+                                             time_deltas,
+                                             y_labels)
 
-    return result
+    # return data_list, train_indices, val_indices, test_indices
+    return data_list
+
+
+def prefix_indices_with_student_id(index_list, student_id):
+    return [str(student_id) + "_" + str(index) for index in index_list]
+
+
+def get_indices_split(all_ids):
+    data_len = len(all_ids)
+    percent_train_split = 60
+    percent_val_split = 20
+    train_index_end = int(data_len * (percent_train_split / 100))
+    val_index_end = int(data_len * (percent_val_split / 100))
+    train_ids = all_ids[:train_index_end]
+    val_ids = all_ids[train_index_end: train_index_end + val_index_end]
+    test_ids = all_ids[train_index_end + val_index_end:]
+
+    return train_ids, val_ids, test_ids
 
 
 def get_data_for_pkl_file():
     """
-
+    @attention: The student list is controlled by the configuration in the config.
     @return: The processed data for all the students in the config.
     """
-    data = {}
-    data_dict = {}
-    train_ids, val_ids, test_ids = [], [], []
+    data = dict()
+    data["train_ids"] = []
+    data["val_ids"] = []
+    data["test_ids"] = []
 
+    data_dict = {}
     raw_data = student_utils.get_var_binned_data_for_students(*VAR_BINNED_DATA_STUDENTS)
 
-    train_split_key = str(1)
-    val_split_key = str(2)
-    test_split_key = str(3)
-
     for it, student_id in enumerate(VAR_BINNED_DATA_STUDENTS):
-        train_tuple, val_tuple, test_tuple = process_student_data(raw_data, student_id)
-        student_key = str(student_id)
-        train_id = student_key + "_" + train_split_key
-        val_id = student_key + "_" + val_split_key
-        test_id = student_key + "_" + test_split_key
+        data_list = process_student_data(raw_data, student_id)
 
-        data_dict[train_id] = train_tuple
-        data_dict[val_id] = val_tuple
-        data_dict[test_id] = test_tuple
-        train_ids.append(train_id)
-        val_ids.append(val_id)
-        test_ids.append(test_id)
+        for month_day, daily_data in data_list:
+            data_key = str(student_id) + "_" + month_day
+            data_dict[data_key] = daily_data
 
         data['data'] = data_dict
-
-    data["train_ids"] = train_ids
-    data["val_ids"] = val_ids
-    data["test_ids"] = test_ids
+        train_ids, val_ids, test_ids = get_indices_split(list(data['data'].keys()))
+        data['train_ids'] += train_ids
+        data['val_ids'] += val_ids
+        data['test_ids'] += test_ids
 
     return data

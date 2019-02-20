@@ -9,9 +9,9 @@ USER_HOME = pathlib.Path.home()
 
 # File and Key Names
 STUDENT_FOLDER_NAME_PREFIX = "student_"
-BINNED_DATA_FILE_NAME = "var_binned_data.csv"
-BINNED_DATA_MISSING_VALES_FILE_NAME = "missing_values_mask.csv"
-BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min.csv"
+BINNED_DATA_FILE_NAME = "var_binned_data"
+BINNED_DATA_MISSING_VALES_FILE_NAME = "missing_values_mask"
+BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min"
 RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Config File Path

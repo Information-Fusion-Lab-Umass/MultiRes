@@ -2,7 +2,12 @@ import os
 import pandas as pd
 
 from src import definitions
+from src.utils.set_utils import lists_intersection
 from src.utils.read_utils import read_yaml
+
+STUDENT_DATA_TYPES = [definitions.BINNED_DATA_FILE_NAME,
+                      definitions.BINNED_DATA_MISSING_VALES_FILE_NAME,
+                      definitions.BINNED_DATA_TIME_DELTA_FILE_NAME]
 
 
 def get_student_list_after_ignoring(students, students_to_be_ignored):
@@ -54,42 +59,58 @@ def get_available_students(path):
     return get_student_list_after_ignoring(students, get_students_to_be_ignored())
 
 
+def get_helper_data_dict(keys):
+    """
+
+    @return: Return a helper dictionary with keys as given in the input and values as data frames.
+    """
+    helper_dict = dict()
+
+    for key in keys:
+        helper_dict[key] = pd.DataFrame()
+
+    return helper_dict
+
+
+def get_binned_data_for_student(student_id: int, data_type: str):
+    """
+
+    @param student_id: Student id for whom the data is require.
+    @param data_type: Type of data for eg : missing values, actual data or Time Deltas. Must be in STUDENT_DATATYPE
+    @return: Takes in student ids as `args and returns data for that student for the requested data type.
+    """
+    assert data_type in STUDENT_DATA_TYPES, "Invalid type entered: {}".format(data_type)
+
+    assert student_id in get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH), \
+        "Data for student_id: {} is not available. Check student or ignore list.".format(student_id)
+
+    data_file_path = os.path.join(definitions.BINNED_ON_VAR_FREQ_DATA_PATH,
+                                  definitions.STUDENT_FOLDER_NAME_PREFIX +
+                                  str(student_id), data_type + ".csv")
+    data = pd.read_csv(data_file_path, index_col=[0])
+    data.index = pd.to_datetime(data.index)
+
+    return data
+
+
 def get_var_binned_data_for_students(*student_id: int):
     """
-
+    @attention: Primary API to query Var Binned Data for students.
     @param student_id: The student id(s) for which binned data is required.
            Can pass multiple student id.
-    @return: List of DataFrames containing actual data, missing flags and time delta.
+    @return: Tuple of DataFrames containing actual data, missing flags and time delta.
     """
-    students = set(get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH))
-    student_ids = set(list(student_id))
-    students = student_ids & students
-
-    students_data_binned_data = pd.DataFrame()
-    students_data_missing_values_mask = pd.DataFrame()
-    students_data_time_deltas = pd.DataFrame()
+    students = get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH)
+    students = lists_intersection(students, list(student_id))
+    helper_data_dict = get_helper_data_dict(STUDENT_DATA_TYPES)
 
     assert len(students) > 0, "None of the students entered is valid. Please enter valid students"
 
     for student in students:
-        binned_data_fp = os.path.join(definitions.BINNED_ON_VAR_FREQ_DATA_PATH,
-                                      definitions.STUDENT_FOLDER_NAME_PREFIX +
-                                      str(student), definitions.BINNED_DATA_FILE_NAME)
-        missing_values_fp = os.path.join(definitions.BINNED_ON_VAR_FREQ_DATA_PATH,
-                                         definitions.STUDENT_FOLDER_NAME_PREFIX +
-                                         str(student), definitions.BINNED_DATA_MISSING_VALES_FILE_NAME)
-        time_delta_fp = os.path.join(definitions.BINNED_ON_VAR_FREQ_DATA_PATH,
-                                     definitions.STUDENT_FOLDER_NAME_PREFIX +
-                                     str(student), definitions.BINNED_DATA_TIME_DELTA_FILE_NAME)
+        for data_type in STUDENT_DATA_TYPES:
+            student_data = get_binned_data_for_student(student, data_type)
+            helper_data_dict[data_type] = helper_data_dict[data_type].append(student_data)
 
-        binned_data = pd.read_csv(binned_data_fp, index_col=[0])
-        missing_values = pd.read_csv(missing_values_fp, index_col=[0])
-        time_deltas = pd.read_csv(time_delta_fp, index_col=[0])
-        binned_data.index = pd.to_datetime(binned_data.index)
-        missing_values.index = pd.to_datetime(missing_values.index)
-        time_deltas.index = pd.to_datetime(time_deltas.index)
-        students_data_binned_data = students_data_binned_data.append(binned_data)
-        students_data_missing_values_mask = students_data_missing_values_mask.append(missing_values)
-        students_data_time_deltas = students_data_time_deltas.append(time_deltas)
-
-    return students_data_binned_data, students_data_missing_values_mask, students_data_time_deltas
+    return helper_data_dict[definitions.BINNED_DATA_FILE_NAME], helper_data_dict[
+        definitions.BINNED_DATA_MISSING_VALES_FILE_NAME], helper_data_dict[
+        definitions.BINNED_DATA_TIME_DELTA_FILE_NAME]
