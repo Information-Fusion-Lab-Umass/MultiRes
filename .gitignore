@@ -1,2 +1,11 @@
+<<<<<<< HEAD
 *.pyc
 
+=======
+Physionet_rev/slurm
+*.pyc
+data/
+
+Data/
+Models/
+>>>>>>> bb27451dd4d9f2323a79024aacdd9e89c0cf107f
