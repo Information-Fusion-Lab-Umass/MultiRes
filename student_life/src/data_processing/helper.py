@@ -129,10 +129,12 @@ def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame)->pd.D
 
 def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     """
-
+    @attention: Doesnt calculates time deltas for the student_id column as that is an identifier.
     @param flattened_student_data:
     @return: Returns time deltas of the last observed data in a DataFrame.
     """
+    validate.validate_student_id_in_data(flattened_student_data)
+
     time_deltas = pd.DataFrame(index=flattened_student_data.index,
                                columns=flattened_student_data.columns,
                                dtype=float)
@@ -145,12 +147,32 @@ def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
 
     for i in range(0, rows):
         for col_idx, col in enumerate(cols):
+
             is_col_nan = np.isnan(flattened_student_data.iloc[i][col])
-            if not is_col_nan:
+            if not is_col_nan and col != "student_id":
                 last_observed_time[col] = flattened_student_data.index[i]
 
             delta = time_deltas.index[i] - last_observed_time[col]
-            # converting to minutes.
-            time_deltas.iloc[i, col_idx] = delta.total_seconds() / 60
+
+            # converting to minutes if the col is not student_id.
+            time_deltas.iloc[i, col_idx] = \
+                flattened_student_data.iat[i, col_idx] \
+                if col == "student_id" else delta.total_seconds() / 60
 
     return time_deltas
+
+
+def get_missing_data_mask(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    """
+    @attention: will not calculate missing flag for the student id column. Since that is an identifier
+                and not a feature or a label.
+    @param flattened_student_data:
+    @return: Return and integer data frame with value = 0 where data is missing else value = 1.
+    """
+    validate.validate_student_id_in_data_as_first_col(flattened_student_data)
+
+    # Calculate masks on all but the "student_id" col.
+    missing_value_mask = flattened_student_data.copy()
+    missing_value_mask.iloc[:, 1:] = flattened_student_data.iloc[:, 1:].isnull().astype(int)
+
+    return missing_value_mask
