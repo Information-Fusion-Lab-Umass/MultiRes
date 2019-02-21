@@ -398,37 +398,37 @@ def df_to_x_m_d(df, inputdict, size, id_posistion, split):
 
 
 # def df_to_x_m_d(df, inputdict, mean, std, size, id_posistion, split):
-#size = 49 # steps ~ from the paper
-#id_posistion = 37
-#input_length = 33 # input variables ~ from the paper
-#dataset = np.zeros((1,3, input_length, size))
+size = 49 # steps ~ from the paper
+id_posistion = 37
+input_length = 33 # input variables ~ from the paper
+dataset = np.zeros((1,3, input_length, size))
 
-#all_x_add = np.zeros((input_length,1))
+all_x_add = np.zeros((input_length,1))
 
 
 q=0
 #for filename in os.listdir(inputpath):
-#with open('order.txt','r') as f:
-#    for line in f:
-#         line = line.rstrip('\n')
-##         print(q, line)
-#         q+=1
-#         df = pd.read_csv(inputpath + line, header=0,parse_dates=['Time'], date_parser=timeparser)
-#         s_dataset, all_x, id = df_to_x_m_d(df=df, inputdict=inputdict, size=size, id_posistion=id_posistion, split=input_length)
-#    
-#         dataset = np.concatenate((dataset, s_dataset[np.newaxis, :,:,:]))
-#         all_x_add = np.concatenate((all_x_add, all_x), axis=1)
+with open('order.txt','r') as f:
+    for line in f:
+         line = line.rstrip('\n')
+         print(q, line)
+         q+=1
+         df = pd.read_csv(inputpath + line, header=0,parse_dates=['Time'], date_parser=timeparser)
+         s_dataset, all_x, id = df_to_x_m_d(df=df, inputdict=inputdict, size=size, id_posistion=id_posistion, split=input_length)
+    
+         dataset = np.concatenate((dataset, s_dataset[np.newaxis, :,:,:]))
+         all_x_add = np.concatenate((all_x_add, all_x), axis=1)
     
 
-#dataset = dataset[1:, :,:,:]    
+dataset = dataset[1:, :,:,:]    
 # (total datasets, kind of data(x, masking, and delta), input length, num of varience)
 # (4000, 3, 33, 49)
-#print(dataset.shape)
-#print(dataset[0].shape)
-#print(dataset[0][0][0])
-#print(all_x_add.shape)
-#all_x_add = all_x_add[:, 1:]
-#print(all_x_add.shape)
+print(dataset.shape)
+print(dataset[0].shape)
+print(dataset[0][0][0])
+print(all_x_add.shape)
+all_x_add = all_x_add[:, 1:]
+print(all_x_add.shape)
 
 
 # In[24]:
@@ -478,17 +478,17 @@ def get_var(x):
 # In[28]:
 
 
-#x_mean = get_mean(all_x_add)
-#print(x_mean)
-#print(len(x_mean))
+x_mean = get_mean(all_x_add)
+print(x_mean)
+print(len(x_mean))
 
 
 # In[29]:
 
 
-#x_std = get_std(all_x_add)
-#print(x_std)
-#print(len(x_std))
+x_std = get_std(all_x_add)
+print(x_std)
+print(len(x_std))
 
 
 # In[30]:
@@ -506,15 +506,14 @@ def dataset_normalize(dataset, mean, std):
 # In[31]:
 
 
-#x_mean = np.asarray(x_mean)
-#x_std = np.asarray(x_std)
-
+x_mean = np.asarray(x_mean)
+x_std = np.asarray(x_std)
 
 # In[32]:
 
-#print('Normalizing dataset...')
-#dataset = dataset_normalize(dataset=dataset, mean=x_mean, std=x_std)
-#print(dataset[0][0][0])
+print('Normalizing dataset...')
+dataset = dataset_normalize(dataset=dataset, mean=x_mean, std=x_std)
+print(dataset[0][0][0])
 
 
 # In[33]:
@@ -550,10 +549,10 @@ nor_mean, nor_median, nor_std, nor_var = normalize_chk(dataset)
 
 # In[35]:
 
-#print('Saving new dataset....')
-#np.save('./input/x_mean_aft_nor_oursplit', nor_mean)
-#np.save('./input/x_median_aft_nor_oursplit', nor_median)
-#np.save('./input/dataset_oursplit', dataset)
+print('Saving new dataset....')
+np.save('./input/x_mean_aft_nor_70split_33', nor_mean)
+np.save('./input/x_median_aft_nor_70split_33', nor_median)
+np.save('./input/dataset_70split_33', dataset)
 #print('Loading new dataset 36......')
 #t_dataset = np.load('./input/dataset.npy')
 
@@ -615,7 +614,7 @@ def df_to_survival(df):
 # In[28]:
 
 
-#A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
+#A_outcomes = pd.read_csv('./input/temp/Outcomes-a.txt')
 #y1_outcomes = df_to_y1(A_outcomes)
 #y1_outcomes = np.load('./input/y1_out.npy')
 #print(y1_outcomes.shape)
@@ -994,15 +993,15 @@ def count_parameters(model):
 # In[6]:
 
 
-def data_dataloader(dataset, outcomes, train_proportion = 0.64, dev_proportion = 0.16, test_proportion = 0.2):
+def data_dataloader(dataset, outcomes, train_proportion = 0.64, dev_proportion = 0.2, test_proportion = 0.16):
     
     train_index = int(np.floor(dataset.shape[0] * train_proportion))
     dev_index = int(np.floor(dataset.shape[0] * (train_proportion + dev_proportion)))
     
     # split dataset to tarin/dev/test set
     train_data, train_label = dataset[:train_index, :,:,:], outcomes[:train_index, :]
-    dev_data, dev_label = dataset[train_index:dev_index, :,:,:], outcomes[train_index:dev_index, :]
-    test_data, test_label = dataset[dev_index:, :,:,:], outcomes[dev_index:, :]   
+    test_data, test_label = dataset[train_index:dev_index, :,:,:], outcomes[train_index:dev_index, :]
+    dev_data, dev_label = dataset[dev_index:, :,:,:], outcomes[dev_index:, :]   
     
     # ndarray to tensor
     train_data, train_label = torch.Tensor(train_data), torch.Tensor(train_label)
@@ -1029,7 +1028,7 @@ def data_dataloader(dataset, outcomes, train_proportion = 0.64, dev_proportion =
 # In[7]:
 
 
-t_dataset = np.load('./input/dataset_oursplit.npy')
+t_dataset = np.load('./input/dataset_70split_33.npy')
 #t_dataset_old = np.load('./input/dataset.npy')
 #print(t_dataset_old[0][0][0])
 #t_out = np.load('./input/y1_out.npy')
@@ -1317,8 +1316,8 @@ hidden_size = 33 # same as inputsize
 output_size = 1
 num_layers = 49 # num of step or layers base on the paper
 
-x_mean = torch.Tensor(np.load('./input/x_mean_aft_nor_oursplit.npy'))
-x_median = torch.Tensor(np.load('./input/x_median_aft_nor_oursplit.npy'))
+x_mean = torch.Tensor(np.load('./input/x_mean_aft_nor_70split_33.npy'))
+x_median = torch.Tensor(np.load('./input/x_median_aft_nor_70split_33.npy'))
 
 
 # In[23]:
