@@ -243,8 +243,7 @@ inputdict = {
 }
 
 # def df_to_x_m_d(df, inputdict, mean, std, size, id_posistion, split):
-size = 1185  # steps ~ from the paper
-id_posistion = 37
+size = 700  # steps ~ from the paper
 input_length = 21  # Number of features
 # print(d)
 # print(len(df['T0_ID271435_Walk1.csv'][0]))
@@ -421,6 +420,109 @@ np.save('./input/outcomes_osaka', osaka_outcomes)
 # t_dataset = np.load('./input/dataset.npy')
 
 # print(t_dataset.shape)
+
+
+<<<<<<< HEAD
+=======
+# In[26]:
+
+
+'''
+Y values
+'''
+
+
+def df_to_y3(df):
+    '''
+    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
+    '''
+    output = np.zeros((4000, 3))
+
+    for row_index, value in df.iterrows():
+        los = value[3]  # Length_of_stay
+        sur = value[4]  # Survival
+        ihd = value[5]  # In-hospital_death
+
+        output[row_index][0] = ihd
+        output[row_index][1] = ihd
+
+        # length-of-stay less than 3 yes/no 1/0
+        if los < 3:
+            output[row_index][2] = 0
+        else:
+            output[row_index][2] = 1
+
+    return output
+
+
+# In[27]:
+
+
+# only check In-hospital_death
+def df_to_y1(df):
+    output = df.values
+    output = output[:, 5:]
+
+    return output
+
+
+# only check In-hospital_death
+def df_to_survival(df):
+    output = np.zeros((4000, 1))
+
+    for row_index, value in df.iterrows():
+        sur = value[4]  # Survival
+        if sur != -1:
+            output[row_index] = 1
+        else:
+            output[row_index] = 0
+
+    return output
+
+
+# In[28]:
+
+
+# A_outcomes = pd.read_csv('./input/temp/Outcomes-a.txt')
+# y1_outcomes = df_to_y1(A_outcomes)
+# y1_outcomes = np.load('./input/y1_out.npy')
+# print(y1_outcomes.shape)
+# np.save('./input/y1_out', y1_outcomes)
+# print('Getting survival outcomes.....')
+# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
+# survival_outcomes = df_to_survival(A_outcomes)
+# print(survival_outcomes)
+# np.save('./input/survival_out', survival_outcomes)
+
+# In[29]:
+
+
+def df_to_y2(df):
+    '''
+    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
+    '''
+    output = np.zeros((4000, 2))
+
+    for row_index, value in df.iterrows():
+        ihd = value[5]  # In-hospital_death
+
+        output[row_index][0] = ihd
+        output[row_index][1] = ihd
+
+    return output
+
+
+# In[30]:
+
+
+# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
+# y2_outcomes = df_to_y2(A_outcomes)
+# y2_outcomes = np.load('./input/y2_out.npy')
+# print(y2_outcomes.shape)
+# np.save('./input/y2_out', y2_outcomes)
+
+
+# In[4]:
 
 
 # define model
@@ -1100,7 +1202,7 @@ def plot_roc_and_auc_score(outputs, labels, title):
 input_size = 21  # num of variables base on the paper
 hidden_size = 21  # same as inputsize
 output_size = 3
-num_layers = 50  # num of step or layers base on the paper
+num_layers = 700  # num of step or layers base on the paper
 
 x_mean = torch.Tensor(np.load('./input/x_mean_osaka.npy'))
 x_median = torch.Tensor(np.load('./input/x_median_osaka.npy'))
@@ -1130,9 +1232,9 @@ def fit(model, criterion, learning_rate,\
         train_dataloader, dev_dataloader, test_dataloader,\
         learning_rate_decay=0, n_epochs=30):
 '''
-learning_rate = 0.05
-learning_rate_decay = 7
-n_epochs = 30
+learning_rate = 0.1
+learning_rate_decay = 100
+n_epochs = 18
 
 # learning_rate = 0.1 learning_rate_decay=True
 epoch_losses = fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_dataloader,
