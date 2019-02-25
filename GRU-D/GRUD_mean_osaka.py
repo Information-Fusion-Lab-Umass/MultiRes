@@ -55,7 +55,7 @@ def df_to_x_m_d(df, dfm, inputdict, size, id_posistion, split, features_list):
     # print("Masking Shape", masking.shape)
     delta = np.zeros((split, size))
     # print('Delta shape ', delta.shape)
-    timetable = np.zeros(grouped_data.ngroups + 1)
+    timetable = np.zeros(grouped_data.ngroups)
     id = 0
 
     all_x = np.zeros((split, 1))
@@ -78,8 +78,8 @@ def df_to_x_m_d(df, dfm, inputdict, size, id_posistion, split, features_list):
             # same timeline check.
             if pre_time != value.Time:
                 pre_time = value.Time
-                t += 1
                 timetable[t] = value.Time
+                t += 1
 
             # print('agg_no : {}\t t : {}\t value : {}'.format(agg_no, t, value.Value))
             # x[agg_no, t] = value.Value
@@ -167,8 +167,8 @@ def df_to_x_m_d(df, dfm, inputdict, size, id_posistion, split, features_list):
             # same timeline check.        
             if pre_time != value.Time:
                 pre_time = value.Time
-                t += 1
                 timetable[t] = value.Time
+                t += 1
 
             # print('agg_no : {}\t t : {}\t value : {}'.format(agg_no, t, value.Value))
             # x[agg_no, t] = value.Value
@@ -243,7 +243,8 @@ inputdict = {
 }
 
 # def df_to_x_m_d(df, inputdict, mean, std, size, id_posistion, split):
-size = 700  # steps ~ from the paper
+size = 500  # steps ~ from the paper
+id_posistion = 37
 input_length = 21  # Number of features
 # print(d)
 # print(len(df['T0_ID271435_Walk1.csv'][0]))
@@ -268,7 +269,7 @@ for o in order:
     for id in tqdm.tqdm(d[o]):
         osaka_outcomes.append(label_dict[df[id][2]])
 
-        marray = np.asarray(df[id][1])[:, 3:]
+        marray = 1 - np.asarray(df[id][1])[:, 3:]
         xarray = np.multiply(np.asarray(df[id][0])[:, 3:], marray)
         df_subject = pd.DataFrame(xarray, columns=features_list)
         df_masking = pd.DataFrame(marray, columns=features_list)
@@ -297,11 +298,13 @@ print(all_x_add.shape)
 
 # In[24]:
 
+trp = 0.64
 
 def get_mean(x):
     x_mean = []
+    l = int(trp*x.shape[1])
     for i in range(x.shape[0]):
-        mean = np.mean(x[i])
+        mean = np.mean(x[i][:l])
         x_mean.append(mean)
     return x_mean
 
@@ -311,8 +314,9 @@ def get_mean(x):
 
 def get_median(x):
     x_median = []
+    l = int(trp*x.shape[1])
     for i in range(x.shape[0]):
-        median = np.median(x[i])
+        median = np.median(x[i][:l])
         x_median.append(median)
     return x_median
 
@@ -322,8 +326,9 @@ def get_median(x):
 
 def get_std(x):
     x_std = []
+    l = int(trp*x.shape[1])
     for i in range(x.shape[0]):
-        std = np.std(x[i])
+        std = np.std(x[i][:l])
         x_std.append(std)
     return x_std
 
@@ -333,8 +338,9 @@ def get_std(x):
 
 def get_var(x):
     x_var = []
+    l = int(trp*x.shape[1])
     for i in range(x.shape[0]):
-        var = np.var(x[i])
+        var = np.var(x[i][:l])
         x_var.append(var)
     return x_var
 
@@ -412,117 +418,16 @@ nor_mean, nor_median, nor_std, nor_var = normalize_chk(dataset)
 # In[35]:
 
 print('Saving new dataset....')
-np.save('./input/x_mean_osaka', nor_mean)
-np.save('./input/x_median_osaka', nor_median)
-np.save('./input/dataset_osaka', dataset)
-np.save('./input/outcomes_osaka', osaka_outcomes)
+np.save('./input/x_mean_osaka_1185', nor_mean)
+np.save('./input/x_median_osaka_1185', nor_median)
+np.save('./input/dataset_osaka_1185', dataset)
+np.save('./input/outcomes_osaka_1185', osaka_outcomes)
+
+
 # print('Loading new dataset 36......')
 # t_dataset = np.load('./input/dataset.npy')
 
 # print(t_dataset.shape)
-
-
-<<<<<<< HEAD
-=======
-# In[26]:
-
-
-'''
-Y values
-'''
-
-
-def df_to_y3(df):
-    '''
-    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
-    '''
-    output = np.zeros((4000, 3))
-
-    for row_index, value in df.iterrows():
-        los = value[3]  # Length_of_stay
-        sur = value[4]  # Survival
-        ihd = value[5]  # In-hospital_death
-
-        output[row_index][0] = ihd
-        output[row_index][1] = ihd
-
-        # length-of-stay less than 3 yes/no 1/0
-        if los < 3:
-            output[row_index][2] = 0
-        else:
-            output[row_index][2] = 1
-
-    return output
-
-
-# In[27]:
-
-
-# only check In-hospital_death
-def df_to_y1(df):
-    output = df.values
-    output = output[:, 5:]
-
-    return output
-
-
-# only check In-hospital_death
-def df_to_survival(df):
-    output = np.zeros((4000, 1))
-
-    for row_index, value in df.iterrows():
-        sur = value[4]  # Survival
-        if sur != -1:
-            output[row_index] = 1
-        else:
-            output[row_index] = 0
-
-    return output
-
-
-# In[28]:
-
-
-# A_outcomes = pd.read_csv('./input/temp/Outcomes-a.txt')
-# y1_outcomes = df_to_y1(A_outcomes)
-# y1_outcomes = np.load('./input/y1_out.npy')
-# print(y1_outcomes.shape)
-# np.save('./input/y1_out', y1_outcomes)
-# print('Getting survival outcomes.....')
-# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
-# survival_outcomes = df_to_survival(A_outcomes)
-# print(survival_outcomes)
-# np.save('./input/survival_out', survival_outcomes)
-
-# In[29]:
-
-
-def df_to_y2(df):
-    '''
-    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
-    '''
-    output = np.zeros((4000, 2))
-
-    for row_index, value in df.iterrows():
-        ihd = value[5]  # In-hospital_death
-
-        output[row_index][0] = ihd
-        output[row_index][1] = ihd
-
-    return output
-
-
-# In[30]:
-
-
-# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
-# y2_outcomes = df_to_y2(A_outcomes)
-# y2_outcomes = np.load('./input/y2_out.npy')
-# print(y2_outcomes.shape)
-# np.save('./input/y2_out', y2_outcomes)
-
-
-# In[4]:
 
 
 # define model
@@ -865,7 +770,7 @@ def count_parameters(model):
 # In[6]:
 
 
-def data_dataloader(dataset, outcomes, train_proportion=0.64, dev_proportion=0.2, test_proportion=0.16):
+def data_dataloader(dataset, outcomes, train_proportion=0.64, dev_proportion=0.16, test_proportion=0.2):
     train_index = int(np.floor(dataset.shape[0] * train_proportion))
     dev_index = int(np.floor(dataset.shape[0] * (train_proportion + dev_proportion)))
 
@@ -899,8 +804,8 @@ def data_dataloader(dataset, outcomes, train_proportion=0.64, dev_proportion=0.2
 # In[7]:
 
 
-t_dataset = np.load('./input/dataset_osaka.npy')
-osaka_outcomes = np.load('./input/outcomes_osaka.npy')
+t_dataset = np.load('./input/dataset_osaka_1185.npy')
+osaka_outcomes = np.load('./input/outcomes_osaka_1185.npy')
 # t_dataset_old = np.load('./input/dataset.npy')
 # print(t_dataset_old[0][0][0])
 # t_out = np.load('./input/y1_out.npy')
@@ -974,12 +879,12 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         label, pred = [], []
         y_pred_col = []
         model.train()
-        q=0
+        q = 0
         for train_data, train_label in train_dataloader:
             # Zero the parameter gradients
             optimizer.zero_grad()
-            q+=1
-            if q%100==0:
+            q += 1
+            if q % 100 == 0:
                 print(q)
             # Squeeze the data [1, 33, 49], [1,5] to [33, 49], [5]
             train_data = torch.squeeze(train_data)
@@ -1001,7 +906,7 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
 
             # print('y_pred: {}\t label: {}'.format(y_pred, train_label))
             # print(y_pred.size())
-            y_pred = y_pred.view((1,-1))
+            y_pred = y_pred.view((1, -1))
             train_label = torch.LongTensor([train_label])
             # Compute loss
             loss = criterion(y_pred, train_label)
@@ -1168,7 +1073,7 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         plt.title('GRU-D Osaka')
         plt.xticks([])
         ax.legend()
-        plt.savefig(str(epoch) + "_GRUD_osaka_700.jpg")
+        plt.savefig(str(epoch) + "_GRUD_osaka_500_final_correctsplit.jpg")
         # plt.show()
         # save the parameters
         train_log = []
@@ -1202,16 +1107,16 @@ def plot_roc_and_auc_score(outputs, labels, title):
 input_size = 21  # num of variables base on the paper
 hidden_size = 21  # same as inputsize
 output_size = 3
-num_layers = 700  # num of step or layers base on the paper
+num_layers = 500  # num of step or layers base on the paper
 
-x_mean = torch.Tensor(np.load('./input/x_mean_osaka.npy'))
-x_median = torch.Tensor(np.load('./input/x_median_osaka.npy'))
+x_mean = torch.Tensor(np.load('./input/x_mean_osaka_1185.npy'))
+x_median = torch.Tensor(np.load('./input/x_median_osaka_1185.npy'))
 
 # In[23]:
 
 
 # dropout_type : Moon, Gal, mloss
-model = GRUD(input_size=input_size, hidden_size=hidden_size, output_size=output_size, dropout=0, dropout_type='mloss',
+model = GRUD(input_size=input_size, hidden_size=hidden_size, output_size=output_size, dropout=0.1, dropout_type='mloss',
              x_mean=x_mean, num_layers=num_layers)
 
 # load the parameters
@@ -1232,9 +1137,9 @@ def fit(model, criterion, learning_rate,\
         train_dataloader, dev_dataloader, test_dataloader,\
         learning_rate_decay=0, n_epochs=30):
 '''
-learning_rate = 0.1
-learning_rate_decay = 100
-n_epochs = 18
+learning_rate = 0.05
+learning_rate_decay = 10
+n_epochs = 30
 
 # learning_rate = 0.1 learning_rate_decay=True
 epoch_losses = fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_dataloader,
@@ -1248,3 +1153,4 @@ epoch_losses = fit(model, criterion, learning_rate, train_dataloader, dev_datalo
 # plot_roc_and_auc_score(test_preds, test_labels, 'GRU-D PhysioNet mortality prediction')
 
 # In[ ]:
+
