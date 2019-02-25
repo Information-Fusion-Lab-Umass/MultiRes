@@ -3,7 +3,7 @@ import numpy as np
 
 from src import definitions
 from src.utils.aggregation_utils import mode
-from src.utils import validation_utils as validate
+from src.bin import validations as validations
 
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
@@ -39,7 +39,7 @@ def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, st
     @param feature_config: Configs for the specific feature.
     @return: Aggregated data on the resampled frequency.
     """
-    validate.validate_config_key('resample_freq_min', config=feature_config)
+    validations.validate_config_key('resample_freq_min', config=feature_config)
 
     # Extracting columns other than student id (These are the feature inference columns)
     feature_inference_cols = list(feature_data.columns.values)
@@ -64,7 +64,7 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
     @param student_id: Student id of the student.
     @return: flattened data-set after applying a left join.
     """
-    validate.validate_student_id_in_data(*student_data)
+    validations.validate_student_id_in_data(*student_data)
 
     # Pre-processing
     feature_data_first = student_data[0]
@@ -101,7 +101,7 @@ def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame)->pd.D
             are no stress label.
     """
 
-    validate.validate_student_id_in_data(flattened_student_data)
+    validations.validate_student_id_in_data(flattened_student_data)
 
     stress_not_null_df = flattened_student_data[flattened_student_data['stress_level_mode'].notnull()]
     stress_not_null_indices = stress_not_null_df.index
@@ -133,7 +133,7 @@ def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     @param flattened_student_data:
     @return: Returns time deltas of the last observed data in a DataFrame.
     """
-    validate.validate_student_id_in_data(flattened_student_data)
+    validations.validate_student_id_in_data(flattened_student_data)
 
     time_deltas = pd.DataFrame(index=flattened_student_data.index,
                                columns=flattened_student_data.columns,
@@ -169,7 +169,7 @@ def get_missing_data_mask(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     @param flattened_student_data:
     @return: Return and integer data frame with value = 0 where data is missing else value = 1.
     """
-    validate.validate_student_id_in_data_as_first_col(flattened_student_data)
+    validations.validate_student_id_in_data_as_first_col(flattened_student_data)
 
     # Calculate masks on all but the "student_id" col.
     missing_value_mask = flattened_student_data.copy()

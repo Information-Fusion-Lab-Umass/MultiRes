@@ -1,7 +1,7 @@
 from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
-from src.utils import validation_utils as validations
+from src.bin import validations as validations
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_GETTER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_GETTER_ROOT]
@@ -12,6 +12,11 @@ DEFAULT_STUDENT_LIST = list(set(DEFAULT_STUDENT_LIST).intersection(set(available
 
 FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_FEATURE_LIST_CONFIG_KEY]
 LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_LABEL_LIST_CONFIG_KEY]
+
+# These sizes are in percent of data.
+TRAIN_SET_SIZE = VAR_BINNED_DATA_CONFIG['train_set_size']
+VAL_SET_SIZE = VAR_BINNED_DATA_CONFIG['val_set_size']
+TEST_SET_SIZE = VAR_BINNED_DATA_CONFIG['test_set_size']
 
 
 def convert_df_to_tuple(*data_frames):
@@ -56,7 +61,8 @@ def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_l
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
 
-    for label_idx in range(len(y_labels)):
+    # len(y_label) -1 to ignore the last label.
+    for label_idx in range(len(y_labels)-1):
         month_day = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day)
         data_list.append((month_day, get_data_for_single_day(training_values,
                                                              missing_values,
@@ -69,7 +75,6 @@ def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_l
 
 def process_student_data(raw_data, student_id: int):
     """
-    @todo(abhinavshaw): Revisit logic to generate labels.
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
     """
@@ -95,10 +100,22 @@ def process_student_data(raw_data, student_id: int):
                                            time_deltas,
                                            y_labels)
 
-    return data_list
+    # Splitting data into Train, Val  and Test Split.
+    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=TRAIN_SET_SIZE)
+    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=VAL_SET_SIZE)
+    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+
+    train_set = [month_day for month_day, data in train_set]
+    val_set = [month_day for month_day, data in val_set]
+    test_set = [month_day for month_day, data in test_set]
+    print(train_set)
+    print(val_set)
+    print(test_set)
+
+    return data_list, train_set, val_set, test_set
 
 
-def prefix_indices_with_student_id(index_list, student_id):
+def prefix_ids_with_student_id(index_list, student_id):
     return [str(student_id) + "_" + str(index) for index in index_list]
 
 
@@ -114,6 +131,33 @@ def get_test_train_split_split(all_ids):
     test_ids = all_ids[train_index_end + val_index_end:]
 
     return train_ids, val_ids, test_ids
+
+
+def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -1):
+    """
+    
+    @param data_list: The data for which slice is required. 
+    @param start_index: all indices before this are not considered for slicing. 
+    @param percent: Percentage of data that contributes to the slice. If percent = -1,
+           then everything from start_index to len(data) is returned.
+    @return: 
+    """
+    data_len = len(data_list)
+    slice_length = int(data_len*percent / 100)
+
+    assert 0 < percent <= 100 or percent == -1, "Percent value must be between 1 and 100 but got {}".format(percent)
+    assert 0 <= start_index < data_len
+    assert start_index + slice_length < data_len, "Over flow of data list. " \
+                                                  "Enter smaller percent value or reduce the start_index."
+
+    if percent == -1:
+        slice_data = data_list[start_index:]
+        end_index = data_len - 1
+    else:
+        slice_data = data_list[start_index: start_index+slice_length]
+        end_index = start_index + slice_length
+
+    return slice_data, end_index
 
 
 def get_data_for_pkl_file(*student_ids):
@@ -136,14 +180,18 @@ def get_data_for_pkl_file(*student_ids):
     raw_data = student_utils.get_var_binned_data_for_students(*student_ids)
 
     for it, student_id in enumerate(student_ids):
-        data_list = process_student_data(raw_data, student_id)
+        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data, student_id)
 
+        # Prefixing the IDs with student_id.
         for month_day, daily_data in data_list:
             data_key = str(student_id) + "_" + month_day
             data_dict[data_key] = daily_data
 
+        train_ids = prefix_ids_with_student_id(train_ids, student_id)
+        val_ids = prefix_ids_with_student_id(val_ids, student_id)
+        test_ids = prefix_ids_with_student_id(test_ids, student_id)
+
         data['data'] = data_dict
-        train_ids, val_ids, test_ids = get_test_train_split_split(list(data['data'].keys()))
         data['train_ids'] += train_ids
         data['val_ids'] += val_ids
         data['test_ids'] += test_ids
