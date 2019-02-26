@@ -1,6 +1,6 @@
 student_life_var_binned_data:
   students: [35]
   feature_list: ['activity_inference_mode', 'audio_activity_inference_mode', 'conv_duration_min_sum',
-  'dark_duration_min_sum', 'hours_slept_sum', 'latitude_mode', 'longitude_mode',
-  'phonecharge_duration_min_sum', 'phonelock_duration_min_sum', 'sleep_rating_sum']
+  'dark_duration_min_sum', 'phonecharge_duration_min_sum', 'phonelock_duration_min_sum',
+  'latitude_mode', 'longitude_mode', 'hours_slept_sum', 'sleep_rating_sum']
   label_list: ['stress_level_mode']
