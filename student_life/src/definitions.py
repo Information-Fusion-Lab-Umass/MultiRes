@@ -4,7 +4,7 @@ import pathlib
 from src.utils.read_utils import read_yaml
 
 # Defining Root Directory of the project.
-ROOT_DIR = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = str(pathlib.Path(os.path.dirname(os.path.abspath(__file__))))
 USER_HOME = pathlib.Path.home()
 
 # File and Key Names
@@ -15,8 +15,8 @@ BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min.csv"
 RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Config File Path
-FEATURE_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/feature_processing.yaml")
-DATA_GETTER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_getter_config.yaml")
+FEATURE_CONFIG_FILE_PATH = str(os.path.join(ROOT_DIR, "configurations/feature_processing.yaml"))
+DATA_GETTER_CONFIG_FILE_PATH = str(os.path.join(ROOT_DIR, "configurations/data_getter_config.yaml"))
 
 # Frequency constants
 DEFAULT_BASE_FREQ = 'min'
@@ -28,8 +28,8 @@ DATA_GETTER_FEATURE_LIST_CONFIG_KEY = "feature_list"
 DATA_GETTER_LABEL_LIST_CONFIG_KEY = "label_list"
 
 # Data Folder Paths - LOCAL
-MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
-BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
+MINIMAL_PROCESSED_DATA_PATH = str(os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data"))
+BINNED_ON_VAR_FREQ_DATA_PATH = str(os.path.join(ROOT_DIR, "../data/student_life_var_binned_data"))
 
 # Data Folder Paths - CLUSTER
 # Overwrite Global Constants when cluster mode on.

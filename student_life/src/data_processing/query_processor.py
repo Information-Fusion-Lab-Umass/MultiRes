@@ -1,6 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import urllib
+import sqlite3
 
 connection_string = "DRIVER={SQL Server Native Client 11.0};SERVER=LAPTOP-C3LFVOFI;DATABASE=student_life;UID=student_sense;PWD=abhinav123"
 
@@ -35,3 +36,4 @@ def exec_sql_query(query, param=None):
 
     del engine
     return df
+

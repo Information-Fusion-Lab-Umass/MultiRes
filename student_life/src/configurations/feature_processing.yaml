@@ -68,4 +68,4 @@ data_paths:
   cluster_data_path: "/mnt/nfs/scratch1/abhinavshaw/data"
 
 # This is true in gypsum cluster.
-cluster_mode: True
+cluster_mode: False

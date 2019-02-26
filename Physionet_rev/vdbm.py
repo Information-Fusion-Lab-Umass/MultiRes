@@ -26,7 +26,7 @@ class RNN_osaka(nn.Module):
         
         self.dict_selected_feats = {}
         if('feats_provided_flag'==True):
-            print "Oooh! the features are provided!"
+            print("Oooh! the features are provided!")
             self.dict_selected_feats = pickle.load(open(params['path_selected_feats']),'rb')
             for each_ind in range(self.num_features):
                 self.dict_selected_feats[each_ind] = [each_ind]+self.dict_selected_feats[each_ind]
@@ -52,7 +52,7 @@ class RNN_osaka(nn.Module):
         self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
         
         if(self.attn_category == 'dot'):
-            print "Dot Attention is being used!"
+            print("Dot Attention is being used!")
             self.attn = DotAttentionLayer(self.hidden_dim).cuda()
 
     
