@@ -108,9 +108,6 @@ def process_student_data(raw_data, student_id: int):
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]
     test_set = [month_day for month_day, data in test_set]
-    print(train_set)
-    print(val_set)
-    print(test_set)
 
     return data_list, train_set, val_set, test_set
 
@@ -143,7 +140,7 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
     @return: 
     """
     data_len = len(data_list)
-    slice_length = int(data_len*percent / 100)
+    slice_length = round(data_len*percent / 100)
 
     assert 0 < percent <= 100 or percent == -1, "Percent value must be between 1 and 100 but got {}".format(percent)
     assert 0 <= start_index < data_len

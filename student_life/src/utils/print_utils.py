@@ -1,4 +1,4 @@
-import bin.validations as validations
+import src.bin.validations as validations
 
 
 def data_debug_string(data: dict, seq_limit):
