@@ -3,15 +3,15 @@ from src.utils import student_utils
 from src.utils import read_utils
 from src.bin import validations as validations
 
-VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_GETTER_CONFIG_FILE_PATH)[
-    definitions.VAR_BINNED_DATA_GETTER_ROOT]
+VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
+    definitions.VAR_BINNED_DATA_MANAGER_ROOT]
 
-DEFAULT_STUDENT_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_STUDENT_LIST_CONFIG_KEY]
+DEFAULT_STUDENT_LIST = VAR_BINNED_DATA_CONFIG[definitions.STUDENT_LIST_CONFIG_KEY]
 available_students = student_utils.get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH)
 DEFAULT_STUDENT_LIST = list(set(DEFAULT_STUDENT_LIST).intersection(set(available_students)))
 
-FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_FEATURE_LIST_CONFIG_KEY]
-LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.DATA_GETTER_LABEL_LIST_CONFIG_KEY]
+FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.FEATURE_LIST_CONFIG_KEY]
+LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.LABEL_LIST_CONFIG_KEY]
 
 # These sizes are in percent of data.
 TRAIN_SET_SIZE = VAR_BINNED_DATA_CONFIG['train_set_size']
@@ -157,10 +157,10 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
     return slice_data, end_index
 
 
-def get_data_for_pkl_file(*student_ids):
+def get_data_for_training_in_dict_format(*student_ids):
     """
-    @todo(abhinavshaw): Make validation strategy general for all students and not whole data.
-    @attention: The student list is controlled by the configuration in the config.
+
+    @attention: If no student_ids given to function the default students are returned.
     @return: The processed data for all the students in the config.
     """
     if not student_ids:
