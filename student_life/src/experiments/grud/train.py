@@ -3,14 +3,14 @@ Script for training StudentLife on GRU-D
 """
 import torch
 
-import src.experiments.grud.helper as helper
-import src.bin.validations as validations
-import src.bin.trainer as trainer
-import src.bin.tensorify as tensorify
-
-from src.models.grud import GRUD
-from src.utils import read_utils as reader
+from src.bin import plotting
+from src.bin import scoring
+from src.experiments.grud import helper
+from src.bin import trainer
+from src.bin import tensorify
 from src import definitions
+from src.utils import read_utils as reader
+from src.models.grud import GRUD
 
 GRU_D_CONFIG = reader.read_yaml(definitions.MODEL_CONFIG_FILE_PATH)['gru_d']
 
@@ -46,7 +46,6 @@ def train_gru():
     num_layers = GRU_D_CONFIG['num_layers']
     x_mean = GRU_D_CONFIG['x_mean']
     learning_rate = GRU_D_CONFIG['learning_rate']
-    learning_rate_decay = GRU_D_CONFIG['learning_rate_decay']
     n_epochs = GRU_D_CONFIG['epochs']
 
     # Cuda Enabled.
@@ -56,12 +55,39 @@ def train_gru():
         cuda_enabled = False
 
     # Data to tensors
-    data = tensorify.tensorify_data_gru_d(data)
+    data = tensorify.tensorify_data_gru_d(data, cuda_enabled)
     model, criterion, optimizer = initialize_gru(num_features,
                                                  hidden_size,
                                                  output_size,
                                                  x_mean,
                                                  num_layers,
                                                  learning_rate)
+
+    loss_over_epochs, scores_over_epochs = plotting.get_stat_over_n_epoch_dictionaries()
+
+    for epoch in range(1, n_epochs+1):
+        print("xxxxxxxxxxxxxx epoch: {} xxxxxxxxxxxxxx".format(epoch))
+        train_loss, train_labels, train_preds = trainer.evaluate_set(data, 'train_ids', model, criterion, optimizer)
+        val_loss, val_labels, val_preds = trainer.evaluate_set(data, 'val_ids', model, criterion)
+        test_loss, test_labels, test_preds = trainer.evaluate_set(data, 'train_ids', model, criterion)
+
+        loss_over_epochs['train_loss'].append(train_loss)
+        loss_over_epochs['val_loss'].append(val_loss)
+        loss_over_epochs['test_loss'].append(test_loss)
+
+        train_scores, val_scores, test_scores = scoring.get_precission_recall_f_scores(train_labels=train_labels,
+                                                                                       train_preds=train_preds,
+                                                                                       val_labels=val_labels,
+                                                                                       val_preds=val_preds,
+                                                                                       test_labels=test_labels,
+                                                                                       test_preds=test_preds)
+
+        scores_over_epochs['train_scores'].append(train_scores)
+        scores_over_epochs['val_scores'].append(val_scores)
+        scores_over_epochs['test_scores'].append(test_scores)
+
+        plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', fig_size=(8, 5))
+        plotting.plot_loss_over_n_epochs(loss_over_epochs, fig_size=(8, 5))
+
 
 train_gru()

@@ -34,7 +34,8 @@ def get_data_for_single_day(training_values, missing_values, time_delta, y_label
     @param training_values:
     @param missing_values:
     @param time_delta:
-    @param y_label:
+    @param y_labels:
+    @param label_idx:
     @return: Return split for a single day. i.e. One label corresponds to several data points,
              takes in raw data frame and the label for which the split has to be calculated.
     """
@@ -61,6 +62,7 @@ def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_l
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
 
+    # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
     for label_idx in range(len(y_labels)-1):
         month_day = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day)

@@ -54,3 +54,19 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
     plt.show()
     if fig_file_path:
         plt.savefig(fig_file_path)
+
+
+def get_stat_over_n_epoch_dictionaries():
+    loss_over_epochs = {
+        "train_loss": [],
+        "val_loss": [],
+        "test_loss": []
+    }
+
+    scores_over_epochs = {
+        "train_scores": [],
+        "val_scores": [],
+        "test_scores": []
+    }
+
+    return loss_over_epochs, scores_over_epochs
