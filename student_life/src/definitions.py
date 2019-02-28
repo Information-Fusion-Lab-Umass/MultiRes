@@ -12,20 +12,23 @@ STUDENT_FOLDER_NAME_PREFIX = "student_"
 BINNED_DATA_FILE_NAME = "var_binned_data"
 BINNED_DATA_MISSING_VALES_FILE_NAME = "missing_values_mask"
 BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min"
-RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Config File Path
 FEATURE_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/feature_processing.yaml")
-DATA_GETTER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_getter_config.yaml")
+DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_manager_config.yaml")
+MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
 
 # Frequency constants
 DEFAULT_BASE_FREQ = 'min'
 
-# Data Getter config Keys
-VAR_BINNED_DATA_GETTER_ROOT = "student_life_var_binned_data"
-DATA_GETTER_STUDENT_LIST_CONFIG_KEY = "students"
-DATA_GETTER_FEATURE_LIST_CONFIG_KEY = "feature_list"
-DATA_GETTER_LABEL_LIST_CONFIG_KEY = "label_list"
+# Data manager config Keys
+VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"
+
+# Universal Config Keys.
+STUDENT_LIST_CONFIG_KEY = "student_list"
+FEATURE_LIST_CONFIG_KEY = "feature_list"
+LABEL_LIST_CONFIG_KEY = "label_list"
+RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Data Folder Paths - LOCAL
 MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
