@@ -48,11 +48,13 @@ def train_gru():
     learning_rate = GRU_D_CONFIG['learning_rate']
     n_epochs = GRU_D_CONFIG['epochs']
 
-    # Cuda Enabled.
-    if torch.cuda.device_count() >0:
+    # CUDA Enabled.
+    if torch.cuda.device_count() > 0:
         cuda_enabled = True
     else:
         cuda_enabled = False
+
+    print("CUDA Status: ", cuda_enabled, end="\n\n")
 
     # Data to tensors
     data = tensorify.tensorify_data_gru_d(data, cuda_enabled)
@@ -65,7 +67,7 @@ def train_gru():
 
     loss_over_epochs, scores_over_epochs = plotting.get_stat_over_n_epoch_dictionaries()
 
-    for epoch in range(1, n_epochs+1):
+    for epoch in range(1, n_epochs + 1):
         print("xxxxxxxxxxxxxx epoch: {} xxxxxxxxxxxxxx".format(epoch))
         train_loss, train_labels, train_preds = trainer.evaluate_set(data, 'train_ids', model, criterion, optimizer)
         val_loss, val_labels, val_preds = trainer.evaluate_set(data, 'val_ids', model, criterion)
@@ -86,8 +88,16 @@ def train_gru():
         scores_over_epochs['val_scores'].append(val_scores)
         scores_over_epochs['test_scores'].append(test_scores)
 
-        plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', fig_size=(8, 5))
-        plotting.plot_loss_over_n_epochs(loss_over_epochs, fig_size=(8, 5))
+        # Plot every 10 Epochs.
+        if epoch % 10 == 0:
+            plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', fig_size=(8, 5))
+            plotting.plot_loss_over_n_epochs(loss_over_epochs, fig_size=(8, 5))
+
+        print("Train Loss: {} Val Loss: {} Test Loss: {}".format(loss_over_epochs['train_loss'],
+                                                                 loss_over_epochs['val_loss'],
+                                                                 loss_over_epochs['test_loss']))
+        val_precision, val_recall, val_f1, _ = val_scores
+        print("Precision: {} Recall: {} F1 Score: {}".format(val_precision, val_recall, val_f1))
 
 
 train_gru()
