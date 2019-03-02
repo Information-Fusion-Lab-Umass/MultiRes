@@ -90,8 +90,8 @@ def train_gru():
 
         # Plot every 10 Epochs.
         if epoch % 10 == 0:
-            plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', fig_size=(8, 5))
-            plotting.plot_loss_over_n_epochs(loss_over_epochs, fig_size=(8, 5))
+            plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', file_path="./gru_d/f1_at_epoch_{}".format(epoch))
+            plotting.plot_loss_over_n_epochs(loss_over_epochs, file_path="./gru_d/loss_at_epoch_{}".format(epoch))
 
         print("Train Loss: {} Val Loss: {} Test Loss: {}".format(loss_over_epochs['train_loss'],
                                                                  loss_over_epochs['val_loss'],

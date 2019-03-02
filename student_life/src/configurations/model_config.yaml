@@ -6,4 +6,4 @@ gru_d:
   learning_rate:  0.2
   learning_rate_decay: 100
   epochs: 20
-  student_list: [35, 32, 36, 42, 43, 44, 1, 45, 49]
+  student_list: [35, 32, 36, 42, 43, 44, 1, 45]
