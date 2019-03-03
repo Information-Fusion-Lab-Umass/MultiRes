@@ -4,6 +4,14 @@ import numpy as np
 from src import definitions
 from src.utils.aggregation_utils import mode
 from src.bin import validations as validations
+from src.data_processing import covariates as covariate_processor
+
+
+COVARIATE_FUNC_MAPPING = {
+    'day_of_week': covariate_processor.day_of_week,
+    'epoch_of_day': covariate_processor.epoch_of_day,
+    'gender': covariate_processor.evaluate_gender
+}
 
 
 def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
@@ -176,3 +184,17 @@ def get_missing_data_mask(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     missing_value_mask.iloc[:, 1:] = flattened_student_data.iloc[:, 1:].isnull().astype(int)
 
     return missing_value_mask
+
+
+def process_covariates(flattened_student_data: pd.DataFrame, covariates: dict) -> pd.DataFrame:
+    """
+
+    @param flattened_student_data:
+    @return: Data frame after processing covariates.
+    """
+
+    for covariate, bool_flag in covariates.items():
+        if bool_flag:
+            flattened_student_data = COVARIATE_FUNC_MAPPING[covariate](flattened_student_data)
+
+    return flattened_student_data
