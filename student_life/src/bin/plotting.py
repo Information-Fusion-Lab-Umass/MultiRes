@@ -1,11 +1,13 @@
 import os
 import matplotlib.pyplot as plt
 
+from src.utils import read_utils as reader
 from src import definitions
 
 LOSS_OVER_N_EPOCHS_DICT_KEYS = ["train_loss", "val_loss", "test_loss"]
 SCORE_KEY_MAP = {'precision': 0, 'recall': 1, 'f1': 2}
 PLOTTING_ROOT = os.path.join(definitions.ROOT_DIR, "../plots/")
+CLUSTER_MODE = reader.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)['cluster_mode']
 
 
 # todo(abihnavshaw): Move this to validations.
@@ -34,7 +36,9 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
         ax.plot(range(1, n_epochs + 1), loss_over_n_epochs[key], label=key)
 
     plt.legend()
-    plt.show()
+    if not CLUSTER_MODE:
+        plt.show()
+
     if file_path:
         file_path = os.path.join(PLOTTING_ROOT, file_path)
         print("File Path: ", file_path)
@@ -64,7 +68,9 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
         ax.plot(range(1, n_epochs + 1), f1_score, label=key)
 
     plt.legend()
-    plt.show()
+    if not CLUSTER_MODE:
+        plt.show()
+
     if file_path:
         file_path = os.path.join(PLOTTING_ROOT, file_path)
         fig.savefig(file_path)

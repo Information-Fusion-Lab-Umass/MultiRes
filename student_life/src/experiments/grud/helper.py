@@ -3,7 +3,6 @@ Script that
 """
 import src.data_manager.student_life_var_binned_data_manager as data_manager
 import src.utils.data_conversion_utils as conversions
-import src.bin.tensorify as tensorify
 
 
 def get_data_for_gru_d(*student_ids):
