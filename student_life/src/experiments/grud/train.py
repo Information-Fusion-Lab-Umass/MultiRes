@@ -13,7 +13,7 @@ from src.utils import read_utils as reader
 from src.models.grud import GRUD
 
 GRU_D_CONFIG = reader.read_yaml(definitions.MODEL_CONFIG_FILE_PATH)['gru_d']
-
+CLUSTER_MODE = reader.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)['cluster_mode']
 
 def initialize_gru(num_features, hidden_size, output_size,
                    x_mean, num_layers, learning_rate, dropout_type='mloss'):
@@ -89,7 +89,7 @@ def train_gru():
         scores_over_epochs['test_scores'].append(test_scores)
 
         # Plot every 10 Epochs.
-        if epoch % 10 == 0:
+        if epoch % 10 == 0 and not CLUSTER_MODE:
             plotting.plot_score_over_n_epochs(scores_over_epochs, score_type='f1', file_path="./gru_d/f1_at_epoch_{}".format(epoch))
             plotting.plot_loss_over_n_epochs(loss_over_epochs, file_path="./gru_d/loss_at_epoch_{}".format(epoch))
 
