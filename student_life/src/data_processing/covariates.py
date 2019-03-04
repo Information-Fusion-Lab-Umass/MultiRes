@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def day_of_week(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
@@ -25,7 +26,6 @@ def epoch_of_day(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
 
 
 def evaluate_epoch(hour):
-
     if 0 <= hour < 6:
         return 0
     if 6 <= hour < 12:
@@ -34,6 +34,31 @@ def evaluate_epoch(hour):
         return 2
     else:
         return 3
+
+
+def time_since_last_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    null_mask = flattened_student_data['stress_level_mode'].isnull()
+    flattened_student_data.insert(loc=3, column='time_since_last_label', value=flattened_student_data.index)
+    flattened_student_data.loc[null_mask, 'time_since_last_label'] = np.nan
+    flattened_student_data['time_since_last_label'].fillna(method='ffill', inplace=True)
+    # Filling the sequences which do not have a last label and appear first in the data set.
+    flattened_student_data['time_since_last_label'].fillna(0)
+    flattened_student_data['time_since_last_label'] = (flattened_student_data.index - flattened_student_data[
+        'time_since_last_label']).astype('timedelta64[m]')
+
+    return flattened_student_data
+
+
+def time_to_next_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    null_mask = flattened_student_data['stress_level_mode'].isnull()
+    flattened_student_data.insert(loc=4, column='time_to_next_label', value=flattened_student_data.index)
+    flattened_student_data.loc[null_mask, 'time_to_next_label'] = np.nan
+    flattened_student_data['time_to_next_label'].fillna(method='bfill', inplace=True)
+    flattened_student_data['time_to_next_label'] = (flattened_student_data[
+                          'time_to_next_label'] - flattened_student_data.index).astype('timedelta64[m]')
+    flattened_student_data['time_to_next_label'].fillna(0)
+
+    return flattened_student_data
 
 
 def evaluate_gender(flattened_student_data: pd.DataFrame) -> pd.DataFrame:

@@ -50,6 +50,8 @@ features:
 covariates:
   day_of_week: True
   epoch_of_day: True
+  time_since_last_label: True
+  time_to_next_label: True
   gender: False
 
 

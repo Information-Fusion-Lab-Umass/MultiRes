@@ -10,6 +10,8 @@ from src.data_processing import covariates as covariate_processor
 COVARIATE_FUNC_MAPPING = {
     'day_of_week': covariate_processor.day_of_week,
     'epoch_of_day': covariate_processor.epoch_of_day,
+    'time_since_last_label': covariate_processor.time_since_last_label_min,
+    'time_to_next_label': covariate_processor.time_to_next_label_min,
     'gender': covariate_processor.evaluate_gender
 }
 
@@ -190,6 +192,7 @@ def process_covariates(flattened_student_data: pd.DataFrame, covariates: dict) -
     """
 
     @param flattened_student_data:
+    @param covariates: Dictionary of covariates and their boolean flags.
     @return: Data frame after processing covariates.
     """
 
