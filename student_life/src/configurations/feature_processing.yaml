@@ -43,7 +43,7 @@ features:
     custom_aggregates: ["mode"]
 
   stress_details:
-    resample_freq_min: 720
+    resample_freq_min: 1
     simple_aggregates: []
     custom_aggregates: ["mode"]
 
