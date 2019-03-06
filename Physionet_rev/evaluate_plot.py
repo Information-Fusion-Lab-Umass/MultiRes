@@ -36,7 +36,8 @@ def evaluate_dbm(model, data, data_choice):
         preds+=ind.tolist()
         
         labels = [data['data'][each_ID_t][-1]]
-        labels = [batchify.label_mapping[x] for x in labels]
+        # labels = [batchify.label_mapping[x] for x in labels]
+        # labels = [ for x in labels]
         actual+=labels
     df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
                        columns = [0,1])
@@ -63,12 +64,12 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     plt.legend()
     plt.savefig(fig_name)
     plt.show()
-    print "=="*5+max_key+"=="*4
-    print "TRAIN: "+str(get_prf_metrics(data[max_key],'train'))
-    print "VAL: "+str(get_prf_metrics(data[max_key],'val'))
-    print "TEST: "+str(get_prf_metrics(data[max_key],'test'))
-    print "=="*4+" Detailed Results "+"=="*4
-    print data[max_key]
+    # print("=="*5+max_key+"=="*4)
+    # print("TRAIN: "+str(get_prf_metrics(data[max_key],'train')))
+    # print("VAL: "+str(get_prf_metrics(data[max_key],'val')))
+    # print("TEST: "+str(get_prf_metrics(data[max_key],'test')))
+    # print("=="*4+" Detailed Results "+"=="*4)
+    # print(data[max_key])
     
 def get_prf_metrics(data, key):
     if(key=='train'):

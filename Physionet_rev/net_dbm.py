@@ -26,7 +26,7 @@ class RNN_osaka(nn.Module):
         
         self.dict_selected_feats = {}
         for each_ind in range(self.num_features):
-            all_feats = range(self.num_features)
+            all_feats = list(range(self.num_features))
             all_feats.remove(each_ind)
             random.shuffle(all_feats)
             self.dict_selected_feats[each_ind] = [each_ind] + all_feats[:self.selected_feats]
@@ -38,7 +38,7 @@ class RNN_osaka(nn.Module):
 #         self.imputation_layer_op = nn.Linear(self.imputation_layer_dim, 1)
         
         if(self.bilstm_flag):
-            self.lstm = nn.LSTM(self.input_dim, self.hidden_dim/2, num_layers = self.layers,
+            self.lstm = nn.LSTM(self.input_dim, int(self.hidden_dim/2), num_layers = self.layers,
                                 bidirectional=True, batch_first=True, dropout=self.dropout)
         else:
             self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers = self.layers, 
@@ -58,11 +58,11 @@ class RNN_osaka(nn.Module):
             return (autograd.Variable(torch #.cuda
                                         .FloatTensor(self.layers*2,
                                                             batch_size,
-                                                            self.hidden_dim/2).fill_(0)),
+                                                            int(self.hidden_dim/2)).fill_(0)),
                    autograd.Variable(torch #.cuda
                                         .FloatTensor(self.layers*2,
                                                             batch_size,
-                                                            self.hidden_dim/2).fill_(0)))
+                                                            int(self.hidden_dim/2)).fill_(0)))
         else:
             return (autograd.Variable(torch #.cuda
                                         .FloatTensor(self.layers,
@@ -100,6 +100,10 @@ class RNN_osaka(nn.Module):
         return tag_score
     
     def get_imputed_feats(self, feats, flags, dict_selected_feats):
+        # print(type(feats), len(feats))
+        # print(type(feats[0]), len(feats[0]))
+        # print(type(flags), len(flags))
+
         feats = np.asarray(feats)
         flags = np.asarray(flags)
         all_features = []
