@@ -12,6 +12,8 @@ def get_data_and_label_tensor(data: dict, key, cuda_enabled):
     @return: Returns tensors that can be used for training on the models.
     """
     validations.validate_data_dict_keys(data)
+    assert len(data['data'][key]) == 4, \
+        "Missing one of the following 'Actual Data', 'Missing Flags', 'Time Deltas', 'label' "
 
     tensor_data = torch.tensor(list(data['data'][key][:3]))
     train_label = torch.from_numpy(data['data'][key][3]).item()

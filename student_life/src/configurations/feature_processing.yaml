@@ -43,9 +43,17 @@ features:
     custom_aggregates: ["mode"]
 
   stress_details:
-    resample_freq_min: 1440
+    resample_freq_min: 1
     simple_aggregates: []
     custom_aggregates: ["mode"]
+
+covariates:
+  day_of_week: True
+  epoch_of_day: True
+  time_since_last_label: True
+  time_to_next_label: True
+  gender: False
+
 
 # Todo(@abhinavshaw) : Check this feature out. Data Doesn't make sense.
 #  call_log_details:

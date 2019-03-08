@@ -1,3 +1,5 @@
+import pandas as pd
+
 from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
@@ -17,6 +19,12 @@ LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.LABEL_LIST_CONFIG_KEY]
 TRAIN_SET_SIZE = VAR_BINNED_DATA_CONFIG['train_set_size']
 VAL_SET_SIZE = VAR_BINNED_DATA_CONFIG['val_set_size']
 TEST_SET_SIZE = VAR_BINNED_DATA_CONFIG['test_set_size']
+
+TIME_DELTA_BEHIND_FROM_LABEL_H = VAR_BINNED_DATA_CONFIG['time_deltas']['time_delta_behind_from_label_h']
+TIME_DELTA_AHEAD_FROM_LABEL_H = VAR_BINNED_DATA_CONFIG['time_deltas']['time_delta_ahead_from_label_h']
+TIME_DELTA_BEHIND_FROM_LABEL_H = pd.Timedelta(str(TIME_DELTA_BEHIND_FROM_LABEL_H) + ' hours')
+TIME_DELTA_AHEAD_FROM_LABEL_H = pd.Timedelta(str(TIME_DELTA_AHEAD_FROM_LABEL_H) + ' hours')
+USE_TIME_DELTA_BASED_PROCESSING = VAR_BINNED_DATA_CONFIG['time_deltas']['use_time_delta_based_processing']
 
 
 def convert_df_to_tuple(*data_frames):
@@ -48,6 +56,7 @@ def get_data_for_single_day(training_values, missing_values, time_delta, y_label
             int(y_labels.loc[day_string, :].values[0]))
 
 
+# Todo(abhinavshaw): Merge common parts of this method and time delta base processing.
 def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_labels):
     """
     @attention: Long code ahead!
@@ -64,13 +73,71 @@ def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_l
 
     # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
-    for label_idx in range(len(y_labels)-1):
+    for label_idx in range(len(y_labels) - 1):
         month_day = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day)
         data_list.append((month_day, get_data_for_single_day(training_values,
                                                              missing_values,
                                                              time_deltas,
                                                              y_labels,
                                                              y_labels.index[label_idx])))
+
+    return data_list
+
+
+def check_if_enough_data(training_vales: pd.DataFrame, time_indices_to_keep):
+    required_len = len(time_indices_to_keep)
+    intersection_len = len(training_vales.index.intersection(time_indices_to_keep))
+
+    return required_len == intersection_len
+
+
+def get_data_for_single_label_based_on_time_delta(training_values, missing_values,
+                                                  time_delta, y_labels,label_idx):
+    time_indices_to_keep = pd.date_range(label_idx - TIME_DELTA_BEHIND_FROM_LABEL_H,
+                                         label_idx + TIME_DELTA_AHEAD_FROM_LABEL_H,
+                                         freq=definitions.DEFAULT_BASE_FREQ,
+                                         closed="left")
+
+    # No-op if enough data is not available.
+    if not check_if_enough_data(training_values, time_indices_to_keep):
+        return
+
+    training_values = training_values.reindex(time_indices_to_keep)
+    missing_values = missing_values.reindex(time_indices_to_keep)
+    time_delta = time_delta.reindex(time_indices_to_keep)
+
+    return (training_values.values.tolist(),
+            missing_values.values.tolist(),
+            time_delta.values.tolist(),
+            y_labels.loc[label_idx])
+
+
+def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missing_values, time_delta, y_labels):
+    """
+
+    @param training_values: Data for one student.
+    @param missing_values: Missing values for one student.
+    @param time_delta: Time deltas for one student.
+    @param y_labels: Labels for training. Can have null values.
+    @return: Trimmed data based on time delta.
+    """
+    validations.validate_data_integrity_for_len(training_values, missing_values, time_delta, y_labels)
+    data_list = []
+    # todo(abhinavshaw): make it general for all the labels.
+    y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
+
+    # todo(abihnavshaw): Process on whole data once fixed issue with last label.
+    # len(y_label) -1 to ignore the last label.
+    for label_idx in range(len(y_labels) - 1):
+        data = get_data_for_single_label_based_on_time_delta(training_values,
+                                                             missing_values,
+                                                             time_delta,
+                                                             y_labels,
+                                                             y_labels.index[label_idx])
+        if data:
+            month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
+                             + str(y_labels.index[label_idx].hour)
+            data_list.append((month_day_hour, data))
 
     return data_list
 
@@ -97,10 +164,17 @@ def process_student_data(raw_data, student_id: int):
 
     # Filling missing Values
     training_values.fillna(value=-1, inplace=True)
-    data_list = split_data_to_list_of_days(training_values,
-                                           missing_values,
-                                           time_deltas,
-                                           y_labels)
+    # todo(abhinavshaw): Change this if else clause to a dictionary of functions.
+    if USE_TIME_DELTA_BASED_PROCESSING:
+        data_list = split_data_into_list_based_on_time_deltas_wrt_labels(training_values,
+                                                                         missing_values,
+                                                                         time_deltas,
+                                                                         y_labels)
+    else:
+        data_list = split_data_to_list_of_days(training_values,
+                                               missing_values,
+                                               time_deltas,
+                                               y_labels)
 
     # Splitting data into Train, Val  and Test Split.
     train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=TRAIN_SET_SIZE)
@@ -142,7 +216,7 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
     @return: 
     """
     data_len = len(data_list)
-    slice_length = round(data_len*percent / 100)
+    slice_length = round(data_len * percent / 100)
 
     assert 0 < percent <= 100 or percent == -1, "Percent value must be between 1 and 100 but got {}".format(percent)
     assert 0 <= start_index < data_len
@@ -153,7 +227,7 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
         slice_data = data_list[start_index:]
         end_index = data_len - 1
     else:
-        slice_data = data_list[start_index: start_index+slice_length]
+        slice_data = data_list[start_index: start_index + slice_length]
         end_index = start_index + slice_length
 
     return slice_data, end_index
