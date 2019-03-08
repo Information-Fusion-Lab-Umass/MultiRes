@@ -36,7 +36,7 @@ def evaluate_dbm(model, data, data_choice):
         preds+=ind.tolist()
         
         labels = [data['data'][each_ID_t][-1]]
-        labels = [batchify.label_mapping[x] for x in labels]
+        # labels = [batchify.label_mapping[x] for x in labels]
         actual+=labels
     df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
                        columns = [0,1])
