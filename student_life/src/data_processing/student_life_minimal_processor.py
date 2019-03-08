@@ -64,7 +64,8 @@ for student in distinct_students:
 
         # Truncating extra features that do not lie in the time frame.
         feature_data = feature_data[
-            np.logical_and(feature_data[time_column] > first_date, feature_data[time_column] < last_date)]
+            np.logical_and(feature_data[time_column] > first_date, feature_data[time_column] < last_date)
+        ]
 
         if feature_data.empty:
             print("Empty DataFrame for Student {} for feature {}".format(student, key))

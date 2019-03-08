@@ -12,13 +12,18 @@ from src.utils import student_utils
 from src.data_processing import helper
 
 # Reading Configs.
-FEATURE_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
-AVAILABLE_FEATURE = FEATURE_CONFIG.keys()
-STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
-AVAILABLE_STUDENTS = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
-students = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
-
+FEATURE_CONFIG      = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
+AVAILABLE_FEATURE   = FEATURE_CONFIG.keys()
+STUDENT_CONFIG      = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
+AVAILABLE_STUDENTS  = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
+students            = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
+FFILL_STRESS        = True # f 
+print("TEST")
 def run():
+    global AVAILABLE_STUDENTS
+    print(students)
+
+    print(AVAILABLE_STUDENTS)
     if students:
         AVAILABLE_STUDENTS = list(set(students).intersection(set(AVAILABLE_STUDENTS)))
 
@@ -40,6 +45,11 @@ def run():
         student_data_flattened = helper.get_flattened_student_data_from_list(student_data, student_id)
         student_data_flattened = helper.replace_neg_one_with_nan(student_data_flattened)
         student_data_flattened_processed = helper.remove_days_with_no_stress_label(student_data_flattened)
+        if (FFILL_STRESS):
+            cols = list(student_data_flattened_processed)
+            stress_keys = list(filter(lambda x: 'stress' in x, cols))
+            student_data_flattened.loc[:, stress_keys] = student_data_flattened.loc[:, stress_keys].fillna(method='ffill')
+
         missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
         time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 
