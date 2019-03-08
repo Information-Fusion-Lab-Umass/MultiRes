@@ -21,8 +21,8 @@ def evaluate_(model, data, data_choice, batch_size, num_of_features, feature_ind
         
         labels = labels.tolist()
         actual+=labels
-    df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1,2])),
-                       columns = [0,1,2])
+    df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
+                       columns = [0,1])
     df_.index = ['Precision','Recall','F-score','Count']
     return precision_recall_fscore_support(actual, preds, average='weighted'), df_
 
@@ -38,8 +38,8 @@ def evaluate_dbm(model, data, data_choice):
         labels = [data['data'][each_ID_t][-1]]
         labels = [batchify.label_mapping[x] for x in labels]
         actual+=labels
-    df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1,2])),
-                       columns = [0,1,2])
+    df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
+                       columns = [0,1])
     df_.index = ['Precision','Recall','F-score','Count']
     return precision_recall_fscore_support(actual, preds, average='weighted'), df_
 
