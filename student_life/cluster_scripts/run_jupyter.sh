@@ -26,5 +26,6 @@ localhost:${port}  (prefix w/ https:// if using password)
 
 # DON'T USE ADDRESS BELOW.
 # DO USE TOKEN BELOW
+cd ~
 jupyter-notebook --no-browser --port=${port} --ip=${node}
 
