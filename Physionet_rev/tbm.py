@@ -10,7 +10,8 @@ import numpy as np
 class RNN_osaka(nn.Module):
     def __init__(self, params):
         super(RNN_osaka, self).__init__()
-        
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        print("DEVICE: {}".format(self.device))
         self.bilstm_flag = params['bilstm_flag']
         self.dropout = params['dropout']
         self.layers = params['layers']
@@ -41,7 +42,7 @@ class RNN_osaka(nn.Module):
         
         if(self.attn_category == 'dot'):
             print("Dot Attention is being used!")
-            self.attn = DotAttentionLayer(self.hidden_dim) #.cuda()
+            self.attn = DotAttentionLayer(self.hidden_dim).to(self.device)
 
     
     def init_hidden(self, batch_size):
@@ -50,20 +51,28 @@ class RNN_osaka(nn.Module):
             return (autograd.Variable(torch.FloatTensor(self.layers*2,
             # return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                              batch_size,
-                                                             int(self.hidden_dim/2)).fill_(0)),
+                                                             int(self.hidden_dim/2))
+                                                             .to(self.device)
+                                                             .fill_(0)),
                    autograd.Variable(torch.FloatTensor(self.layers*2,
                 #    \autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                             batch_size,
-                                                            int(self.hidden_dim/2)).fill_(0)))
+                                                            int(self.hidden_dim/2))
+                                                            .to(self.device)
+                                                            .fill_(0)))
         else:
             return (autograd.Variable(torch.FloatTensor(self.layers,
             # return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
-                                                             self.hidden_dim).fill_(0)),
+                                                             self.hidden_dim)
+                                                             .to(self.device)
+                                                             .fill_(0)),
                    autograd.Variable(torch.FloatTensor(self.layers,
                 #    autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                             batch_size,
-                                                            self.hidden_dim).fill_(0)))
+                                                            self.hidden_dim)
+                                                            .to(self.device)
+                                                            .fill_(0)))
     
     def forward(self, data, id_):
 #         features = self.LL(features)
@@ -72,7 +81,7 @@ class RNN_osaka(nn.Module):
         features = self.LL(features)                 
         lenghts = [features.shape[1]]
         # lengths = torch.cuda.LongTensor(lenghts)
-        lengths = torch.LongTensor(lenghts)
+        lengths = torch.LongTensor(lenghts).to(self.device)
         lengths = autograd.Variable(lengths)
         
         packed = pack_padded_sequence(features, lengths, batch_first = True)
@@ -84,7 +93,7 @@ class RNN_osaka(nn.Module):
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
         
         if(self.attn_category=='dot'):
-            pad_attn = self.attn((lstm_out, torch.LongTensor(lengths)))
+            pad_attn = self.attn((lstm_out, torch.LongTensor(lengths).to(self.device)))
             # pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))
             tag_space = self.hidden2tag(pad_attn)
         else:
@@ -142,7 +151,7 @@ class RNN_osaka(nn.Module):
                 final_feat_list.append(feat_val)
             all_features.append(final_feat_list)
         # all_features = torch.cuda.FloatTensor(all_features)
-        all_features = torch.FloatTensor(all_features)
+        all_features = torch.FloatTensor(all_features).to(self.device)
 
         # for feat_ind in range(num_features):
         #     final_feat_list = []
@@ -191,11 +200,11 @@ class RNN_osaka(nn.Module):
             sorted_features.append(features[ind])
             sorted_labels.append(labels[ind])
 
-        sorted_features = torch.FloatTensor(sorted_features)
+        sorted_features = torch.FloatTensor(sorted_features).to(self.device)
         # sorted_features = torch.cuda.FloatTensor(sorted_features)
         sorted_features = autograd.Variable(sorted_features)
 
-        sorted_labels = torch.LongTensor(sorted_labels)
+        sorted_labels = torch.LongTensor(sorted_labels).to(self.device)
         # sorted_labels = torch.cuda.LongTensor(sorted_labels)
         sorted_labels = autograd.Variable(sorted_labels)
 
@@ -206,6 +215,7 @@ class DotAttentionLayer(nn.Module):
     def __init__(self, hidden_size):
         super(DotAttentionLayer, self).__init__()
         self.hidden_size = hidden_size
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.W = nn.Linear(hidden_size, 1, bias=False)
 
     def forward(self, input):
@@ -220,7 +230,7 @@ class DotAttentionLayer(nn.Module):
 
         # computing mask
         # idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).cuda()
-        idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0)
+        idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).to(self.device)
         mask = autograd.Variable((idxes<lengths.unsqueeze(1)).float())
 
         alphas = alphas * mask
