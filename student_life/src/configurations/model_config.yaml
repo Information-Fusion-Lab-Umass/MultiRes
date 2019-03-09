@@ -1,0 +1,9 @@
+gru_d:
+  classes: 5
+  # This is actually the Number of sequences to be considered.
+  num_layers: 1440
+  x_mean: [0.0, 0.0, 10.0, 10.0, 0.0, 600.0, 0.0, 0.0, 8.0, 3.0]
+  learning_rate:  0.2
+  learning_rate_decay: 100
+  epochs: 20
+  student_list: [35, 32, 36, 42, 43, 44, 1, 45]

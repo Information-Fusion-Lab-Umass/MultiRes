@@ -2,11 +2,11 @@ import torch
 import torch.autograd as autograd
 import numpy as np
 
-# label_mapping = {'SlopeDown.csv':0, 
-#                  'SlopeUp.csv':1, 
-#                  'Walk1.csv':2, 
-#                  'Walk2.csv':2}
-label_mapping = {0:0,1:1}
+label_mapping = {'SlopeDown.csv':0, 
+                 'SlopeUp.csv':1, 
+                 'Walk1.csv':2, 
+                 'Walk2.csv':2}
+# label_mapping = {0:0,1:1}   
 # num_of_features = 8
 
 def prepare_batch(dict_data, ids, num_of_features, feature_ind, label_ind):

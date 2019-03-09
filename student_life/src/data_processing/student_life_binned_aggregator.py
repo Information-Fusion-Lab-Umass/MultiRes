@@ -12,21 +12,18 @@ from src.utils import student_utils
 from src.data_processing import helper
 
 # Reading Configs.
-FEATURE_CONFIG      = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
-AVAILABLE_FEATURE   = FEATURE_CONFIG.keys()
-STUDENT_CONFIG      = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
-AVAILABLE_STUDENTS  = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
-students            = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
-FFILL_STRESS        = True # f 
-print("TEST")
+
+FEATURE_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['features']
+AVAILABLE_FEATURE = FEATURE_CONFIG.keys()
+COVARIATES = read_yaml(FEATURE_CONFIG_FILE_PATH)['covariates']
+STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
+AVAILABLE_STUDENTS = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
+students = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
+FFILL_STRESS = True
+
+
 def run():
     global AVAILABLE_STUDENTS
-    print(students)
-
-    print(AVAILABLE_STUDENTS)
-    if students:
-        AVAILABLE_STUDENTS = list(set(students).intersection(set(AVAILABLE_STUDENTS)))
-
     ############## Main Loop To Process Data ##################
 
     for student_id in AVAILABLE_STUDENTS:
@@ -50,6 +47,7 @@ def run():
             stress_keys = list(filter(lambda x: 'stress' in x, cols))
             student_data_flattened.loc[:, stress_keys] = student_data_flattened.loc[:, stress_keys].fillna(method='ffill')
 
+        student_data_flattened_processed = helper.process_covariates(student_data_flattened_processed, COVARIATES)
         missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
         time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 
@@ -67,5 +65,7 @@ def run():
 
         print("Processed for student_id: {}".format(student_id))
 
+
 if __name__ == '__main__':
     run()
+
