@@ -65,6 +65,8 @@ class Imputation(nn.Module):
             else:
                 self.dense_layers.append(nn.Linear(self.imputation_layer_dim_in, self.imputation_layer_dim_op))
 
+        self.init_weight()
+
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
             self.sp_attns = nn.ModuleList([])
@@ -90,6 +92,10 @@ class Imputation(nn.Module):
                 self.attn = DotAttentionLayer(self.hidden_dim).cuda()
             else:
                 self.attn = DotAttentionLayer(self.hidden_dim)
+
+    def init_weight(self):
+        for layer in self.dense_layers:
+            torch.nn.init.xavier_uniform(layer.weight)
 
     def init_hidden(self, batch_size):
         if self.bilstm_flag:
@@ -123,14 +129,16 @@ class Imputation(nn.Module):
                                                                  batch_size,
                                                                  self.hidden_dim).fill_(0)))
 
-    def forward(self, data, id_):
-        features = self.get_imputed_feats(data[id_][0], data[id_][1], self.dict_selected_feats)
+    def forward(self, input_):
+        # input_ should be a dict that contains information about one data point (one batch)
+        # this datapoint has structure: {feat_id : [seq_len, 4] matrix}
+        features = self.get_imputed_feats(input_, self.dict_selected_feats)
         # print(features)
-        lenghts = [features.shape[1]]
+        lengths = [features.shape[1]]
         if is_cuda:
-            lengths = torch.cuda.LongTensor(lenghts)
+            lengths = torch.cuda.LongTensor(lengths)
         else:
-            lengths = torch.LongTensor(lenghts)
+            lengths = torch.LongTensor(lengths)
         lengths = autograd.Variable(lengths)
 
         packed = pack_padded_sequence(features, lengths, batch_first=True)
@@ -177,47 +185,21 @@ class Imputation(nn.Module):
 
         return sorted_padded, sorted_lens
 
-    def get_imputed_feats(self, feats, flags, dict_selected_feats):
+    def get_imputed_feats(self, input_, dict_selected_feats):
+        # input_ should be a dict that contains information about one data point (one batch)
+        # this datapoint has structure: {feat_id : [seq_len, 4] matrix}
+
         # feats: actual values
         # flags: indicate whether the corresponding record in feats is missing; 1: missing; 0: not missing;
-        feats = np.asarray(feats)
-        flags = np.asarray(flags)
-        all_features = []
-        num_features = self.num_features
-        input_ = {}
 
-        # for every 24 features
-        for feat_ind in range(num_features):
-            input_[feat_ind] = []
-            feat = feats[:, feat_ind]  # historical data for ith feats
-            feat_flag = flags[:, feat_ind]  # corresponding missing labels for ith feats
-            ind_keep = feat_flag == 0
-            ind_missing = feat_flag == 1
-            if (sum(ind_keep) > 0):  # if in the whole historical data there exists at least one missing point
-                avg_val = np.mean(feat[ind_keep])  # we calculate the mean feats value for ith feat
-            else:
-                avg_val = 0.0
-            last_val_observed = avg_val
-            delta_t = -1
-            for ind, each_flag in enumerate(feat_flag):
-                # we visit all the historical data point for ith feat
-                # and insert all the imputed historical data [feat_value, avg_value, is_missing, delta_time] into a dict
-                if (each_flag == 1):
-                    imputation_feat = [last_val_observed, avg_val, 1, delta_t]
-                    input_[feat_ind].append(imputation_feat)
-                #                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat))
-                #                     f_ = self.imputation_layer_in[feat_ind](input_)
-                elif (each_flag == 0):
-                    delta_t = 0
-                    last_val_observed = feat[ind]
-                    imputation_feat = [last_val_observed, avg_val, 0, delta_t]
-                    input_[feat_ind].append(imputation_feat)
-                delta_t += 1
+        num_features = self.num_features
+        all_features = []
+        # input_ = {}
 
         # we again visit the 24 feats and append their support feats
         for feat_ind in range(num_features):
             final_feat_list = []
-            for ind, each_flag in enumerate(feat_flag):
+            for ind, imputed in enumerate(input_[feat_ind]):
                 # main feats -> dense layer -> main dense feats
                 if is_cuda:
                     main_feats = torch.cuda.FloatTensor(input_[feat_ind][ind])
@@ -272,7 +254,8 @@ class Imputation(nn.Module):
         all_features = torch.cat(all_features, 1)
         all_features = all_features.unsqueeze(0)
         all_features = autograd.Variable(all_features)
-        print(all_features.shape)
+        # print(all_features.shape)
+        # print(all_features)
         return all_features  # (batch, seq_len,  num_features * 2 * imputation_dim_op)
 
 
@@ -281,6 +264,7 @@ class DotAttentionLayer(nn.Module):
         super(DotAttentionLayer, self).__init__()
         self.hidden_size = hidden_size
         self.W = nn.Linear(hidden_size, 1, bias=False)
+        torch.nn.init.xavier_uniform(self.W.weight)
 
     def forward(self, input):
         """
@@ -307,24 +291,24 @@ class DotAttentionLayer(nn.Module):
         return output
 
 
-if __name__ == '__main__':
-    params = {'bilstm_flag': True,
-              'dropout': 0.9,
-              'layers': 1,
-              'tagset_size': 3,
-              'attn_category': 'dot',
-              'num_features': 37,
-              'imputation_layer_dim_op': 20,
-              'selected_feats': 3,
-              'batch_size': 1,
-              'same_device': False,
-              'same_feat_other_device': False,
-              'model_name': 'physio3-',
-              'feats_provided_flag': True,
-              'path_selected_feats': path_pre + '/data/dict_selected_feats_physionet3.pkl'}
-    imputation = Imputation(params)
-
-    data = pickle.load(open('../../data/final_Physionet_avg_new.pkl'))
-
-    imputation(data['data'], '141309')
+# if __name__ == '__main__':
+#     params = {'bilstm_flag': True,
+#               'dropout': 0.9,
+#               'layers': 1,
+#               'tagset_size': 3,
+#               'attn_category': 'dot',
+#               'num_features': 37,
+#               'imputation_layer_dim_op': 20,
+#               'selected_feats': 3,
+#               'batch_size': 1,
+#               'same_device': False,
+#               'same_feat_other_device': False,
+#               'model_name': 'physio3-',
+#               'feats_provided_flag': True,
+#               'path_selected_feats': path_pre + '/data/dict_selected_feats_physionet3.pkl'}
+#     imputation = Imputation(params)
+#
+#     data = pickle.load(open('../../data/final_Physionet_avg_new.pkl'))
+#
+#     imputation(data['data'], '141309')
 

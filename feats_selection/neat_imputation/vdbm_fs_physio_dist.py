@@ -57,10 +57,57 @@ def feats_select(corr_path, corr_num):
     pickle.dump(feat_select_dict, open('/home/sidongzhang/code/fl/data/dict_selected_feats_physionet'+str(corr_num) + '.pkl', 'wb'))
 
 
-def v_fit(params, corr_num, data_path):
+# data_type: train_ids, test_ids, val_ids
+def pre_imputation(data_path, data_type, num_features=37):
+    # return a dict {'data_id': {data: {feat0: [seq_len, 4]matrix, feat1: [seq_len, 4]matrix, ...}, label: 0}, ...}
+    imputation = {}
     data = pickle.load(open(data_path, 'rb'))
+    for i in data[data_type]:
+        d = data['data'][i]
+        feats = np.asarray(d[0])
+        # print(feats)
+        flags = np.asarray(d[1])
+        label = d[3]
+        all_features = []
+        # num_features = self.num_features
+        input_ = {}
 
-    s_cuda = torch.cuda.is_available()
+        # for every 24 features
+        for feat_ind in range(num_features):
+            input_[feat_ind] = []
+            feat = feats[:, feat_ind]  # historical data for ith feats
+            feat_flag = flags[:, feat_ind]  # corresponding missing labels for ith feats
+            ind_keep = feat_flag == 0
+            ind_missing = feat_flag == 1
+            if (sum(ind_keep) > 0):  # if in the whole historical data there exists at least one missing point
+                avg_val = np.mean(feat[ind_keep])  # we calculate the mean feats value for ith feat
+            else:
+                avg_val = 0.0
+            last_val_observed = avg_val
+            delta_t = -1
+            for ind, each_flag in enumerate(feat_flag):
+                # we visit all the historical data point for ith feat
+                # and insert all the imputed historical data [feat_value, avg_value, is_missing, delta_time] into a dict
+                if (each_flag == 1):
+                    imputation_feat = [last_val_observed, avg_val, 1, delta_t]
+                    input_[feat_ind].append(imputation_feat)
+                #                     input_[feat_ind][ind] = autograd.Variable(torch.cuda.FloatTensor(imputation_feat))
+                #                     f_ = self.imputation_layer_in[feat_ind](input_)
+                elif (each_flag == 0):
+                    delta_t = 0
+                    last_val_observed = feat[ind]
+                    imputation_feat = [last_val_observed, avg_val, 0, delta_t]
+                    input_[feat_ind].append(imputation_feat)
+                delta_t += 1
+        imputation[i] = {'data': input_, 'label': label}
+
+    return imputation
+
+
+def v_fit(params, corr_num, data_path):
+    # data = pickle.load(open(data_path, 'rb'))
+
+    is_cuda = torch.cuda.is_available()
     if is_cuda:
         model_RNN = vdbm.Imputation(params).cuda()
     else:
@@ -78,16 +125,21 @@ def v_fit(params, corr_num, data_path):
     epochs = 45
     save_flag = True
     dict_df_prf_mod = {}
-    print "==x==" * 20
-    print "Data Statistics"
-    print "Train Data: " + str(len(data['train_ids']))
-    print "Val Data: " + str(len(data['val_ids']))
-    print "Test Data: " + str(len(data['test_ids']))
-    print "==x==" * 20
 
     start_epoch = 0
     end_epoch = 60
     model_name = params['model_name']
+
+    train_imputation = pre_imputation(data_path, 'train_ids')
+    test_imputation = pre_imputation(data_path, 'test_ids')
+    val_imputation = pre_imputation(data_path, 'val_ids')
+
+    print "==x==" * 20
+    print "Data Statistics"
+    print "Train Data: " + str(len(train_imputation.keys()))
+    print "Val Data: " + str(len(test_imputation.keys()))
+    print "Test Data: " + str(len(val_imputation.keys()))
+    print "==x==" * 20
 
     accuracy_dict = {'prf_tr': [], 'prf_val': [], 'prf_test': []}
 
@@ -96,14 +148,14 @@ def v_fit(params, corr_num, data_path):
         total_loss = 0
         preds_train = []
         actual_train = []
-        for each_ID in tqdm(data['train_ids']):
+        for each_ID in tqdm(train_imputation.keys()):
             model_RNN.zero_grad()
-            tag_scores = model_RNN(data['data'], each_ID)
+            tag_scores = model_RNN(train_imputation[each_ID]['data'])
 
             _, ind_ = torch.max(tag_scores, dim=1)
             preds_train += ind_.tolist()
             # For this dataset the label is in -2
-            curr_labels = [data['data'][each_ID][label_ind]]
+            curr_labels = [train_imputation[each_ID]['label']]
             curr_labels = [batchify.label_mapping[x] for x in curr_labels]
             actual_train += curr_labels
             if is_cuda:
@@ -124,8 +176,8 @@ def v_fit(params, corr_num, data_path):
         df_tr.index = ['Precision', 'Recall', 'F-score', 'Count']
         prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
         #     prf_tr, df_tr = evaluate_(model_RNN, data, 'train_ids')
-        prf_test, df_test = eval_plot.evaluate_dbm(model_RNN, data, 'test_ids')
-        prf_val, df_val = eval_plot.evaluate_dbm(model_RNN, data, 'val_ids')
+        prf_test, df_test = eval_plot.evaluate_dbm(model_RNN, test_imputation)
+        prf_val, df_val = eval_plot.evaluate_dbm(model_RNN, val_imputation)
 
         df_all = pd.concat([df_tr, df_val, df_test], axis=1)
         dict_df_prf_mod['Epoch' + str(iter_)] = df_all
@@ -160,7 +212,10 @@ def v_fit(params, corr_num, data_path):
 
 if __name__ == '__main__':
     params = sys.argv[1:]
-    i = int(params[0])
+    if not params:
+        i = 1
+    else:
+        i = int(params[0])
     feats_select('/home/sidongzhang/code/fl/data/intercorr_physionet.csv', i)
     params = {'bilstm_flag': True,
               'dropout': 0.9,
