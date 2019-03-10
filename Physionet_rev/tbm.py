@@ -48,28 +48,28 @@ class RNN_osaka(nn.Module):
     def init_hidden(self, batch_size):
     # num_layes, minibatch size, hidden_dim
         if(self.bilstm_flag):
-            return (autograd.Variable(torch.FloatTensor(self.layers*2,
-            # return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
+#             return (autograd.Variable(torch.FloatTensor(self.layers*2,
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                              batch_size,
                                                              int(self.hidden_dim/2))
                                                              .to(self.device)
                                                              .fill_(0)),
-                   autograd.Variable(torch.FloatTensor(self.layers*2,
-                #    \autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
+#                    autograd.Variable(torch.FloatTensor(self.layers*2,
+                   autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                             batch_size,
                                                             int(self.hidden_dim/2))
                                                             .to(self.device)
 
                                                             .fill_(0)))
         else:
-            return (autograd.Variable(torch.FloatTensor(self.layers,
-            # return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
+#             return (autograd.Variable(torch.FloatTensor(self.layers,
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
                                                              self.hidden_dim)
                                                              .to(self.device)
                                                              .fill_(0)),
-                   autograd.Variable(torch.FloatTensor(self.layers,
-                #    autograd.Variable(torch.cuda.FloatTensor(self.layers,
+#                    autograd.Variable(torch.FloatTensor(self.layers,
+                   autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                             batch_size,
                                                             self.hidden_dim)
                                                             .to(self.device)
@@ -79,10 +79,11 @@ class RNN_osaka(nn.Module):
 #         features = self.LL(features)
         
         features = self.get_imputed_feats(data[id_][0], data[id_][1])
+        features = features.cuda()
         features = self.LL(features)                 
         lenghts = [features.shape[1]]
-        # lengths = torch.cuda.LongTensor(lenghts)
-        lengths = torch.LongTensor(lenghts).to(self.device)
+        lengths = torch.cuda.LongTensor(lenghts).to(self.device)
+#         lengths = torch.LongTensor(lenghts).to(self.device)
         lengths = autograd.Variable(lengths)
         
         packed = pack_padded_sequence(features, lengths, batch_first = True)
@@ -94,8 +95,8 @@ class RNN_osaka(nn.Module):
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
         
         if(self.attn_category=='dot'):
-            pad_attn = self.attn((lstm_out, torch.LongTensor(lengths).to(self.device)))
-            # pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))
+#             pad_attn = self.attn((lstm_out, torch.LongTensor(lengths).to(self.device)))
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths).to(self.device)))
             tag_space = self.hidden2tag(pad_attn)
         else:
             tag_space = self.hidden2tag(lstm_out[:,-1,:])
@@ -151,10 +152,9 @@ class RNN_osaka(nn.Module):
                 feat_val = (1 - m_t)* x_l + m_t*(b_t*x_l + (1-b_t)*x_m)
                 final_feat_list.append(feat_val)
             all_features.append(final_feat_list)
-        # all_features = torch.cuda.FloatTensor(all_features)
-        all_features = torch.FloatTensor(all_features).to(self.device)
-        print("all_features TENSOR: " + str(all_features))
-        print(all_features.is_cuda)
+        all_features = torch.cuda.FloatTensor(all_features).to(self.device)
+#         all_features = torch.FloatTensor(all_features).to(self.device)
+                                 
         # for feat_ind in range(num_features):
         #     final_feat_list = []
         #     for ind, each_flag in enumerate(feat_flag):
@@ -202,12 +202,12 @@ class RNN_osaka(nn.Module):
             sorted_features.append(features[ind])
             sorted_labels.append(labels[ind])
 
-        sorted_features = torch.FloatTensor(sorted_features).to(self.device)
-        # sorted_features = torch.cuda.FloatTensor(sorted_features)
+#         sorted_features = torch.FloatTensor(sorted_features).to(self.device)
+        sorted_features = torch.cuda.FloatTensor(sorted_features)
         sorted_features = autograd.Variable(sorted_features)
 
-        sorted_labels = torch.LongTensor(sorted_labels).to(self.device)
-        # sorted_labels = torch.cuda.LongTensor(sorted_labels)
+#         sorted_labels = torch.LongTensor(sorted_labels).to(self.device)
+        sorted_labels = torch.cuda.LongTensor(sorted_labels).to(self.device)
         sorted_labels = autograd.Variable(sorted_labels)
 
         return sorted_features, sorted_labels, sorted_lens
@@ -231,8 +231,8 @@ class DotAttentionLayer(nn.Module):
         alphas = F.softmax(logits, dim=1)
 
         # computing mask
-        # idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).cuda()
-        idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).to(self.device)
+        idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).cuda().to(self.device)
+#         idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).to(self.device)
         mask = autograd.Variable((idxes<lengths.unsqueeze(1)).float())
 
         alphas = alphas * mask
