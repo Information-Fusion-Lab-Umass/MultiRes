@@ -59,6 +59,7 @@ class RNN_osaka(nn.Module):
                                                             batch_size,
                                                             int(self.hidden_dim/2))
                                                             .to(self.device)
+
                                                             .fill_(0)))
         else:
             return (autograd.Variable(torch.FloatTensor(self.layers,
@@ -152,7 +153,8 @@ class RNN_osaka(nn.Module):
             all_features.append(final_feat_list)
         # all_features = torch.cuda.FloatTensor(all_features)
         all_features = torch.FloatTensor(all_features).to(self.device)
-
+        print("all_features TENSOR: " + str(all_features))
+        print(all_features.is_cuda)
         # for feat_ind in range(num_features):
         #     final_feat_list = []
         #     for ind, each_flag in enumerate(feat_flag):
