@@ -1,0 +1,20 @@
+
+MacOS or linux terminal command to create your ssh tunnel:
+ssh -L 8159:node077:8159 -N nsimsiri@gypsum.cs.umass.edu
+
+Use a Browser on your local machine to go to:
+localhost:8159  (prefix w/ https:// if using password)
+
+[I 19:58:43.257 NotebookApp] JupyterLab extension loaded from /home/nsimsiri/anaconda3/lib/python3.6/site-packages/jupyterlab
+[I 19:58:43.260 NotebookApp] JupyterLab application directory is /home/nsimsiri/anaconda3/share/jupyter/lab
+[I 19:58:43.264 NotebookApp] Serving notebooks from local directory: /home/nsimsiri
+[I 19:58:43.264 NotebookApp] The Jupyter Notebook is running at:
+[I 19:58:43.264 NotebookApp] http://node077:8159/?token=f107c21979aff5a6c9a46ebf2a5a92896e6c5ca882265567
+[I 19:58:43.264 NotebookApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 19:58:43.323 NotebookApp] 
+    
+    To access the notebook, open this file in a browser:
+        file:///home/nsimsiri/.local/share/jupyter/runtime/nbserver-23136-open.html
+    Or copy and paste one of these URLs:
+        http://node077:8159/?token=f107c21979aff5a6c9a46ebf2a5a92896e6c5ca882265567
+slurmstepd: error: *** JOB 4799416 ON node077 CANCELLED AT 2019-03-09T19:59:55 ***

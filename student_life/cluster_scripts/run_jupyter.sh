@@ -23,6 +23,7 @@ localhost:${port}  (prefix w/ https:// if using password)
 # load modules or conda environments here
 # e.g. farnam:
 # module load Python/2.7.13-foss-2016b
+module add cuda91
 
 # DON'T USE ADDRESS BELOW.
 # DO USE TOKEN BELOW
