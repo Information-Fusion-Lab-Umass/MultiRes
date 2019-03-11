@@ -42,7 +42,6 @@ def time_since_last_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFr
     flattened_student_data.loc[null_mask, 'time_since_last_label'] = np.nan
     flattened_student_data['time_since_last_label'].fillna(method='ffill', inplace=True)
     # Filling the sequences which do not have a last label and appear first in the data set.
-    flattened_student_data['time_since_last_label'].fillna(0)
     flattened_student_data['time_since_last_label'] = (flattened_student_data.index - flattened_student_data[
         'time_since_last_label']).astype('timedelta64[m]')
 
@@ -56,7 +55,6 @@ def time_to_next_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame
     flattened_student_data['time_to_next_label'].fillna(method='bfill', inplace=True)
     flattened_student_data['time_to_next_label'] = (flattened_student_data[
                           'time_to_next_label'] - flattened_student_data.index).astype('timedelta64[m]')
-    flattened_student_data['time_to_next_label'].fillna(0)
 
     return flattened_student_data
 

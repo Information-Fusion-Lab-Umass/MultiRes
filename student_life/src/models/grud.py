@@ -8,7 +8,7 @@ import numbers
 
 
 class GRUD(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, x_mean=0, \
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, x_mean=0,
                  bias=True, batch_first=False, bidirectional=False, dropout_type='mloss', dropout=0):
         super(GRUD, self).__init__()
         self.input_size = input_size
@@ -71,7 +71,7 @@ class GRUD(torch.nn.Module):
         w_hy = torch.nn.Parameter(torch.Tensor(output_size, hidden_size))
 
         # bias
-        b_dg_x = torch.nn.Parameter(torch.Tensor(hidden_size))
+        b_dg_x = torch.nn.Parameter(torch.Tensor(input_size))
         b_dg_h = torch.nn.Parameter(torch.Tensor(hidden_size))
         b_z = torch.nn.Parameter(torch.Tensor(hidden_size))
         b_r = torch.nn.Parameter(torch.Tensor(hidden_size))

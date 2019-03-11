@@ -62,6 +62,27 @@ def mode(array_like):
     return result[0][0] if len(result) > 0 else np.nan
 
 
+def inferred_feature(array_like):
+    """
+    @brief: Smart inference aggregation for features like conversation, audio and activity.
+    @param array_like:
+    @return: If the features occurs returns one, else 0.
+    """
+    # Taking the max of the feature value is enough to infer that a that feature occured.
+    # Since the features are in a scale.
+    if len(array_like) == 0:
+        return np.nan
+
+    return array_like.max(skipna=True)
+
+
+def robust_sum(array_like):
+    if len(array_like) == 0:
+        return np.nan
+
+    return np.sum(array_like)
+
+
 def extend_complex_features(feature_name, resampled_df, columns=None):
     # This function adds linear features such as slope and intercept to the dataset.
     # If columns is None then apply features to all columns.
