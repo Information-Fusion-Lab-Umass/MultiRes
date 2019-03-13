@@ -25,6 +25,8 @@ AGGREGATE_FUNC_MAPPING = {
 INTERPOLATION_FUNC_MAPPING = {
     'linear': interpolation.linear_interpolation,
     'forward_fill': interpolation.forward_fill,
+    'mean_fill': interpolation.mean_fill,
+    'mode_fill': interpolation.mode_fill,
     'none': None
 }
 
@@ -77,8 +79,6 @@ def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, st
     if propagation_type != 'none':
         aggregated_data = INTERPOLATION_FUNC_MAPPING[propagation_type](aggregated_data)
         aggregated_data = aggregated_data.round(decimals=0)
-    else:
-        aggregated_data.fillna(value=-1, inplace=True)
 
     # Flattening all the columns.
     aggregated_data.columns = ['_'.join(col).strip() if 'student_id' not in col else 'student_id'

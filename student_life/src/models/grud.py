@@ -16,7 +16,7 @@ class GRUD(torch.nn.Module):
         self.output_size = output_size
         self.num_layers = num_layers
         self.zeros = torch.autograd.Variable(torch.zeros(input_size))
-        self.x_mean = torch.autograd.Variable(torch.tensor(x_mean))
+        self.x_mean = torch.autograd.Variable(torch.tensor(x_mean, dtype=torch.float))
         self.bias = bias
         self.batch_first = batch_first
         self.dropout_type = dropout_type

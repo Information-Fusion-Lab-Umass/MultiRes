@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+
 import src.bin.validations as validations
 
 
@@ -68,3 +70,22 @@ def add_mean_vector_to_data(data: dict):
         data['data'][key] = data_tuple
 
     return data
+
+
+def normalize(data_frame:pd.DataFrame, norm_type="mean")-> pd.DataFrame:
+    if norm_type == "min_max":
+        result = (data_frame - data_frame.min()) / (data_frame.max() - data_frame.min())
+    else:
+        result = (data_frame-data_frame.mean())/data_frame.std()
+
+    return result.fillna(0)
+
+
+def adjust_classes_wrt_median(label):
+
+    if label < 2:
+        return 0
+    elif label > 2:
+        return 2
+    else:
+        return 1

@@ -3,6 +3,7 @@ import pandas as pd
 from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
+from src.utils import data_conversion_utils as conversions
 from src.bin import validations as validations
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
@@ -125,6 +126,7 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
     data_list = []
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
+    y_labels = y_labels.applymap(conversions.adjust_classes_wrt_median)
 
     # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
@@ -142,7 +144,7 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
     return data_list
 
 
-def process_student_data(raw_data, student_id: int):
+def process_student_data(raw_data, student_id: int, normalize: bool, fill_na:bool):
     """
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
@@ -162,8 +164,13 @@ def process_student_data(raw_data, student_id: int):
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
 
+    if normalize:
+        training_values = conversions.normalize(training_values)
+
     # Filling missing Values
-    training_values.fillna(value=-1, inplace=True)
+    if fill_na:
+        training_values.fillna(value=-1, inplace=True)
+
     # todo(abhinavshaw): Change this if else clause to a dictionary of functions.
     if USE_TIME_DELTA_BASED_PROCESSING:
         data_list = split_data_into_list_based_on_time_deltas_wrt_labels(training_values,
@@ -177,9 +184,17 @@ def process_student_data(raw_data, student_id: int):
                                                y_labels)
 
     # Splitting data into Train, Val  and Test Split.
-    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=TRAIN_SET_SIZE)
-    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=VAL_SET_SIZE)
-    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=30)
+    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+
+    train_set_2, end_idx = split_data_by_percentage(data_list, start_index=0, percent=30)
+    val_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+    test_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+
+    train_set = train_set + train_set_2
+    val_set = val_set + val_set_2
+    test_set = test_set + test_set_2
 
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]
@@ -233,7 +248,7 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
     return slice_data, end_index
 
 
-def get_data_for_training_in_dict_format(*student_ids):
+def get_data_for_training_in_dict_format(*student_ids, normalize=False, fill_na=True):
     """
 
     @attention: If no student_ids given to function the default students are returned.
@@ -253,7 +268,10 @@ def get_data_for_training_in_dict_format(*student_ids):
     raw_data = student_utils.get_var_binned_data_for_students(*student_ids)
 
     for it, student_id in enumerate(student_ids):
-        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data, student_id)
+        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data,
+                                                                       student_id,
+                                                                       normalize=normalize,
+                                                                       fill_na=fill_na)
 
         # Prefixing the IDs with student_id.
         for month_day, daily_data in data_list:
