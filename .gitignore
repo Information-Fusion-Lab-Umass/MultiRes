@@ -1,6 +1,10 @@
 Physionet_rev/slurm
 *.pyc
 data/
-
 Data/
 Models/
+
+# ignore pycharm project files
+.idea/
+__pycache__/
+.ipynb_checkpoints/
