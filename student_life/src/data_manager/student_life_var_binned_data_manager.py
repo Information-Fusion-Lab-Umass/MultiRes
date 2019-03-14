@@ -54,7 +54,7 @@ def get_data_for_single_day(training_values, missing_values, time_delta, y_label
     return (training_values.loc[day_string, :].values.tolist(),
             missing_values.loc[day_string, :].values.tolist(),
             time_delta.loc[day_string, :].values.tolist(),
-            int(y_labels.loc[day_string, :].values[0]))
+            int(y_labels.loc[day_string, :].values.tolist()[0]))
 
 
 # Todo(abhinavshaw): Merge common parts of this method and time delta base processing.
@@ -110,7 +110,7 @@ def get_data_for_single_label_based_on_time_delta(training_values, missing_value
     return (training_values.values.tolist(),
             missing_values.values.tolist(),
             time_delta.values.tolist(),
-            y_labels.loc[label_idx])
+            y_labels.loc[label_idx].values.tolist()[0])
 
 
 def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missing_values, time_delta, y_labels):
@@ -184,17 +184,13 @@ def process_student_data(raw_data, student_id: int, normalize: bool, fill_na:boo
                                                y_labels)
 
     # Splitting data into Train, Val  and Test Split.
-    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=30)
-    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
-    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=70)
+    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=25)
+    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
 
-    train_set_2, end_idx = split_data_by_percentage(data_list, start_index=0, percent=30)
-    val_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
-    test_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
-
-    train_set = train_set + train_set_2
-    val_set = val_set + val_set_2
-    test_set = test_set + test_set_2
+    train_set = train_set
+    val_set = val_set
+    test_set = test_set
 
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]

@@ -58,7 +58,7 @@ def get_label_count_in_split(data: dict, split: str):
 
     labels = []
     for split_id in data[split + "_ids"]:
-        label = data['data'][split_id][3].values[0]
+        label = data['data'][split_id][3]
         labels.append(label)
 
     counters = Counter(labels)

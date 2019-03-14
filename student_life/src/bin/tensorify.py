@@ -16,7 +16,8 @@ def get_data_and_label_tensor(data: dict, key, cuda_enabled):
         "Missing one of the following 'Actual Data', 'Missing Flags', 'Time Deltas', 'label' "
 
     tensor_data = torch.tensor(list(data['data'][key][:3]), dtype=torch.float)
-    train_label = torch.from_numpy(data['data'][key][3]).item()
+    # train_label = torch.from_numpy(data['data'][key][3]).item()
+    train_label = torch.tensor(data['data'][key][3]).item()
     train_label = torch.tensor([train_label], dtype=torch.long)
 
     if cuda_enabled:
