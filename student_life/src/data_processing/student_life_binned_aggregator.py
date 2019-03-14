@@ -42,6 +42,7 @@ for student_id in AVAILABLE_STUDENTS:
     student_data_flattened = helper.replace_neg_one_with_nan(student_data_flattened)
     student_data_flattened_processed = helper.remove_days_with_no_stress_label(student_data_flattened)
     student_data_flattened_processed = helper.process_covariates(student_data_flattened_processed, COVARIATES)
+    student_data_flattened_processed = helper.impute_missing_feature(student_data_flattened_processed)
     missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
     time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 

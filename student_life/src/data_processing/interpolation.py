@@ -11,9 +11,9 @@ def forward_fill(series: pd.Series):
 
 def mean_fill(series: pd.Series):
     mean = series.mean(skipna=True)
-    return series.fillna(mean.to_dict())
+    return series.fillna(mean)
 
 
 def mode_fill(series: pd.Series):
     mode = series.mode() 
-    return series.fillna(mode.to_dict())
+    return series.fillna(mode)
