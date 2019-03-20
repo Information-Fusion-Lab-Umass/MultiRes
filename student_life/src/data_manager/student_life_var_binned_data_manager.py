@@ -64,7 +64,6 @@ def split_data_to_list_of_days(training_values, missing_values, time_deltas, y_l
              Will return three data tuples.
              Ratio -  Train : 60, Test: 20 and Val: 20.
     """
-
     validations.validate_data_integrity_for_len(training_values, missing_values, time_deltas, y_labels)
 
     data_list = []
@@ -135,7 +134,7 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
                                                              y_labels,
                                                              y_labels.index[label_idx])
         if data:
-            month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
+            month_day_hour = str (y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
                              + str(y_labels.index[label_idx].hour)
             data_list.append((month_day_hour, data))
 
@@ -156,7 +155,6 @@ def process_student_data(raw_data, student_id: int):
     student_data = student_data[student_data['student_id'] == student_id]
     missing_data = missing_data[missing_data['student_id'] == student_id]
     time_delta = time_delta[time_delta['student_id'] == student_id]
-
     training_values = student_data.loc[:, FEATURE_LIST]
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
@@ -164,6 +162,8 @@ def process_student_data(raw_data, student_id: int):
 
     # Filling missing Values
     training_values.fillna(value=-1, inplace=True)
+
+    print("missing", missing_values.isnull().values.any())
     # todo(abhinavshaw): Change this if else clause to a dictionary of functions.
     if USE_TIME_DELTA_BASED_PROCESSING:
         data_list = split_data_into_list_based_on_time_deltas_wrt_labels(training_values,
@@ -175,6 +175,16 @@ def process_student_data(raw_data, student_id: int):
                                                missing_values,
                                                time_deltas,
                                                y_labels)
+
+    debug_data = student_data# missing_data
+    debug_values = training_values #missing_values
+    
+    # print('total:\n',FEATURE_LIST)
+    # print('\nstudent_data\n', list(student_data))
+    # print('\nmissing_values\n', list(debug_data))
+    # print('\ntraining_values\n', list(training_values))
+    # print('\nmissing_values\n', list(debug_values))
+    # print(debug_values[['day_of_week', 'epoch_of_day', 'time_since_last_label', 'time_to_next_label']][:20])
 
     # Splitting data into Train, Val  and Test Split.
     train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=TRAIN_SET_SIZE)
