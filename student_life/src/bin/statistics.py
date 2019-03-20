@@ -3,12 +3,9 @@ import numpy as np
 
 from collections import Counter
 from tabulate import tabulate
-from src import definitions
 from src.bin import validations
-from src.utils import read_utils
+from src.data_manager import student_life_var_binned_data_manager as data_manager
 
-ADJUST_LABELS_BY_MEDIAN = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
-    definitions.VAR_BINNED_DATA_MANAGER_ROOT]
 LABEL_COUNT_HEADERS = ['Train', 'Val', 'Test']
 
 
@@ -25,9 +22,11 @@ def get_statistics_on_data_dict(data: dict, feature_list: list):
 
     for key in data['data']:
         unit_sequence = data['data'][key][0]
-        df_for_statistics = df_for_statistics.append(pd.DataFrame(unit_sequence), ignore_index=True)
+        df_for_statistics = df_for_statistics.append(pd.DataFrame(unit_sequence),
+                                                     ignore_index=True)
 
-    df_for_statistics.columns = feature_list
+    if not data_manager.FLATTEN_SEQUENCE_TO_COLS:
+        df_for_statistics.columns = feature_list
     df_for_statistics.replace(to_replace=-1, value=np.nan, inplace=True)
     return df_for_statistics.describe(percentiles=[0.25, 0.5, 0.75]), df_for_statistics
 
@@ -54,7 +53,7 @@ def get_label_count_in_split(data: dict, split: str):
                   Accepts 'test', 'train' and 'val'.
     @return: Label count for the given split.
     """
-    assert split in ['train', 'test',  'val']
+    assert split in ['train', 'test', 'val']
 
     labels = []
     for split_id in data[split + "_ids"]:
@@ -75,7 +74,7 @@ def convert_label_counters_to_list(*counters):
             counts_per_element.append(count[label])
         overall_counts.append(counts_per_element)
 
-    if ADJUST_LABELS_BY_MEDIAN:
+    if data_manager.ADJUST_LABELS_WRT_MEDIAN:
         for label in range(3):
             append_count_for_label(label)
     else:

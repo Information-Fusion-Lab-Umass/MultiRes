@@ -8,6 +8,8 @@ from src.bin import validations as validations
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_MANAGER_ROOT]
+ADJUST_LABELS_WRT_MEDIAN = VAR_BINNED_DATA_CONFIG['adjust_labels_wrt_median']
+FLATTEN_SEQUENCE_TO_COLS = VAR_BINNED_DATA_CONFIG['flatten_sequence_to_cols']
 
 DEFAULT_STUDENT_LIST = VAR_BINNED_DATA_CONFIG[definitions.STUDENT_LIST_CONFIG_KEY]
 available_students = student_utils.get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH)
@@ -126,7 +128,9 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
     data_list = []
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
-    y_labels = y_labels.applymap(conversions.adjust_classes_wrt_median)
+
+    if ADJUST_LABELS_WRT_MEDIAN:
+        y_labels = y_labels.applymap(conversions.adjust_classes_wrt_median)
 
     # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
@@ -139,12 +143,30 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
         if data:
             month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
                              + str(y_labels.index[label_idx].hour)
+            data = flatten_data(data) if FLATTEN_SEQUENCE_TO_COLS else data
             data_list.append((month_day_hour, data))
 
     return data_list
 
 
-def process_student_data(raw_data, student_id: int, normalize: bool, fill_na:bool):
+def flatten_data(data: list):
+    """
+
+    @param data: Data to be flattened, i.e. the rows will be appended as columns.
+    @return: Flattened_data.
+    """
+    assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
+    flattened_data_list = []
+    # Cannot flatten the labels.
+    for i in range(len(data)-1):
+        flattened_data_list.append(conversions.flatten_matrix(data[i]))
+    # Append the label as well.
+    flattened_data_list.append(data[-1])
+
+    return flattened_data_list
+
+
+def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bool):
     """
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
@@ -184,13 +206,25 @@ def process_student_data(raw_data, student_id: int, normalize: bool, fill_na:boo
                                                y_labels)
 
     # Splitting data into Train, Val  and Test Split.
-    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=70)
-    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=25)
-    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=25)
+    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=15)
+    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
 
-    train_set = train_set
-    val_set = val_set
-    test_set = test_set
+    train_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=25)
+    val_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=15)
+    test_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
+
+    train_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+    val_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
+    test_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+
+    train_set = train_set + train_set_2 + train_set_3
+    val_set = val_set + val_set_2 + val_set_3
+    test_set = test_set + test_set_2 + test_set_3
+    #
+    # train_set = train_set
+    # val_set = val_set
+    # test_set = test_set
 
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]

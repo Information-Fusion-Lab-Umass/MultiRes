@@ -89,3 +89,17 @@ def adjust_classes_wrt_median(label):
         return 2
     else:
         return 1
+
+
+def flatten_matrix(matrix):
+    """
+
+    @param matrix: Accepts numpy matrix of list to be flattened.
+    @return: Flattened list or Matrix.
+    """
+    assert isinstance(matrix, np.ndarray) or isinstance(matrix, list), "Invalid data type, please give either np.ndarray or a lists."
+
+    if isinstance(matrix, np.ndarray):
+        return matrix.flatten()
+    else:
+        return np.array(matrix).flatten().tolist()
