@@ -78,7 +78,9 @@ class RNN_osaka(nn.Module):
     def forward(self, data, id_):
 #         features = self.LL(features)
         
-        features = self.get_imputed_feats(data[id_][0], data[id_][1])
+        _feats = data[id_][0]
+        _flags = data[id_][1]
+        features = self.get_imputed_feats(_feats, _flags)
         features = features.cuda()
         features = self.LL(features)                 
         lenghts = [features.shape[1]]
@@ -106,6 +108,8 @@ class RNN_osaka(nn.Module):
     def get_imputed_feats(self, feats, flags):
         feats = np.asarray(feats)
         flags = np.asarray(flags)
+        print("feats: {}".format(len(feats)))
+        print("flags: {}".format(len(flags)))
         num_features = self.num_features
         input_ = {}
         for feat_ind in range(num_features):
@@ -120,6 +124,7 @@ class RNN_osaka(nn.Module):
                 avg_val = 0.0
             last_val_observed = avg_val
             delta_t = 0
+            print("looping features,i={}, feat_flag={}".format(feat_ind, feat_flag))
             for ind, each_flag in enumerate(feat_flag):
                 if(each_flag==1):
                     imputation_feat = [last_val_observed, avg_val, 1, delta_t]
@@ -131,9 +136,14 @@ class RNN_osaka(nn.Module):
                     input_[feat_ind].append(imputation_feat)
                 delta_t+=1
         all_features = []
+
         for ind, each_flag in enumerate(feat_flag):
             final_feat_list = []
             for feat_ind in range(num_features):
+                print('input_', len(input_))
+                print('num_features t={}, {}'.format(num_features, feat_ind))
+                print(len(input_[feat_ind]))
+                print('feat_flag t={}, {}'.format(len(feat_flag), ind))
                 curr_feat = input_[feat_ind][ind]
                 # if(curr_feat[2]==1):
                 # TBM parameters
