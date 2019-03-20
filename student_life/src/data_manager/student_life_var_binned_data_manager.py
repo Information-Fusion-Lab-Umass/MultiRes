@@ -221,10 +221,6 @@ def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bo
     train_set = train_set + train_set_2 + train_set_3
     val_set = val_set + val_set_2 + val_set_3
     test_set = test_set + test_set_2 + test_set_3
-    #
-    # train_set = train_set
-    # val_set = val_set
-    # test_set = test_set
 
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]

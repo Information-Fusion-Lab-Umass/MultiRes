@@ -103,3 +103,14 @@ def flatten_matrix(matrix):
         return matrix.flatten()
     else:
         return np.array(matrix).flatten().tolist()
+
+
+def extract_keys_and_labels_from_dict(data:dict):
+    keys = []
+    labels = []
+
+    for key in data['data']:
+        keys.append(key)
+        labels.append(data['data'][key][-1])
+
+    return keys, labels
