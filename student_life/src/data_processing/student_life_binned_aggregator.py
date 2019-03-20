@@ -44,6 +44,7 @@ for student_id in AVAILABLE_STUDENTS:
     student_data_flattened_processed = helper.process_covariates(student_data_flattened_processed, COVARIATES)
     missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
     time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
+    student_data_flattened_processed = helper.impute_missing_feature(student_data_flattened_processed)
 
     ############################### Writing the files to csv #############################
     student_binned_data_dir_path = os.path.join(

@@ -41,3 +41,7 @@ def validate_data_dict_data_len(data_dict):
     assert len(data_dict['data'][first_key]) == DATA_TUPLE_LEN, \
         "More elements in data tuple. Expected: {} found: {}".format(DATA_TUPLE_LEN,
                                                                      len(data_dict['data'][first_key]))
+
+
+def validate_no_nans_in_tensor(tensor):
+    assert not (tensor != tensor).any(), "null exists in input!"

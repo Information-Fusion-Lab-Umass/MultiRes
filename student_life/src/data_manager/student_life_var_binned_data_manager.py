@@ -3,10 +3,13 @@ import pandas as pd
 from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
+from src.utils import data_conversion_utils as conversions
 from src.bin import validations as validations
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_MANAGER_ROOT]
+ADJUST_LABELS_WRT_MEDIAN = VAR_BINNED_DATA_CONFIG['adjust_labels_wrt_median']
+FLATTEN_SEQUENCE_TO_COLS = VAR_BINNED_DATA_CONFIG['flatten_sequence_to_cols']
 
 DEFAULT_STUDENT_LIST = VAR_BINNED_DATA_CONFIG[definitions.STUDENT_LIST_CONFIG_KEY]
 available_students = student_utils.get_available_students(definitions.BINNED_ON_VAR_FREQ_DATA_PATH)
@@ -53,7 +56,7 @@ def get_data_for_single_day(training_values, missing_values, time_delta, y_label
     return (training_values.loc[day_string, :].values.tolist(),
             missing_values.loc[day_string, :].values.tolist(),
             time_delta.loc[day_string, :].values.tolist(),
-            int(y_labels.loc[day_string, :].values[0]))
+            int(y_labels.loc[day_string, :].values.tolist()[0]))
 
 
 # Todo(abhinavshaw): Merge common parts of this method and time delta base processing.
@@ -109,7 +112,7 @@ def get_data_for_single_label_based_on_time_delta(training_values, missing_value
     return (training_values.values.tolist(),
             missing_values.values.tolist(),
             time_delta.values.tolist(),
-            y_labels.loc[label_idx])
+            y_labels.loc[label_idx].values.tolist()[0])
 
 
 def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missing_values, time_delta, y_labels):
@@ -126,6 +129,9 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
 
+    if ADJUST_LABELS_WRT_MEDIAN:
+        y_labels = y_labels.applymap(conversions.adjust_classes_wrt_median)
+
     # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
     for label_idx in range(len(y_labels) - 1):
@@ -137,12 +143,30 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
         if data:
             month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
                              + str(y_labels.index[label_idx].hour)
+            data = flatten_data(data) if FLATTEN_SEQUENCE_TO_COLS else data
             data_list.append((month_day_hour, data))
 
     return data_list
 
 
-def process_student_data(raw_data, student_id: int):
+def flatten_data(data: list):
+    """
+
+    @param data: Data to be flattened, i.e. the rows will be appended as columns.
+    @return: Flattened_data.
+    """
+    assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
+    flattened_data_list = []
+    # Cannot flatten the labels.
+    for i in range(len(data)-1):
+        flattened_data_list.append(conversions.flatten_matrix(data[i]))
+    # Append the label as well.
+    flattened_data_list.append(data[-1])
+
+    return flattened_data_list
+
+
+def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bool):
     """
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
@@ -162,8 +186,13 @@ def process_student_data(raw_data, student_id: int):
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
 
+    if normalize:
+        training_values = conversions.normalize(training_values)
+
     # Filling missing Values
-    training_values.fillna(value=-1, inplace=True)
+    if fill_na:
+        training_values.fillna(value=-1, inplace=True)
+
     # todo(abhinavshaw): Change this if else clause to a dictionary of functions.
     if USE_TIME_DELTA_BASED_PROCESSING:
         data_list = split_data_into_list_based_on_time_deltas_wrt_labels(training_values,
@@ -177,9 +206,25 @@ def process_student_data(raw_data, student_id: int):
                                                y_labels)
 
     # Splitting data into Train, Val  and Test Split.
-    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=TRAIN_SET_SIZE)
-    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=VAL_SET_SIZE)
-    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+    train_set, end_idx = split_data_by_percentage(data_list, start_index=0, percent=25)
+    val_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=15)
+    test_set, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
+
+    train_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=25)
+    val_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=15)
+    test_set_2, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
+
+    train_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=10)
+    val_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=1)
+    test_set_3, end_idx = split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
+
+    train_set = train_set + train_set_2 + train_set_3
+    val_set = val_set + val_set_2 + val_set_3
+    test_set = test_set + test_set_2 + test_set_3
+    #
+    # train_set = train_set
+    # val_set = val_set
+    # test_set = test_set
 
     train_set = [month_day for month_day, data in train_set]
     val_set = [month_day for month_day, data in val_set]
@@ -233,7 +278,7 @@ def split_data_by_percentage(data_list, start_index: int = 0, percent: float = -
     return slice_data, end_index
 
 
-def get_data_for_training_in_dict_format(*student_ids):
+def get_data_for_training_in_dict_format(*student_ids, normalize=False, fill_na=True):
     """
 
     @attention: If no student_ids given to function the default students are returned.
@@ -253,7 +298,10 @@ def get_data_for_training_in_dict_format(*student_ids):
     raw_data = student_utils.get_var_binned_data_for_students(*student_ids)
 
     for it, student_id in enumerate(student_ids):
-        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data, student_id)
+        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data,
+                                                                       student_id,
+                                                                       normalize=normalize,
+                                                                       fill_na=fill_na)
 
         # Prefixing the IDs with student_id.
         for month_day, daily_data in data_list:

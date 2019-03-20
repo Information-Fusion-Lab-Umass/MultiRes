@@ -71,7 +71,7 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
         fig.savefig(file_path)
 
 
-def get_stat_over_n_epoch_dictionaries():
+def get_empty_stat_over_n_epoch_dictionaries():
     loss_over_epochs = {
         "train_loss": [],
         "val_loss": [],

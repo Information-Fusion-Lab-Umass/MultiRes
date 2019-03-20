@@ -65,7 +65,7 @@ def train_gru():
                                                  num_layers,
                                                  learning_rate)
 
-    loss_over_epochs, scores_over_epochs = plotting.get_stat_over_n_epoch_dictionaries()
+    loss_over_epochs, scores_over_epochs = plotting.get_empty_stat_over_n_epoch_dictionaries()
 
     for epoch in range(1, n_epochs + 1):
         print("xxxxxxxxxxxxxx epoch: {} xxxxxxxxxxxxxx".format(epoch))
