@@ -95,7 +95,7 @@ def check_if_enough_data(training_vales: pd.DataFrame, time_indices_to_keep):
 
 
 def get_data_for_single_label_based_on_time_delta(training_values, missing_values,
-                                                  time_delta, y_labels,label_idx):
+                                                  time_delta, y_labels, label_idx):
     time_indices_to_keep = pd.date_range(label_idx - TIME_DELTA_BEHIND_FROM_LABEL_H,
                                          label_idx + TIME_DELTA_AHEAD_FROM_LABEL_H,
                                          freq=definitions.DEFAULT_BASE_FREQ,
@@ -129,9 +129,6 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
     # todo(abhinavshaw): make it general for all the labels.
     y_labels = y_labels[y_labels['stress_level_mode'].notnull()]
 
-    if ADJUST_LABELS_WRT_MEDIAN:
-        y_labels = y_labels.applymap(conversions.adjust_classes_wrt_median)
-
     # todo(abihnavshaw): Process on whole data once fixed issue with last label.
     # len(y_label) -1 to ignore the last label.
     for label_idx in range(len(y_labels) - 1):
@@ -158,7 +155,7 @@ def flatten_data(data: list):
     assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
     flattened_data_list = []
     # Cannot flatten the labels.
-    for i in range(len(data)-1):
+    for i in range(len(data) - 1):
         flattened_data_list.append(conversions.flatten_matrix(data[i]))
     # Append the label as well.
     flattened_data_list.append(data[-1])
@@ -186,6 +183,14 @@ def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bo
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
+
+    if ADJUST_LABELS_WRT_MEDIAN:
+        y_labels['stress_level_mode'] = y_labels['stress_level_mode'].map(conversions.adjust_classes_wrt_median,
+                                                                          na_action='ignore')
+        if 'previous_stress_label' in FEATURE_LIST:
+            training_values['previous_stress_label'] = training_values['previous_stress_label'].map(
+                conversions.adjust_classes_wrt_median,
+                na_action='ignore')
 
     if normalize:
         training_values = conversions.normalize(training_values)
