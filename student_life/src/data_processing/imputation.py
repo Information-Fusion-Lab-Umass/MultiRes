@@ -15,5 +15,5 @@ def mean_fill(series: pd.Series):
 
 
 def mode_fill(series: pd.Series):
-    mode = series.mode() 
+    mode = series.mode()[0]
     return series.fillna(mode)

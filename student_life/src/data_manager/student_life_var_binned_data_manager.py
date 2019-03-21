@@ -181,6 +181,7 @@ def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bo
     missing_data = missing_data[missing_data['student_id'] == student_id]
     time_delta = time_delta[time_delta['student_id'] == student_id]
 
+    # TODO(abhinavshaw): Don't select features which are not available.
     training_values = student_data.loc[:, FEATURE_LIST]
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
