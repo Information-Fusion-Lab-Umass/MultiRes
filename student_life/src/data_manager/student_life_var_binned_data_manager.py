@@ -140,27 +140,10 @@ def split_data_into_list_based_on_time_deltas_wrt_labels(training_values, missin
         if data:
             month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
                              + str(y_labels.index[label_idx].hour)
-            data = flatten_data(data) if FLATTEN_SEQUENCE_TO_COLS else data
+            data = conversions.flatten_data(data) if FLATTEN_SEQUENCE_TO_COLS else data
             data_list.append((month_day_hour, data))
 
     return data_list
-
-
-def flatten_data(data: list):
-    """
-
-    @param data: Data to be flattened, i.e. the rows will be appended as columns.
-    @return: Flattened_data.
-    """
-    assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
-    flattened_data_list = []
-    # Cannot flatten the labels.
-    for i in range(len(data) - 1):
-        flattened_data_list.append(conversions.flatten_matrix(data[i]))
-    # Append the label as well.
-    flattened_data_list.append(data[-1])
-
-    return flattened_data_list
 
 
 def process_student_data(raw_data, student_id: int, normalize: bool, fill_na: bool):
