@@ -3,56 +3,46 @@ features:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["mode", "inferred_feature"]
-    propagation_type: "mode_fill"
 
   audio_details:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["mode", "inferred_feature"]
-    propagation_type: "mode_fill"
 
   conversation_details:
     resample_freq_min: 5
     simple_aggregates: ["sum"]
     custom_aggregates: []
-    propagation_type: "none"
 
   phonecharge_details:
     resample_freq_min: 5 # Daily
     simple_aggregates: []
     custom_aggregates: ["robust_sum"]
-    propagation_type: "mean_fill"
 
   phonelock_details:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["robust_sum"]
-    propagation_type: "mean_fill"
 
   dark_details:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["robust_sum"]
-    propagation_type: "mean_fill"
 
   sleep_details:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["robust_sum"]
-    propagation_type: "forward_fill"
 
   gps_details:
     resample_freq_min: 5
     simple_aggregates: []
     custom_aggregates: ["mode"]
-    propagation_type: "forward_fill"
 
   stress_details:
     resample_freq_min: 60
     simple_aggregates: []
     custom_aggregates: ["mode"]
-    # `none` if no propagation required.
-    propagation_type: "none"
 
 covariates:
   day_of_week: True
@@ -60,8 +50,11 @@ covariates:
   time_since_last_label: True
   time_to_next_label: True
   gender: False
+  previous_stress_label: True
+  time_to_next_deadline: True
 
 feature_imputation_stategy:
+  # Imputed on the base bin.
   # Don't impute feature if not set to true.
   impute_features: True
   # Always no-op for student_id.
@@ -70,6 +63,8 @@ feature_imputation_stategy:
   epoch_of_day: 'none'
   time_since_last_label: 'mean_fill'
   time_to_next_label: 'mean_fill'
+  previous_stress_label: 'mode_fill'
+  time_to_next_deadline: 'none'
   activity_inference_mode: 'mode_fill'
   activity_inference_inferred_feature: 'mode_fill'
   audio_activity_inference_mode: 'mode_fill'

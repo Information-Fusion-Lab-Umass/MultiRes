@@ -33,6 +33,7 @@ RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 # Data Folder Paths - LOCAL
 MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
 BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
+SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_covariates")
 STUDENT_RAW_DATA_ANALYSIS_ROOT = os.path.join(ROOT_DIR, "../data/raw_student_data_information")
 
 # Data Folder Paths - CLUSTER

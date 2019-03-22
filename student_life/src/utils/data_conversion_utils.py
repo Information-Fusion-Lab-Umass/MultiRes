@@ -72,11 +72,11 @@ def add_mean_vector_to_data(data: dict):
     return data
 
 
-def normalize(data_frame:pd.DataFrame, norm_type="mean")-> pd.DataFrame:
+def normalize(data_frame: pd.DataFrame, norm_type="mean")-> pd.DataFrame:
     if norm_type == "min_max":
         result = (data_frame - data_frame.min()) / (data_frame.max() - data_frame.min())
     else:
-        result = (data_frame-data_frame.mean())/data_frame.std()
+        result = (data_frame - data_frame.mean())/data_frame.std()
 
     return result.fillna(0)
 
@@ -103,3 +103,54 @@ def flatten_matrix(matrix):
         return matrix.flatten()
     else:
         return np.array(matrix).flatten().tolist()
+
+
+def extract_keys_and_labels_from_dict(data: dict):
+    keys = []
+    labels = []
+
+    for key in data['data']:
+        keys.append(key)
+        labels.append(data['data'][key][-1])
+
+    return keys, labels
+
+
+def extract_student_ids_from_keys(keys):
+    student_ids = set()
+    for key in keys:
+        student_id = key.split("_")[0]
+        student_ids.add(student_id)
+
+    return list(student_ids)
+
+
+def get_filtered_keys_for_these_students(*student_id, keys):
+    filtered_keys = []
+    student_ids = list(student_id)
+
+    for key in keys:
+        curr_student = key.split("_")[0]
+        if curr_student in student_ids:
+            filtered_keys.append(key)
+
+    return filtered_keys
+
+
+def flatten_data(data: list):
+    """
+
+    @param data: Data to be flattened, i.e. the rows will be appended as columns.
+    @return: Flattened_data.
+    """
+    assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
+    flattened_data_list = []
+    # Cannot flatten the labels.
+    for i in range(len(data) - 1):
+        flattened_data_list.append(flatten_matrix(data[i]))
+    # Append the label as well.
+    flattened_data_list.append(data[-1])
+
+    return flattened_data_list
+
+
