@@ -3,12 +3,13 @@ Python module that defines Simple LSTM Based NN module.
 """
 import torch.nn as nn
 
-import src.bin.validations as validations
+from src import definitions
+from src.bin import validations
 
 
 class SimpleLSTM(nn.Module):
     """
-    Simple LSTM followe by a dense layer for predicting time series.
+    Simple LSTM followed by a dense layer for predicting time series.
     """
 
     def __init__(self, num_features,
@@ -28,7 +29,7 @@ class SimpleLSTM(nn.Module):
 
     def forward(self, tensor_data):
         # Extracting actual data form the tuple.
-        input_sequence = tensor_data[0].unsqueeze(0)
+        input_sequence = tensor_data[definitions.ACTUAL_DATA_IDX].unsqueeze(0)
         validations.validate_no_nans_in_tensor(input_sequence)
 
         lstm_out, hidden = self.lstm(input_sequence)

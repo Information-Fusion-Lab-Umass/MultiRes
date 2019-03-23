@@ -3,6 +3,7 @@ import numpy as np
 
 from collections import Counter
 from tabulate import tabulate
+from src import definitions
 from src.bin import validations
 from src.data_manager import student_life_var_binned_data_manager as data_manager
 
@@ -17,7 +18,7 @@ def get_statistics_on_data_dict(data: dict, feature_list: list):
     @return: Statistics on whole data and raw appended data.
     """
     validations.validate_data_dict_keys(data)
-    validations.validate_data_dict_data_len(data)
+    validations.validate_all_data_present_in_data_dict(data)
     df_for_statistics = pd.DataFrame()
 
     for key in data['data']:
@@ -57,7 +58,7 @@ def get_label_count_in_split(data: dict, split: str):
 
     labels = []
     for split_id in data[split + "_ids"]:
-        label = data['data'][split_id][3]
+        label = data['data'][split_id][definitions.LABELS_IDX]
         labels.append(label)
 
     counters = Counter(labels)

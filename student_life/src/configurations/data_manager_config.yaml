@@ -3,11 +3,9 @@ student_life_var_binned_data:
   default_splitting_strategy: 'time_delta'
   # Default student list for data manager.
   student_list: [35]
-  feature_list: ['day_of_week', 'epoch_of_day', 'time_since_last_label' , 'time_to_next_label','previous_stress_label',
+  feature_list: ['day_of_week', 'epoch_of_day', 'time_since_last_label' , 'time_to_next_label',
                  'time_to_next_deadline', 'activity_inference_inferred_feature', 'audio_activity_inference_inferred_feature',
-                 'conv_duration_min_sum','dark_duration_min_robust_sum', 'phonecharge_duration_min_robust_sum',
-                 'phonelock_duration_min_robust_sum',
-                 'hours_slept_robust_sum', 'sleep_rating_robust_sum']
+                 'conv_duration_min_sum','dark_duration_min_robust_sum', 'phonelock_duration_min_robust_sum']
   # The covariates are flattened by taking the nearest value. If empty nothing will be flattened.
   covariate_list: ['sleep_rating_robust_sum',
                    'hours_slept_robust_sum',

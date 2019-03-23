@@ -37,6 +37,14 @@ BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_
 SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_covariates")
 STUDENT_RAW_DATA_ANALYSIS_ROOT = os.path.join(ROOT_DIR, "../data/raw_student_data_information")
 
+# Data Tuple Indices
+DATA_TUPLE_LEN = 5
+ACTUAL_DATA_IDX = 0
+MISSING_FLAGS_IDX = 1
+TIME_DELTA_IDX = 2
+COVARIATE_DATA_IDX = 3
+LABELS_IDX = -1  # Always last!
+
 # Data Folder Paths - CLUSTER
 # Overwrite Global Constants when cluster mode on.
 config = read_yaml(FEATURE_CONFIG_FILE_PATH)

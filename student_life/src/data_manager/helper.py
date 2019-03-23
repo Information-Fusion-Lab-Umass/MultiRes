@@ -13,7 +13,8 @@ TIME_DELTA_BEHIND_FROM_LABEL_H = pd.Timedelta(str(TIME_DELTA_BEHIND_FROM_LABEL_H
 TIME_DELTA_AHEAD_FROM_LABEL_H = pd.Timedelta(str(TIME_DELTA_AHEAD_FROM_LABEL_H) + ' hours')
 
 
-def get_data_for_single_day(training_values, missing_values, time_delta, y_labels, label_idx):
+def get_data_for_single_day(training_values, covariate_values, missing_values,
+                            time_delta, y_labels, label_idx):
     """
 
     @return: Return split for a single day. i.e. One label corresponds to several data points,
@@ -25,10 +26,11 @@ def get_data_for_single_day(training_values, missing_values, time_delta, y_label
     return (training_values.loc[day_string, :].values.tolist(),
             missing_values.loc[day_string, :].values.tolist(),
             time_delta.loc[day_string, :].values.tolist(),
+            covariate_values.loc[label_idx, :].values.tolist(),
             y_labels.loc[label_idx].values.tolist()[0])
 
 
-def get_data_for_single_label_based_on_time_delta(training_values, missing_values,
+def get_data_for_single_label_based_on_time_delta(training_values, covariate_values, missing_values,
                                                   time_delta, y_labels, label_idx):
     time_indices_to_keep = pd.date_range(label_idx - TIME_DELTA_BEHIND_FROM_LABEL_H,
                                          label_idx + TIME_DELTA_AHEAD_FROM_LABEL_H,
@@ -47,6 +49,5 @@ def get_data_for_single_label_based_on_time_delta(training_values, missing_value
     return (training_values.values.tolist(),
             missing_values.values.tolist(),
             time_delta.values.tolist(),
+            covariate_values.loc[label_idx, :].values.tolist(),
             y_labels.loc[label_idx].values.tolist()[0])
-
-

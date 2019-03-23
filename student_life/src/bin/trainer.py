@@ -9,8 +9,8 @@ def evaluate_set(data, key_set: str, model, criterion, optimizer=None):
     labels = []
     predictions = []
     for key in data[key_set]:
-        tensor_data, train_label = data['data'][key]
-        y_pred = model(tensor_data)
+        actual_data, covariate_data, train_label = data['data'][key]
+        y_pred = model(actual_data)
         y_pred_unqueezed = y_pred.unsqueeze(0)
         loss = criterion(y_pred_unqueezed, train_label)
         total_loss += loss.item()

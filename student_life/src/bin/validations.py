@@ -3,8 +3,9 @@ Stores all validations required by the Lib.
 """
 import pandas as pd
 
+from src import definitions
+
 DATA_DICT_KEYS = ['data', 'train_ids', 'test_ids', 'val_ids']
-DATA_TUPLE_LEN = 4
 
 
 def validate_student_id_in_data(*data: pd.DataFrame):
@@ -35,12 +36,17 @@ def validate_data_dict_keys(data_dict):
     assert all([k in DATA_DICT_KEYS for k in data_dict.keys()])
 
 
-def validate_data_dict_data_len(data_dict):
+def validate_all_data_present_in_data_dict_for_key(data_dict: dict, key):
     validate_data_dict_keys(data_dict)
     first_key = next(iter(data_dict['data'].keys()))
-    assert len(data_dict['data'][first_key]) == DATA_TUPLE_LEN, \
-        "More elements in data tuple. Expected: {} found: {}".format(DATA_TUPLE_LEN,
-                                                                     len(data_dict['data'][first_key]))
+    assert len(data_dict['data'][first_key]) == definitions.DATA_TUPLE_LEN, \
+        "Data Tuple len mismatch. Expected: {} Found: {}. If found less than expected, one of these could be missing -'Actual Data', 'Covariate','Missing Flags', 'Time Deltas', 'Label'".format(definitions.DATA_TUPLE_LEN,
+                                                                                    len(data_dict['data'][first_key]))
+
+
+def validate_all_data_present_in_data_dict(data_dict: dict):
+    for key in data_dict['data']:
+        validate_all_data_present_in_data_dict_for_key(data_dict, key)
 
 
 def validate_no_nans_in_tensor(tensor):
