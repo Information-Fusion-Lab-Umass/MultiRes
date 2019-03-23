@@ -114,3 +114,11 @@ def get_var_binned_data_for_students(*student_id: int):
     return helper_data_dict[definitions.BINNED_DATA_FILE_NAME], helper_data_dict[
         definitions.BINNED_DATA_MISSING_VALES_FILE_NAME], helper_data_dict[
         definitions.BINNED_DATA_TIME_DELTA_FILE_NAME]
+
+
+def prefix_list_of_strings_or_ids_with_student_id(*string_or_id_list, student_id):
+    prefixed_list = []
+    for strings_or_ids in list(string_or_id_list):
+        prefixed_list.append([str(student_id) + "_" + str(str_or_id) for str_or_id in strings_or_ids])
+
+    return tuple(prefixed_list)

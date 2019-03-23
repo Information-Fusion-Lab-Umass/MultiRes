@@ -45,3 +45,23 @@ def validate_data_dict_data_len(data_dict):
 
 def validate_no_nans_in_tensor(tensor):
     assert not (tensor != tensor).any(), "null exists in input!"
+
+
+def validate_all_columns_present_in_data_frame(*data_frames: pd.DataFrame, columns: list):
+    for df in list(data_frames):
+        assert len(df.columns) >= len(columns), "More columns requested than available in data frame."
+        assert all([column in df.columns for column in columns]
+                   ), "These columns missing in data frame: {}".format([col if col not in df.columns else None for col in columns])
+
+
+def check_if_enough_indices_in_data_frame(training_vales: pd.DataFrame, time_indices_to_keep):
+    """
+
+    @brief: Checks if the data frame has the indices required.
+            This is done by intersection operation of the indices.
+    @return: True, if enough data available.
+    """
+    required_len = len(time_indices_to_keep)
+    intersection_len = len(training_vales.index.intersection(time_indices_to_keep))
+
+    return required_len == intersection_len

@@ -28,6 +28,7 @@ VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"
 STUDENT_LIST_CONFIG_KEY = "student_list"
 FEATURE_LIST_CONFIG_KEY = "feature_list"
 LABEL_LIST_CONFIG_KEY = "label_list"
+COVARIATE_LIST_CONFIG_KEY = "covariate_list"
 RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Data Folder Paths - LOCAL

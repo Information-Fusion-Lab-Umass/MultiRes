@@ -125,6 +125,18 @@ def extract_student_ids_from_keys(keys):
     return list(student_ids)
 
 
+def extract_actual_missing_and_time_delta_from_raw_data_for_student(raw_data, student_id):
+    assert len(raw_data) == 3, \
+        "Invalid raw data, it missing one of the following: Actual data, Missing flags or Time Deltas"
+
+    (student_data, missing_data, time_delta) = raw_data
+    student_data = student_data[student_data['student_id'] == student_id]
+    missing_data = missing_data[missing_data['student_id'] == student_id]
+    time_delta = time_delta[time_delta['student_id'] == student_id]
+
+    return student_data, missing_data, time_delta
+
+
 def get_filtered_keys_for_these_students(*student_id, keys):
     filtered_keys = []
     student_ids = list(student_id)
@@ -154,3 +166,23 @@ def flatten_data(data: list):
     return flattened_data_list
 
 
+def convert_df_to_tuple_of_list_values(*data_frames):
+    data_frames_as_list = []
+    for df in data_frames:
+        data_frames_as_list.append(df.values.tolist())
+
+    return tuple(data_frames_as_list)
+
+
+def get_indices_list_in_another_list(a, b):
+    """
+
+    @param a: List of elements who's indices need to be found.
+    @param b: Base list containing superset of a.
+    @return: indices of elements of list a in list b.
+    """
+    indices = []
+    for element in a:
+        indices.append(b.index(element))
+
+    return indices
