@@ -2,15 +2,14 @@ import pandas as pd
 import numpy as np
 
 from src import definitions
-from src import definitions
 from src.utils import read_utils
 from src.bin import validations as validations
 from src.data_processing import aggregates
 from src.data_processing import covariates as covariate_processor
 from src.data_processing import imputation
 
-FEATURE_IMPUTATION_STRATEGY = FEATURE_CONFIG = read_utils.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)[
-    'feature_imputation_stategy']
+FEATURE_IMPUTATION_STRATEGY = read_utils.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)[
+    'feature_imputation_strategy']
 
 COVARIATE_FUNC_MAPPING = {
     'day_of_week': covariate_processor.day_of_week,
@@ -114,7 +113,7 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
 
 
 def impute_missing_feature(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
-    # TODO(abhinavshaw): allow multiple sequential imputation for features.
+    # TODO(abhinavshaw): allow multiple sequential imputation for features and clean up this code.
     if FEATURE_IMPUTATION_STRATEGY['impute_features']:
         for feature_col in flattened_student_data.columns:
             propagation_type = FEATURE_IMPUTATION_STRATEGY[feature_col]

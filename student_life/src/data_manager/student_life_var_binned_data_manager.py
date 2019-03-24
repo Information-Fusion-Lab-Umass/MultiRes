@@ -2,6 +2,7 @@ from src import definitions
 from src.utils import student_utils
 from src.utils import read_utils
 from src.data_manager import splitter
+from src.utils import set_utils
 from src.bin import validations as validations
 from src.utils import data_conversion_utils as conversions
 from src.data_manager import helper as data_manager_helper
@@ -18,31 +19,38 @@ DEFAULT_STUDENT_LIST = list(set(DEFAULT_STUDENT_LIST).intersection(set(available
 FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.FEATURE_LIST_CONFIG_KEY]
 LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.LABEL_LIST_CONFIG_KEY]
 COVARIATE_LIST = VAR_BINNED_DATA_CONFIG[definitions.COVARIATE_LIST_CONFIG_KEY]
-COVARIATE_INDICES = conversions.get_indices_list_in_another_list(COVARIATE_LIST, FEATURE_LIST)
+
+if VAR_BINNED_DATA_CONFIG['process_covariates_as_regular_features']:
+    FEATURE_LIST = FEATURE_LIST + COVARIATE_LIST
+else:
+    assert len(set_utils.lists_intersection(FEATURE_LIST, COVARIATE_LIST)) == 0, \
+        "Feature List and Covariate List cannot overlap."
 
 # These sizes are in percent of data.
 TRAIN_SET_SIZE = VAR_BINNED_DATA_CONFIG['train_set_size']
 VAL_SET_SIZE = VAR_BINNED_DATA_CONFIG['val_set_size']
 TEST_SET_SIZE = VAR_BINNED_DATA_CONFIG['test_set_size']
 
-DEFAULT_SPLITTING_STRATEGY = VAR_BINNED_DATA_CONFIG['splitting_strategy']
+DEFAULT_SPLITTING_STRATEGY = VAR_BINNED_DATA_CONFIG['default_splitting_strategy']
 SPLITTING_STRATEGY_FUNCTION_MAP = {
     'day': data_manager_helper.get_data_for_single_day,
     'time_delta': data_manager_helper.get_data_for_single_label_based_on_time_delta
 }
 
 
-def get_data_based_on_labels_and_splitting_strategy(training_values, missing_values, time_delta, y_labels,
-                                                    splitting_strategy, flatten_sequence_to_cols):
+def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_values, missing_values, time_delta,
+                                                    y_labels, splitting_strategy, flatten_sequence_to_cols):
     """
 
     @param training_values: Training values of students.
+    @param covariate_values: Values that need to be processed as covariates.
     @param missing_values: Missing values for one student.
     @param time_delta: Time deltas for one student.
     @param y_labels: Labels for training. Can have null values.
     @param splitting_strategy: Splitting strategy for the data. Current support for
             1) days - Each label will have one day's worth of data.
             2) time_delta -  Each label will contain data x hours beihind and y hours ahead (configurable by data_manager.yaml)
+    @param flatten_sequence_to_cols: If true, the sequences are flattened into columns.
     @return: Trimmed data based on time delta.
     """
     validations.validate_data_integrity_for_len(training_values, missing_values, time_delta, y_labels)
@@ -57,6 +65,7 @@ def get_data_based_on_labels_and_splitting_strategy(training_values, missing_val
     # len(y_label) -1 to ignore the last label.
     for label_idx in range(len(y_labels) - 1):
         data = SPLITTING_STRATEGY_FUNCTION_MAP[splitting_strategy](training_values,
+                                                                   covariate_values,
                                                                    missing_values,
                                                                    time_delta,
                                                                    y_labels,
@@ -88,6 +97,7 @@ def process_student_data(raw_data, student_id: int, splitting_strategy, normaliz
     validations.validate_all_columns_present_in_data_frame(student_data, columns=LABEL_LIST)
 
     training_values = student_data.loc[:, FEATURE_LIST]
+    covariate_values = student_data.loc[:, COVARIATE_LIST]
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
@@ -109,6 +119,7 @@ def process_student_data(raw_data, student_id: int, splitting_strategy, normaliz
         training_values.fillna(value=-1, inplace=True)
 
     data_list = get_data_based_on_labels_and_splitting_strategy(training_values,
+                                                                covariate_values,
                                                                 missing_values,
                                                                 time_deltas,
                                                                 y_labels,
