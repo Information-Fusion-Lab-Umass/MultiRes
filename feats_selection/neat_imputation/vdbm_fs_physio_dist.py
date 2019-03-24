@@ -224,7 +224,7 @@ if __name__ == '__main__':
               'attn_category': 'dot',
               'num_features': 37,
               'imputation_layer_dim_op': 20,
-              'selected_feats': 3,
+              'selected_feats': i,
               'batch_size': 1,
               'same_device': False,
               'same_feat_other_device': False,
