@@ -6,6 +6,7 @@ from src.utils.aggregation_utils import mode
 from src.bin import validations as validations
 from src.data_processing import covariates as covariate_processor
 
+VERBOSE = True
 
 COVARIATE_FUNC_MAPPING = {
     'day_of_week': covariate_processor.day_of_week,
@@ -156,6 +157,8 @@ def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     rows = len(flattened_student_data)
 
     for i in range(0, rows):
+        if VERBOSE: 
+            if ((i+1)%(rows/10)==0): print("{}/{}".format(i+1, rows));
         for col_idx, col in enumerate(cols):
 
             is_col_nan = np.isnan(flattened_student_data.iloc[i][col])

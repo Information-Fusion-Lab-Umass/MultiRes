@@ -20,16 +20,20 @@ STUDENT_CONFIG = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']
 AVAILABLE_STUDENTS = student_utils.get_available_students(MINIMAL_PROCESSED_DATA_PATH)
 students = read_yaml(FEATURE_CONFIG_FILE_PATH)['students']['student_list']
 FFILL_STRESS = True
+VERBOSE = True
 
+if not os.path.exists(BINNED_ON_VAR_FREQ_DATA_PATH):
+    print("making " + BINNED_ON_VAR_FREQ_DATA_PATH)
+    os.mkdir(BINNED_ON_VAR_FREQ_DATA_PATH)
 
 def run():
     global AVAILABLE_STUDENTS
     ############## Main Loop To Process Data ##################
 
     for student_id in AVAILABLE_STUDENTS:
-
+        if student_id not in [53,24,7,22,49,46]: continue
         student_data = []
-
+        if VERBOSE: print("[SID]: {}\n\t features".format(str(student_id)))
         for idx, feature in enumerate(AVAILABLE_FEATURE):
             feature_data_path = os.path.join(MINIMAL_PROCESSED_DATA_PATH,
                                             STUDENT_FOLDER_NAME_PREFIX + str(student_id),
@@ -46,16 +50,22 @@ def run():
             cols = list(student_data_flattened_processed)
             stress_keys = list(filter(lambda x: 'stress' in x, cols))
             student_data_flattened.loc[:, stress_keys] = student_data_flattened.loc[:, stress_keys].fillna(method='ffill')
-
+        
+        if VERBOSE: print("\t covariates")
         student_data_flattened_processed = helper.process_covariates(student_data_flattened_processed, COVARIATES)
+
+        if VERBOSE: print("\t missing values")
         missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
+
+        if VERBOSE: print("\t deltas")
         time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
 
         ############################### Writing the files to csv #############################
-        student_binned_data_dir_path = os.path.join(
+        student_binned_data_dir_path = str(os.path.join(
             BINNED_ON_VAR_FREQ_DATA_PATH,
             "student_{}".format(student_id)
-        )
+        ))
+        if VERBOSE: print("\t writing to {}".format(student_binned_data_dir_path))
         df_to_csv(student_data_flattened_processed, file_name="var_binned_data.csv",
                 path_to_folder=student_binned_data_dir_path)
         df_to_csv(missing_value_mask, file_name="missing_values_mask.csv",
