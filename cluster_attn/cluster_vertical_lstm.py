@@ -10,6 +10,7 @@ import numpy as np
 import cPickle as pickle
 
 is_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0")
 
 label_mapping = {0: 0, 1: 1}
 
@@ -71,53 +72,75 @@ class CVL(nn.Module):
                                                             batch_size,
                                                             self.hidden_dim).fill_(0)))
 
-    def forward(self, data):
+    def forward(self, data, lens):
         """
-        :param data: list: one batch data: [time_seq0, 37, 4]
-        :return: tag_score: [1, 2]
+        :param data: list: batch data: [B, 37, T, 4]
+               lens: list of int. Has length B. Saves the actual length for every data point.
+        :return: tag_score: [B, 2]
         """
-        features = self.vertical_attn(data)  # (1, time_seq, cluster_num)    # (B, 3, T)
+        # features = self.vertical_attn(data, lens)  # (1, time_seq, cluster_num)    # (B, 3, T)
+        # #         print "FEAT"
+        # #         print features
+        # # features = self.LL(features)            # (1, time_seq, input_dim)  # (B, 3, input_dim)
+        # #         print "Features"
+        # #         print features
+        # #         print features.shape
+        # lenghts = [features.shape[1]]
+        # lengths = torch.cuda.LongTensor(lenghts)
+        # lengths = autograd.Variable(lengths)
+
+        features = self.vertical_attn(data, lens)  # (B, cluster_num, T)
         #         print "FEAT"
         #         print features
-        # features = self.LL(features)            # (1, time_seq, input_dim)  # (B, 3, input_dim)
+        features = self.LL(features)           # (B, cluster_num, input_dim)
         #         print "Features"
         #         print features
         #         print features.shape
-        lenghts = [features.shape[1]]
-        lengths = torch.cuda.LongTensor(lenghts)
+        lengths = torch.cuda.LongTensor(lens)
         lengths = autograd.Variable(lengths)
 
         packed = pack_padded_sequence(features, lengths, batch_first=True)
 
-        batch_size = 1
+        batch_size = len(data)
         self.hidden = self.init_hidden(batch_size)
 
         packed_output, self.hidden = self.lstm(packed, self.hidden)
-        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0] # Bx3xH
+        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # (B, cluster_num, input_dim)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))  # (B,3,H) -> B,H
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))  # # (B, cluster_num, input_dim) -> B,H
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
         #             print tag_space
         else:
             tag_space = self.hidden2tag(lstm_out[:, -1, :])
-        tag_score = F.log_softmax(tag_space, dim=1)
+        tag_score = F.log_softmax(tag_space, dim=1)  # (B, 2)
         return tag_score
 
-    def vertical_attn(self, data):
+    def vertical_attn(self, data, lens):
         """
         :param data: list: (B, 37, time_seq, 4)
-                     time_seq here is a fixed num. We preprocess the data so that for every datapoint it has the same
+                     time_seq here is a fixed num. We preprocess the data so that for every data point it has the same
                      time_seq. We call it max_time_len or T for short
-        :return: imputation_attn: pytorch tensor: (1, time_seq, cluster_num)
-        How to do this: We first visit all time_seq points,
-                        in every time seq we have a [37, 4] tensor.
-                        We use tbm to transfer it to a [37, 1] tensor and stack all those tensors to get a
-                        [time_seq, 37, 1] tensor. We then apply cluster attention and get a [time_seq, cluster_num, 1]
-                        tensor. Finally we squeeze the 3rd dim and unsqueeze the 1st dim to get a
-                        [1, time_seq, cluster_num] tensor.
+               lens: list of int. Has length B. Saves the actual length for every data point.
+
+        :return: imputation_attn: pytorch tensor: (B, cluster_num, T)
+
+        How to do this: Start: B, F, T, 4
+                        TBM: B, F, T
+                        Clustering: [B, F1, T], [B, F2, T], [B, F3, T]
+                        Pass to DotAttention Layer: [B, T], [B, T], [B, T]
+                        Stack to get: B, 3, T
+
+                        # Outdated thoughts
+
+                        # We first visit all time_seq points,
+                        # in every time seq we have a [37, 4] tensor.
+                        # We use tbm to transfer it to a [37, 1] tensor and stack all those tensors to get a
+                        # [time_seq, 37, 1] tensor. We then apply cluster attention and get a [time_seq, cluster_num, 1]
+                        # tensor. Finally we squeeze the 3rd dim and unsqueeze the 1st dim to get a
+                        # [1, time_seq, cluster_num] tensor.
 
                         # We expand it to [1, 37, 4] (1 for one batch).
                         # On each time point, we then do cluster level attention to transfer it
@@ -130,27 +153,6 @@ class CVL(nn.Module):
                         # on this [time_seq, 4] tensor and get a [time_seq, 1] output.
         """
 
-
-
-        # #Start
-        # BxFxTx4
-        # #TBM
-        # BxFxTx1
-        #
-        # #Clustering
-        # BxF1Xt
-        # BxF2Xt
-        # BxF3Xt
-        #
-        # #Pass to DotAttention Layer
-        # Bxt
-        # Bxt
-        # Bxt
-        #
-        # #Stack to get
-        # Bx3xt
-
-        #Pass to bilstm
         B = len(data)
         F = len(data[0])
         T = len(data[0][0])
@@ -184,14 +186,20 @@ class CVL(nn.Module):
                 local_b.append(local_f)
             raw_tbm.append(local_b)
 
+        raw_tbm = np.array(raw_tbm)  # (B, F, T)
         # cluster attention
         stack_data = []  # a list of (B, T), list len = num of clusters
         for cid, c in enumerate(self.cluster):
-            local_cluster = []
-            for f in c:
-                local_cluster.append(torch.cuda.FloatTensor(raw_tbm[:, ]))
-
-
+            local_cluster = []  # cluster_len (B, T) tensor lists
+            for b in range(B):
+                for f in c:
+                    local_cluster.append(torch.from_numpy(raw_tbm[:, f, :]).float().to(device))
+            stacked_local = torch.stack(local_cluster, dim=1)  # (B, cluster_len, T)
+            attn = self.inner_attns[cid]((stacked_local, lens))  # (B, T)
+            stack_data.append(attn)
+        stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, T)
+        stack_data = autograd.Variable(stack_data)
+        return stack_data
 
         # time_seq = len(data)
         # raw_tbm = []  # (time_seq, num_features, 1)
@@ -351,7 +359,9 @@ class DotAttentionLayer(nn.Module):
 
     def forward(self, input):
         """
-        input: (unpacked_padded_output: batch_size x seq_len x hidden_size, lengths: time_seq)
+        input: a tuple:
+        tuple[0]: unpacked_padded_output: B x Max_len (T for short) x H
+        tuple[1]: a list of B integers (actual time_seq len))
         """
         inputs, lengths = input  # (B, T, H)
         batch_size, max_len, _ = inputs.size()
@@ -359,22 +369,18 @@ class DotAttentionLayer(nn.Module):
         flat_input = inputs.contiguous().view(-1, self.hidden_size)  # (B * T, H)
         logits = self.W(flat_input).view(batch_size, max_len)  # (B * T, 1) ->  (B, T)
 
-        print('dot attn logits:', logits)
-
         # computing mask
-        if is_cuda:
-            idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0).cuda()  # (1, T)
-        else:
-            idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0)
+        idxes = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len)).unsqueeze(0).cuda()  # (1, T)
+        masked = []
+        for l in lengths:
+            masked.append(autograd.Variable(torch.cuda.ByteTensor(idxes < torch.cuda.LongTensor(l).unsqueeze(1))))  # (1, T)
+        # mask = autograd.Variable(torch.cuda.ByteTensor(idxes<lengths.unsqueeze(1)))
+        mask = torch.cat(masked, dim=0)  # (B, T)
 
-        mask = autograd.Variable(torch.cuda.ByteTensor(idxes<lengths.unsqueeze(1)))  # (1, T)
-        mask = torch.cat([mask] * batch_size, dim=0)
-        print('dot attn mask: ', mask)
+        # mask the padded part to -inf so they contribute 0 in the softmax
+        # for the cut part we just cut them off, their masks will be all 1
         logits[~mask] = float('-inf')
         alphas = F.softmax(logits, dim=1)  # (B, T)
-
-        print('dot attn alpha: ', alphas)
-
 
         output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)  # (B, 1, T) dot (B, T, H) -> (B, 1, H) -> (B, H)
         return output  # (batch_size, hidden_size)
