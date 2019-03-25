@@ -1,13 +1,11 @@
+import cPickle as pickle
+
+import numpy as np
 import torch
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-import random
-import numpy as np
-
-import cPickle as pickle
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 is_cuda = torch.cuda.is_available()
 
@@ -57,19 +55,19 @@ class CVL(nn.Module):
     def init_hidden(self, batch_size):
         # num_layes, minibatch size, hidden_dim
         if self.bilstm_flag:
-            return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
                                                              batch_size,
-                                                             self.hidden_dim/2).fill_(0)),
-                   autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
-                                                            batch_size,
-                                                            self.hidden_dim/2).fill_(0)))
+                                                             self.hidden_dim / 2).fill_(0)),
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
+                                                             batch_size,
+                                                             self.hidden_dim / 2).fill_(0)))
         else:
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
                                                              self.hidden_dim).fill_(0)),
-                   autograd.Variable(torch.cuda.FloatTensor(self.layers,
-                                                            batch_size,
-                                                            self.hidden_dim).fill_(0)))
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers,
+                                                             batch_size,
+                                                             self.hidden_dim).fill_(0)))
 
     def forward(self, data):
         """
@@ -93,7 +91,7 @@ class CVL(nn.Module):
         self.hidden = self.init_hidden(batch_size)
 
         packed_output, self.hidden = self.lstm(packed, self.hidden)
-        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0] # Bx3xH
+        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # Bx3xH
 
         if self.attn_category == 'dot':
             pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))  # (B,3,H) -> B,H
@@ -130,8 +128,6 @@ class CVL(nn.Module):
                         # on this [time_seq, 4] tensor and get a [time_seq, 1] output.
         """
 
-
-
         # #Start
         # BxFxTx4
         # #TBM
@@ -150,7 +146,7 @@ class CVL(nn.Module):
         # #Stack to get
         # Bx3xt
 
-        #Pass to bilstm
+        # Pass to bilstm
         B = len(data)
         F = len(data[0])
         T = len(data[0][0])
@@ -190,8 +186,6 @@ class CVL(nn.Module):
             local_cluster = []
             for f in c:
                 local_cluster.append(torch.cuda.FloatTensor(raw_tbm[:, ]))
-
-
 
         # time_seq = len(data)
         # raw_tbm = []  # (time_seq, num_features, 1)
@@ -235,7 +229,6 @@ class CVL(nn.Module):
         # attn_clustered_tbm = autograd.Variable(attn_clustered_tbm)
         #
         # return attn_clustered_tbm
-
 
         # cvlised = []  # (time_seq, cluster_num)
 
@@ -367,14 +360,13 @@ class DotAttentionLayer(nn.Module):
         else:
             idxes = torch.arange(0, max_len, out=torch.LongTensor(max_len)).unsqueeze(0)
 
-        mask = autograd.Variable(torch.cuda.ByteTensor(idxes<lengths.unsqueeze(1)))  # (1, T)
+        mask = autograd.Variable(torch.cuda.ByteTensor(idxes < lengths.unsqueeze(1)))  # (1, T)
         mask = torch.cat([mask] * batch_size, dim=0)
         print('dot attn mask: ', mask)
         logits[~mask] = float('-inf')
         alphas = F.softmax(logits, dim=1)  # (B, T)
 
         print('dot attn alpha: ', alphas)
-
 
         output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)  # (B, 1, T) dot (B, T, H) -> (B, 1, H) -> (B, H)
         return output  # (batch_size, hidden_size)
