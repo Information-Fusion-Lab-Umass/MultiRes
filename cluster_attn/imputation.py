@@ -11,11 +11,11 @@ def get_imputation(data_path):
                        where value and flags are [time_seq, 37] matrix
     :param num_features: int; the number of features; we will cluster those features later and do dot attention in each
                          cluster and among all clusters
-    ;:return imputation_dict: dict; {'train': {'data':[[time_seq0, 37, 4], [time_seq1, 4] ... ],
+    ;:return imputation_dict: dict; {'train': {'data':[[37, time_seq0, 4], [37, time_seq1, 4] ... ],
                                                'label': [label0, label1, ...]},
-                                     'test': {'data': [[time_seq0, 37, 4], [time_seq1, 37, 4] ... ],
+                                     'test': {'data': [[37, time_seq0, 4], [37, time_seq1, 4] ... ],
                                               'label': [label0, label1, ...]},
-                                     'val': {'data': [[time_seq0, 37, 4], [time_seq1, 37, 4] ... ],
+                                     'val': {'data': [[37, time_seq0, 4], [37, time_seq1,4] ... ],
                                              'label': [label0, label1, ...]}
                                      }
                               where each [[time_seq0, 37, 4], [time_seq1, 37 4] ... ] has len = number of data points
