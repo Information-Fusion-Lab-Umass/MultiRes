@@ -20,21 +20,11 @@ def evaluate_dbm(model, value_dict, batch_size):
     size = len(labels)
     # print(size)
 
-    for i in tqdm(range(size / batch_size + 1)):
-        start_id = i * batch_size
-        if i < size / batch_size:
-            end_id = (i + 1) * batch_size
-        else:
-            end_id = size
-
-        if start_id != end_id:
-            data_block = data[start_id: end_id]
-            label_block = labels[start_id: end_id]
-            len_block = lens[start_id: end_id]
-
-            label_scores = model(data_block)
-            _, ind = torch.max(label_scores, dim=1)
-            preds += ind.tolist()
+    for i in tqdm(range(size)):
+        
+        label_scores = model([data[i]])
+        _, ind = torch.max(label_scores, dim=1)
+        preds += ind.tolist()
         # print(preds)
         # print('#' * 10)
 

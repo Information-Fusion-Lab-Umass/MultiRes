@@ -191,7 +191,7 @@ def get_origin_imputation(data_path):
 
 
 if __name__ == '__main__':
-    data = get_imputation('./data/final_Physionet_avg_new.pkl', 100)
+    data = get_imputation('./data/final_Physionet_avg_new.pkl', 116)
     # print(data['train']['data'][0])
     pickle.dump(data, open('./data/pc_physionet.pkl', 'wb'))
 

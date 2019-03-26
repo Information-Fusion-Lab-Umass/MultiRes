@@ -34,6 +34,8 @@ def fit(params, data_path, lr=0.0001):
     imputated = pickle.load(open(data_path, 'rb'))
     #
     train = imputated['train']
+    train_d = np.asarray(train['data'])
+   # print(train_d[0], train_d.shape)
     test = imputated['test']
     val = imputated['val']
 
@@ -72,25 +74,25 @@ def fit(params, data_path, lr=0.0001):
         preds_train = []
         actual_train = []
 
-        for i in tqdm(range(train_size / batch_size + 1)):
-            start_id = i * batch_size
-            if i < train_size / batch_size:
-                end_id = (i + 1) * batch_size
-            else:
-                end_id = train_size
+       # for i in tqdm(range(train_size / batch_size)):
+       #     start_id = i * batch_size
+       #     if i < train_size / batch_size:
+       #         end_id = (i + 1) * batch_size
+       #     else:
+       #         end_id = train_size
 
-            train_block = train['data'][start_id: end_id]
-            train_label_block = train['label'][start_id: end_id]
-            train_len_block = train['lens'][start_id: end_id]
+       #     train_block = train['data'][start_id: end_id]
+       #     train_label_block = train['label'][start_id: end_id]
+       #     train_len_block = train['lens'][start_id: end_id]
 
-    #     for each_ID in tqdm(range(len(train['label']))):
+        for each_ID in tqdm(range(len(train['label']))):
             model.zero_grad()
-            tag_scores = model(train_block)
+            tag_scores = model([train['data'][each_ID]])
     #
             _, ind_ = torch.max(tag_scores, dim=1)
             preds_train += ind_.tolist()
     #         curr_label = train['label'][each_ID]
-            curr_labels = [label_mapping[l] for l in train_label_block]
+            curr_labels = [label_mapping[train['label'][each_ID]]]
             actual_train += curr_labels
     #
     #         # print('#' * 50)
@@ -163,8 +165,8 @@ if __name__ == '__main__':
               'hidden_dim': 150,
               # 'hidden_dim': 150,
               # 'input_dim': 50,
-              'max_len': 100,
-              'batch_size': 5,
+              'max_len': 116,
+              'batch_size': 1,
               'same_device': False,
               'same_feat_other_device': False,
               'model_name': 'CVL-Phy',

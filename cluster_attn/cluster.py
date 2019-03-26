@@ -47,11 +47,11 @@ def oppo_dot(data):
 
 
 if __name__ == '__main__':
-    ax = sns.heatmap(read_corr_csv('../../data/intercorr_physionet.csv'))
-    plt.show()
+#    ax = sns.heatmap(read_corr_csv('../../data/intercorr_physionet.csv'))
+#    plt.show()
 
-    # dummy_cluster = [list(range(0, 10)), list(range(10, 20)), list(range(20, 37))]
-    # pickle.dump(dummy_cluster, open('../../data/dummy_cluster.pkl', 'wb'))
+     dummy_cluster = [list(range(0, 10)), list(range(10, 20)), list(range(20, 37))]
+     pickle.dump(dummy_cluster, open('./data/dummy_cluster.pkl', 'wb'))
 
     # data = pickle.load(open('../../data/imputed_physionet.pkl', 'rb'))
     # train = data['train']['data']  # [[time_seq0, 37, 4]]
@@ -61,6 +61,6 @@ if __name__ == '__main__':
     #     flag_data.append(batch[:, :, 2])
     # print(oppo_dot(flag_data))
 
-    ax = sns.heatmap(read_corr_csv('physio_feats_score.csv'))
-    plt.show()
+#    ax = sns.heatmap(read_corr_csv('physio_feats_score.csv'))
+#    plt.show()
 
