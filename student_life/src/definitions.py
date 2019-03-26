@@ -19,7 +19,7 @@ DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_mana
 MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
 
 # Frequency constants
-DEFAULT_BASE_FREQ = 'min'
+DEFAULT_BASE_FREQ = '5 min'
 
 # Data manager config Keys
 VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"
@@ -33,6 +33,8 @@ RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 # Data Folder Paths - LOCAL
 MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
 BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
+SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_covariates")
+STUDENT_RAW_DATA_ANALYSIS_ROOT = os.path.join(ROOT_DIR, "../data/raw_student_data_information")
 
 # Data Folder Paths - CLUSTER
 # Overwrite Global Constants when cluster mode on.

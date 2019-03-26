@@ -1,10 +1,11 @@
 student_life_var_binned_data:
   # Default student list for data manager.
   student_list: [35]
-  feature_list: ['day_of_week', 'epoch_of_day', 'time_since_last_label' , 'time_to_next_label',
-                 'activity_inference_mode', 'audio_activity_inference_mode', 'conv_duration_min_sum',
-                 'dark_duration_min_sum', 'phonecharge_duration_min_sum', 'phonelock_duration_min_sum',
-                 'latitude_mode', 'longitude_mode', 'hours_slept_sum', 'sleep_rating_sum']
+  feature_list: ['day_of_week', 'epoch_of_day', 'time_since_last_label' , 'time_to_next_label','previous_stress_label',
+                 'time_to_next_deadline', 'activity_inference_inferred_feature', 'audio_activity_inference_inferred_feature',
+                 'conv_duration_min_sum','dark_duration_min_robust_sum', 'phonecharge_duration_min_robust_sum',
+                 'phonelock_duration_min_robust_sum',
+                 'latitude_mode', 'longitude_mode', 'hours_slept_robust_sum', 'sleep_rating_robust_sum']
   label_list: ['stress_level_mode']
   train_set_size: 60
   val_set_size: 20
@@ -14,3 +15,5 @@ student_life_var_binned_data:
     use_time_delta_based_processing: True
     time_delta_behind_from_label_h: 5
     time_delta_ahead_from_label_h: 1
+  adjust_labels_wrt_median: True
+  flatten_sequence_to_cols: False

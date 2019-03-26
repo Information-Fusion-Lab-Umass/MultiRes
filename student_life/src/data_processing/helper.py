@@ -2,17 +2,38 @@ import pandas as pd
 import numpy as np
 
 from src import definitions
-from src.utils.aggregation_utils import mode
+from src import definitions
+from src.utils import read_utils
 from src.bin import validations as validations
+from src.data_processing import aggregates
 from src.data_processing import covariates as covariate_processor
+from src.data_processing import imputation
 
+FEATURE_IMPUTATION_STRATEGY = FEATURE_CONFIG = read_utils.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)[
+    'feature_imputation_stategy']
 
 COVARIATE_FUNC_MAPPING = {
     'day_of_week': covariate_processor.day_of_week,
     'epoch_of_day': covariate_processor.epoch_of_day,
     'time_since_last_label': covariate_processor.time_since_last_label_min,
     'time_to_next_label': covariate_processor.time_to_next_label_min,
-    'gender': covariate_processor.evaluate_gender
+    'gender': covariate_processor.evaluate_gender,
+    'previous_stress_label': covariate_processor.previous_stress_label,
+    'time_to_next_deadline': covariate_processor.time_to_next_deadline
+}
+
+AGGREGATE_FUNC_MAPPING = {
+    'mode': aggregates.mode,
+    'inferred_feature': aggregates.inferred_feature,
+    'robust_sum': aggregates.robust_sum
+}
+
+INTERPOLATION_FUNC_MAPPING = {
+    'linear': imputation.linear_interpolation,
+    'forward_fill': imputation.forward_fill,
+    'mean_fill': imputation.mean_fill,
+    'mode_fill': imputation.mode_fill,
+    'none': None
 }
 
 
@@ -30,8 +51,8 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     custom_aggregates = []
     simple_aggregates = feature_config['simple_aggregates']
 
-    if "mode" in feature_config['custom_aggregates']:
-        custom_aggregates.append(mode)
+    for custom_aggregate in feature_config['custom_aggregates']:
+        custom_aggregates.append(AGGREGATE_FUNC_MAPPING[custom_aggregate])
 
     rule = {"student_id": value}
 
@@ -41,7 +62,7 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     return rule
 
 
-def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, student_id)->pd.DataFrame:
+def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, student_id) -> pd.DataFrame:
     """
 
     @attention : Imputes missing value with -1.
@@ -59,7 +80,7 @@ def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, st
     resampled_feature_data = feature_data.resample(rule=str(resample_freq_min) + "T")
     aggregation_rule = get_aggregation_rule(feature_inference_cols, feature_config, student_id)
     aggregated_data = resampled_feature_data.agg(aggregation_rule)
-    aggregated_data.fillna(value=-1, inplace=True)
+
     # Flattening all the columns.
     aggregated_data.columns = ['_'.join(col).strip() if 'student_id' not in col else 'student_id'
                                for col in aggregated_data.columns.values]
@@ -67,7 +88,7 @@ def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, st
     return aggregated_data
 
 
-def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)->pd.DataFrame:
+def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id) -> pd.DataFrame:
     """
 
     @param student_data: A list of data frame with various features from the student_life data-set.
@@ -92,6 +113,19 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
     return flattened_df
 
 
+def impute_missing_feature(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    # TODO(abhinavshaw): allow multiple sequential imputation for features.
+    if FEATURE_IMPUTATION_STRATEGY['impute_features']:
+        for feature_col in flattened_student_data.columns:
+            propagation_type = FEATURE_IMPUTATION_STRATEGY[feature_col]
+            if propagation_type != 'none':
+                flattened_student_data[feature_col] = INTERPOLATION_FUNC_MAPPING[propagation_type](
+                    flattened_student_data[feature_col])
+                flattened_student_data[feature_col] = flattened_student_data[feature_col].round(decimals=0)
+
+    return flattened_student_data
+
+
 def replace_neg_one_with_nan(df):
     """
 
@@ -102,7 +136,7 @@ def replace_neg_one_with_nan(df):
     return df.replace(to_replace={-1: np.nan, -1.0: np.nan}, value=None, inplace=False)
 
 
-def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame)->pd.DataFrame:
+def remove_days_with_no_stress_label(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     """
 
     @param flattened_student_data: Flattened data of student. Must contain stress_level_mode as
@@ -167,7 +201,7 @@ def get_time_deltas_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
             # converting to minutes if the col is not student_id.
             time_deltas.iloc[i, col_idx] = \
                 flattened_student_data.iat[i, col_idx] \
-                if col == "student_id" else delta.total_seconds() / 60
+                    if col == "student_id" else delta.total_seconds() / 60
 
     return time_deltas
 
@@ -198,6 +232,8 @@ def process_covariates(flattened_student_data: pd.DataFrame, covariates: dict) -
 
     for covariate, bool_flag in covariates.items():
         if bool_flag:
-            flattened_student_data = COVARIATE_FUNC_MAPPING[covariate](flattened_student_data)
+            processed_flattened_student_data = COVARIATE_FUNC_MAPPING[covariate](flattened_student_data)
+            flattened_student_data = processed_flattened_student_data if \
+                processed_flattened_student_data is not None else flattened_student_data
 
     return flattened_student_data
