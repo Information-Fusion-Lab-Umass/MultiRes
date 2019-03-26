@@ -10,19 +10,31 @@ import cPickle as pickle
 label_mapping = {0: 0, 1: 1}
 
 
-def evaluate_dbm(model, value_dict):
+def evaluate_dbm(model, value_dict, batch_size):
     preds = []
     actual = []
 
     data = value_dict['data']
     labels = value_dict['label']
+    lens = value_dict['lens']
+    size = len(labels)
+    # print(size)
 
-    for each_id in tqdm(range(len(labels))):
-        # print(each)
-        # print('#' * 10)
-        label_scores = model(data[each_id])
-        _, ind = torch.max(label_scores, dim=1)
-        preds += ind.tolist()
+    for i in tqdm(range(size / batch_size + 1)):
+        start_id = i * batch_size
+        if i < size / batch_size:
+            end_id = (i + 1) * batch_size
+        else:
+            end_id = size
+
+        if start_id != end_id:
+            data_block = data[start_id: end_id]
+            label_block = labels[start_id: end_id]
+            len_block = lens[start_id: end_id]
+
+            label_scores = model(data_block, len_block)
+            _, ind = torch.max(label_scores, dim=1)
+            preds += ind.tolist()
         # print(preds)
         # print('#' * 10)
 

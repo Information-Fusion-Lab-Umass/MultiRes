@@ -32,15 +32,17 @@ if __name__ == '__main__':
               'tagset_size': 2,
               'attn_category': 'dot',
               'num_features': 37,
-              'input_dim': 10,
-              'hidden_dim': 50,
+              'input_dim': 60,
+              'hidden_dim': 80,
+              'max_len': 50,
+              'batch_size': 10,
               'same_device': False,
               'same_feat_other_device': False,
               'model_name': 'CVL-Phy',
               'cluster_path': '/home/sidongzhang/code/fl/data/dummy_cluster.pkl'}
-    imputated = pickle.load(open('/home/sidongzhang/code/fl/data/imputed_physionet.pkl', 'rb'))
-    test = imputated['test']
+    imputated = pickle.load(open('/home/sidongzhang/code/fl/data/pc_physionet.pkl', 'rb'))
+    # test = imputated['test']
     val = imputated['val']
 
     model = cvl.CVL(params).cuda()
-    prf_test, df_test = eval_plot.evaluate_dbm(model, test)
+    prf_test, df_test = eval_plot.evaluate_dbm(model, val, 10)

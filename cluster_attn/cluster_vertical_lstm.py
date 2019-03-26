@@ -27,19 +27,21 @@ class CVL(nn.Module):
         self.tagset_size = params['tagset_size']
         self.attn_category = params['attn_category']
         self.num_features = params['num_features']
+        self.max_len = params['max_len']
         self.input_dim = params['input_dim']
         self.hidden_dim = params['hidden_dim']
+        # self.batch_size = params['batch_size']
         self.cluster = pickle.load(open(params['cluster_path'], 'rb'))  # [[cluster one feats], [cluster 2 feats], ...]
 
         # self.LL = nn.Linear(self.num_features, self.input_dim)
-        self.LL = nn.Linear(len(self.cluster), self.input_dim)
+        self.LL = nn.Linear(self.max_len, self.input_dim)
 
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
             self.inner_attns = nn.ModuleList([])
             for _ in self.cluster:
                 # self.inner_attns.append(DotAttentionLayer(4).cuda())
-                self.inner_attns.append(DotAttentionLayer(1).cuda())
+                self.inner_attns.append(DotAttentionLayer(self.max_len).cuda())
             # self.outer_attn = DotAttentionLayer(4).cuda()
 
         if self.bilstm_flag:
@@ -58,19 +60,19 @@ class CVL(nn.Module):
     def init_hidden(self, batch_size):
         # num_layes, minibatch size, hidden_dim
         if self.bilstm_flag:
-            return (autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
                                                              batch_size,
-                                                             self.hidden_dim/2).fill_(0)),
-                   autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
-                                                            batch_size,
-                                                            self.hidden_dim/2).fill_(0)))
+                                                             self.hidden_dim / 2).fill_(0)),
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
+                                                             batch_size,
+                                                             self.hidden_dim / 2).fill_(0)))
         else:
             return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
                                                              batch_size,
                                                              self.hidden_dim).fill_(0)),
-                   autograd.Variable(torch.cuda.FloatTensor(self.layers,
-                                                            batch_size,
-                                                            self.hidden_dim).fill_(0)))
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers,
+                                                             batch_size,
+                                                             self.hidden_dim).fill_(0)))
 
     def forward(self, data, lens):
         """
@@ -88,27 +90,31 @@ class CVL(nn.Module):
         # lenghts = [features.shape[1]]
         # lengths = torch.cuda.LongTensor(lenghts)
         # lengths = autograd.Variable(lengths)
-
         features = self.vertical_attn(data, lens)  # (B, cluster_num, T)
         #         print "FEAT"
         #         print features
-        features = self.LL(features)           # (B, cluster_num, input_dim)
+        features = self.LL(features)  # (B, cluster_num, input_dim)
         #         print "Features"
         #         print features
         #         print features.shape
-        lengths = torch.cuda.LongTensor(lens)
-        lengths = autograd.Variable(lengths)
-
-        packed = pack_padded_sequence(features, lengths, batch_first=True)
-
+        # cut_lens = []
+        # for l in lens:
+        #     cut_lens = l if l <= self.max_len else self.max_len
+        # lengths = torch.cuda.LongTensor(cut_lens)
+        # lengths = autograd.Variable(lengths)
         batch_size = len(data)
+
+        packed = pack_padded_sequence(features,
+                                      torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)]),
+                                      batch_first=True)
+
         self.hidden = self.init_hidden(batch_size)
 
         packed_output, self.hidden = self.lstm(packed, self.hidden)
-        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # (B, cluster_num, input_dim)
+        lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # (B, cluster_num, hidden_dim)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))  # # (B, cluster_num, input_dim) -> B,H
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))  # # (B, cluster_num, hidden_dim) -> B,H
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
@@ -152,7 +158,8 @@ class CVL(nn.Module):
                         # [time_seq, 4] tensor. We use tbm
                         # on this [time_seq, 4] tensor and get a [time_seq, 1] output.
         """
-
+        # print(np.array(data).shape)
+        # print(data)
         B = len(data)
         F = len(data[0])
         T = len(data[0][0])
@@ -243,7 +250,6 @@ class CVL(nn.Module):
         # attn_clustered_tbm = autograd.Variable(attn_clustered_tbm)
         #
         # return attn_clustered_tbm
-
 
         # cvlised = []  # (time_seq, cluster_num)
 
@@ -360,26 +366,32 @@ class DotAttentionLayer(nn.Module):
     def forward(self, input):
         """
         input: a tuple:
-        tuple[0]: unpacked_padded_output: B x Max_len (T for short) x H
+        tuple[0]: unpacked_padded_output: B x cluster_len x Max_len (T for short)
         tuple[1]: a list of B integers (actual time_seq len))
         """
-        inputs, lengths = input  # (B, T, H)
-        batch_size, max_len, _ = inputs.size()
+        inputs, lengths = input  # (B, T, H); (B)
+        batch_size, T,  _ = inputs.size()
 
         flat_input = inputs.contiguous().view(-1, self.hidden_size)  # (B * T, H)
-        logits = self.W(flat_input).view(batch_size, max_len)  # (B * T, 1) ->  (B, T)
+        logits = self.W(flat_input).view(batch_size, T)  # (B * T, 1) ->  (B, T)
 
         # computing mask
-        idxes = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len)).unsqueeze(0).cuda()  # (1, T)
-        masked = []
-        for l in lengths:
-            masked.append(autograd.Variable(torch.cuda.ByteTensor(idxes < torch.cuda.LongTensor(l).unsqueeze(1))))  # (1, T)
-        # mask = autograd.Variable(torch.cuda.ByteTensor(idxes<lengths.unsqueeze(1)))
-        mask = torch.cat(masked, dim=0)  # (B, T)
-
-        # mask the padded part to -inf so they contribute 0 in the softmax
-        # for the cut part we just cut them off, their masks will be all 1
-        logits[~mask] = float('-inf')
+        # idxes = torch.arange(0, max_len, out=torch.cuda.LongTensor(max_len)).unsqueeze(0).cuda()  # (1, T)
+        # masked = []
+        # print('idxes, ', idxes)
+        # print('lengths, ', lengths)
+        #
+        # for l in lengths:
+        #     print(torch.cuda.LongTensor(l).unsqueeze(1))
+        #     one_batch = autograd.Variable(torch.cuda.ByteTensor(idxes < torch.cuda.LongTensor(l)))
+        #     print(one_batch)
+        #     masked.append(one_batch)  # (1, T)
+        # # mask = autograd.Variable(torch.cuda.ByteTensor(idxes<lengths.unsqueeze(1)))
+        # mask = torch.cat(masked, dim=0)  # (B, T)
+        #
+        # # mask the padded part to -inf so they contribute 0 in the softmax
+        # # for the cut part we just cut them off, their masks will be all 1
+        # logits[~mask] = float('-inf')
         alphas = F.softmax(logits, dim=1)  # (B, T)
 
         output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)  # (B, 1, T) dot (B, T, H) -> (B, 1, H) -> (B, H)
