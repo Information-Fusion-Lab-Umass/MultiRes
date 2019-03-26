@@ -4,7 +4,6 @@ from src.bin import validations
 def evaluate_set(data, key_set: str, model, criterion, optimizer=None, train_covariates=False):
     validations.validate_data_dict_keys(data)
     assert key_set in ['test_ids', 'val_ids', 'train_ids'], "Invalid Key Set. Must be either test or val!"
-
     total_loss = 0
     labels = []
     predictions = []

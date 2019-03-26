@@ -1,6 +1,7 @@
 """
 Python module that defines Simple LSTM Based NN module.
 """
+import torch
 import torch.nn as nn
 
 from src import definitions
@@ -16,8 +17,10 @@ class SimpleLSTM(nn.Module):
                  num_classes=3,
                  hidden_size=64,
                  dropout=0,
-                 bidirectional=False):
+                 bidirectional=False,
+                 covariates=0):
         super(SimpleLSTM, self).__init__()
+        self.covariates = covariates
         self.lstm = nn.LSTM(input_size=num_features,
                             hidden_size=hidden_size,
                             batch_first=True,
@@ -25,15 +28,27 @@ class SimpleLSTM(nn.Module):
                             dropout=dropout)
 
         dense_layer_hidden_size = hidden_size * 2 if bidirectional else hidden_size
+        dense_layer_hidden_size = dense_layer_hidden_size + covariates if covariates > 0 else dense_layer_hidden_size
         self.linear = nn.Linear(dense_layer_hidden_size, num_classes)
 
-    def forward(self, tensor_data):
+    def forward(self, tensor_data, covariates=None):
+        assert covariates is not None and self.covariates > 0 or covariates is None and self.covariates == 0,\
+            "If training for covariates, initialize correctly."
+
+        if covariates is not None:
+            assert covariates.shape[0] == self.covariates, "Expected covariate size and input mismatch."
         # Extracting actual data form the tuple.
         input_sequence = tensor_data[definitions.ACTUAL_DATA_IDX].unsqueeze(0)
         validations.validate_no_nans_in_tensor(input_sequence)
 
         lstm_out, hidden = self.lstm(input_sequence)
         y_out = lstm_out[:, -1].unsqueeze(0)
+
+        if self.covariates > 0 and covariates is not None:
+            # Adding two dummy dimensions.
+            covariates = covariates.unsqueeze(0).unsqueeze(0)
+            y_out = torch.cat((y_out, covariates), dim=2)
+
         y_out = self.linear(y_out)
         y_out = y_out.squeeze(0).squeeze(0)
 
@@ -76,7 +91,7 @@ class SimpleCNN(nn.Module):
         self.sequence_length = sequence_length
         self.num_features = num_features
 
-    def forward(self, tensor_data):
+    def forward(self, tensor_data, covariate=None):
         tensor_data = tensor_data.unsqueeze(0)
         validations.validate_no_nans_in_tensor(tensor_data)
         assert tensor_data.shape[1] >= self.in_channels and tensor_data.shape[2] == self.sequence_length and tensor_data.shape[3] == self.num_features, "Wrong dimensions in input data!"

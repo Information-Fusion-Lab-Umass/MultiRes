@@ -165,6 +165,7 @@ def get_data_for_training_in_dict_format(*student_ids,
     else:
         student_ids = list(student_ids)
 
+    #todo(abhinavshaw) Change to a function.
     data = dict()
     data["train_ids"] = []
     data["val_ids"] = []

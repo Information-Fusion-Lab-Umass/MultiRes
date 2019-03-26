@@ -116,11 +116,12 @@ def impute_missing_feature(flattened_student_data: pd.DataFrame) -> pd.DataFrame
     # TODO(abhinavshaw): allow multiple sequential imputation for features and clean up this code.
     if FEATURE_IMPUTATION_STRATEGY['impute_features']:
         for feature_col in flattened_student_data.columns:
-            propagation_type = FEATURE_IMPUTATION_STRATEGY[feature_col]
-            if propagation_type != 'none':
-                flattened_student_data[feature_col] = INTERPOLATION_FUNC_MAPPING[propagation_type](
-                    flattened_student_data[feature_col])
-                flattened_student_data[feature_col] = flattened_student_data[feature_col].round(decimals=0)
+            propagation_types = FEATURE_IMPUTATION_STRATEGY[feature_col]
+            if len(propagation_types) > 0:
+                for propagation_type in propagation_types:
+                    flattened_student_data[feature_col] = INTERPOLATION_FUNC_MAPPING[propagation_type](
+                        flattened_student_data[feature_col])
+                    flattened_student_data[feature_col] = flattened_student_data[feature_col].round(decimals=0)
 
     return flattened_student_data
 
