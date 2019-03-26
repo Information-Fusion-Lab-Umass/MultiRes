@@ -15,18 +15,37 @@ SEQUENCE_LEN = HOURS_TO_MINUTES * DATA_MANAGER_CONFIG['time_deltas']['time_delta
 OUT_SEQUENCE_LEN = SUB_SAMPLING_CONFIG['output_sequence_len']
 
 
+def find_set_for_key(data: dict, key):
+    """
+
+    @param data:
+    @return:  set where the key exists.
+    """
+
+    if key in data['train_ids']:
+        return 'train_ids'
+    elif key in data['val_ids']:
+        return 'val_ids'
+    elif key in data['test_ids']:
+        return 'test_ids'
+    else:
+        return None
+
+
 def get_sub_sampled_sequences(data: dict):
     validations.validate_all_data_present_in_data_dict(data)
     validations.validate_data_dict_keys(data)
     new_data = object_generator_utils.get_empty_data_dict()
 
     for key in data['data']:
-        sub_sample_sequences(data['data'][key], key, new_data)
+        key_set = find_set_for_key(data, key)
+        if key_set:
+            sub_sample_sequences(data['data'][key], key, key_set, new_data)
 
     return new_data
 
 
-def sub_sample_sequences(data_tuple, key, new_data):
+def sub_sample_sequences(data_tuple, key, key_set, new_data):
     """
 
     @param data_tuple:
@@ -49,6 +68,7 @@ def sub_sample_sequences(data_tuple, key, new_data):
                                                                  output_seq_length=OUT_SEQUENCE_LEN)
         new_key = key + "_" + str(idx)
         new_data['data'][new_key] = sub_actual, sub_missing, sub_time_delta, covariates, y_label
+        new_data[key_set].append(new_key)
 
 
 def slice_sequence(*data: list, start_idx, output_seq_length):

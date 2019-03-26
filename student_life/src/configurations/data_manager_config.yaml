@@ -23,6 +23,6 @@ student_life_var_binned_data:
   adjust_labels_wrt_median: True
   flatten_sequence_to_cols: False
   sub_sampling:
-    sub_sample_count: 10
+    sub_sample_count: 5
     # This cannot be more than the actual sequence length.
     output_sequence_len: 36
