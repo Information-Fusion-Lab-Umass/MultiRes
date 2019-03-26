@@ -1,16 +1,28 @@
-import cPickle as pickle
+import sys
+import csv
 
-import numpy as np
-import pandas as pd
 import torch
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.autograd as autograd
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
-from sklearn.metrics import precision_recall_fscore_support
-from tqdm import tqdm
+import random
+import numpy as np
 
-import cluster_vertical_lstm as cvl
+from tqdm import tqdm
+import pandas as pd
+
+import cPickle as pickle
+
+
+from sklearn.metrics import precision_recall_fscore_support
+
+import os
+
 import evaluate_plot as eval_plot
+import imputation
+import cluster_vertical_lstm as cvl
 
 label_mapping = {0: 0, 1: 1}
 
@@ -24,30 +36,11 @@ def fit(params, data_path, lr=0.0001):
     train = imputated['train']
     test = imputated['test']
     val = imputated['val']
-# =======
-# def fit(params, lr=0.0001):
-#     dataset = np.load('./pre/dataset_49_0.64.npy')
-#     outcomes = np.load('./pre/outcomes_49_0.64.npy')
-#     ts_lengths = np.load('./pre/ts_lengths_49_0.64.npy')
-
-#     trp = 0.64  # Ratio is 64:16:20
-#     vrp = 0.16
-#     print(dataset.shape)  # (4000x3x33x49)
-#     print(outcomes.shape)  # (4000,1)
-#     print(ts_lengths.shape)  # (4000x1)
-#     print('Training ratio', trp)  # 0.64
-
-#     num_data = dataset.shape[0]
-#     train_data = dataset[:int(trp * num_data)]
-#     val_data = dataset[int(trp * num_data):int((trp + vrp) * num_data)]
-#     test_data = dataset[int((trp + vrp) * num_data):]
-# >>>>>>> d53c176325521f442b5d5c55d53202ce90c1468d
 
     model = cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=0.00000000002)
     mode = 'normal'
-
     #
     if (mode == 'normal'):
         feature_ind = 0
@@ -60,9 +53,9 @@ def fit(params, data_path, lr=0.0001):
 
     print "==x==" * 20
     print "Data Statistics"
-    print('Train data', train_data.shape)
-    print('Val data', val_data.shape)
-    print('Test data', test_data.shape)
+    print "Train Data: " + str(len(train['label']))
+    print "Val Data: " + str(len(test['label']))
+    print "Test Data: " + str(len(val['label']))
     print "==x==" * 20
     #
     start_epoch = 0
@@ -92,13 +85,12 @@ def fit(params, data_path, lr=0.0001):
 
     #     for each_ID in tqdm(range(len(train['label']))):
             model.zero_grad()
-            tag_scores = model(train_block, train_len_block)
+            tag_scores = model(train_block)
     #
             _, ind_ = torch.max(tag_scores, dim=1)
             preds_train += ind_.tolist()
     #         curr_label = train['label'][each_ID]
             curr_labels = [label_mapping[l] for l in train_label_block]
-
             actual_train += curr_labels
     #
     #         # print('#' * 50)
@@ -119,11 +111,10 @@ def fit(params, data_path, lr=0.0001):
                              columns=[0, 1])
         df_tr.index = ['Precision', 'Recall', 'F-score', 'Count']
         prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
-
     #     #     prf_tr, df_tr = evaluate_(model_RNN, data, 'train_ids')
         prf_test, df_test = eval_plot.evaluate_dbm(model, test, batch_size)
         prf_val, df_val = eval_plot.evaluate_dbm(model, val, batch_size)
-
+    #
         df_all = pd.concat([df_tr, df_val, df_test], axis=1)
         dict_df_prf_mod['Epoch' + str(iter_)] = df_all
     #
@@ -142,35 +133,42 @@ def fit(params, data_path, lr=0.0001):
         print '\n'
 
         if (save_flag):
-            torch.save(model, '/home/sidongzhang/code/fl/models/' + model_name + str(iter_) + '.pt')
+            torch.save(model, './models/' + model_name + str(iter_) + '.pt')
             pickle.dump(dict_df_prf_mod,
-                        open('/home/sidongzhang/code/fl/results/prf_' + model_name + str(iter_) + '.pkl', 'wb'))
+                        open('./results/prf_' + model_name + str(iter_) + '.pkl', 'wb'))
             eval_plot.plot_graphs(dict_df_prf_mod, 'F-score',
-                                  '/home/sidongzhang/code/fl/plots/' + model_name + str(iter_) + '.png',
+                                  './plots/' + model_name + str(iter_) + '.png',
                                   0, iter_ + 1,
                                   model_name)
         accuracy_dict['prf_tr'].append(prf_tr)
         accuracy_dict['prf_test'].append(prf_test)
         accuracy_dict['prf_val'].append(prf_val)
 
-    pickle.dump(accuracy_dict, open('/home/sidongzhang/code/fl/results/physio_final_prf_' + model_name + '.pkl', 'wb'))
+    pickle.dump(accuracy_dict, open('./results/physio_final_prf_' + model_name + '.pkl', 'wb'))
 
 
 if __name__ == '__main__':
+    p = sys.argv[1:]
+    if not p:
+        lr = 1e-6
+    else:
+        lr = float(p[0])
     params = {'bilstm_flag': True,
               'dropout': 0.9,
               'layers': 1,
               'tagset_size': 2,
               'attn_category': 'dot',
               'num_features': 37,
-              'input_dim': 60,
-              'hidden_dim': 80,
-              'max_len': 50,
-              'batch_size': 10,
+              'input_dim': 120,
+              'hidden_dim': 150,
+              # 'hidden_dim': 150,
+              # 'input_dim': 50,
+              'max_len': 100,
+              'batch_size': 5,
               'same_device': False,
               'same_feat_other_device': False,
               'model_name': 'CVL-Phy',
-              'cluster_path': '/home/sidongzhang/code/fl/data/dummy_cluster.pkl'}
+              'cluster_path': './data/dummy_cluster.pkl'}
     # fit(params, '/home/sidongzhang/code/fl/data/final_Physionet_avg_new.pkl')
-    fit(params, '/home/sidongzhang/code/fl/data/pc_physionet.pkl', lr=3e-6)
-
+    fit(params, './data/pc_physionet.pkl', lr=lr)
+    # fit(params)

@@ -1,10 +1,10 @@
-import cPickle as pickle
 import csv
-
-import matplotlib
 import numpy as np
 
-matplotlib.use('agg')
+import cPickle as pickle
+
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def read_corr_csv(file_name):
@@ -64,8 +64,3 @@ if __name__ == '__main__':
     ax = sns.heatmap(read_corr_csv('physio_feats_score.csv'))
     plt.show()
 
-
-    # ax = sns.heatmap(read_corr_csv('../../data/intercorr_physionet.csv'))
-    # plt.show()
-    dummy_cluster = [list(range(0, 10)), list(range(10, 20)), list(range(20, 37))]
-    pickle.dump(dummy_cluster, open('./pre/dummy_cluster.pkl', 'wb'))

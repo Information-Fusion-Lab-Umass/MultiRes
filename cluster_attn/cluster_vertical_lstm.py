@@ -29,6 +29,7 @@ class CVL(nn.Module):
         self.num_features = params['num_features']
         self.max_len = params['max_len']
         self.input_dim = params['input_dim']
+        # self.input_dim = self.max_len
         self.hidden_dim = params['hidden_dim']
         # self.batch_size = params['batch_size']
         self.cluster = pickle.load(open(params['cluster_path'], 'rb'))  # [[cluster one feats], [cluster 2 feats], ...]
@@ -57,6 +58,21 @@ class CVL(nn.Module):
 
         self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
 
+        # self.LL = nn.Linear(self.num_features, self.input_dim)
+        #
+        # if (self.bilstm_flag):
+        #     self.lstm = nn.LSTM(self.input_dim, self.hidden_dim / 2, num_layers=self.layers,
+        #                         bidirectional=True, batch_first=True, dropout=self.dropout)
+        # else:
+        #     self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers=self.layers,
+        #                         bidirectional=False, batch_first=True, dropout=self.dropout)
+        #
+        # self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
+        #
+        # if (self.attn_category == 'dot'):
+        #     print "Dot Attention is being used!"
+        #     self.attn = DotAttentionLayer(self.hidden_dim).cuda()
+
     def init_hidden(self, batch_size):
         # num_layes, minibatch size, hidden_dim
         if self.bilstm_flag:
@@ -74,7 +90,7 @@ class CVL(nn.Module):
                                                              batch_size,
                                                              self.hidden_dim).fill_(0)))
 
-    def forward(self, data, lens):
+    def forward(self, data):
         """
         :param data: list: batch data: [B, 37, T, 4]
                lens: list of int. Has length B. Saves the actual length for every data point.
@@ -90,7 +106,7 @@ class CVL(nn.Module):
         # lenghts = [features.shape[1]]
         # lengths = torch.cuda.LongTensor(lenghts)
         # lengths = autograd.Variable(lengths)
-        features = self.vertical_attn(data, lens)  # (B, cluster_num, T)
+        features = self.vertical_attn(data)  # (B, cluster_num, T)
         #         print "FEAT"
         #         print features
         features = self.LL(features)  # (B, cluster_num, input_dim)
@@ -102,6 +118,8 @@ class CVL(nn.Module):
         #     cut_lens = l if l <= self.max_len else self.max_len
         # lengths = torch.cuda.LongTensor(cut_lens)
         # lengths = autograd.Variable(lengths)
+
+
         batch_size = len(data)
 
         packed = pack_padded_sequence(features,
@@ -114,7 +132,7 @@ class CVL(nn.Module):
         lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # (B, cluster_num, hidden_dim)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))  # # (B, cluster_num, hidden_dim) -> B,H
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))  # (B, cluster_num, hidden_dim) -> B,H
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
@@ -122,9 +140,40 @@ class CVL(nn.Module):
         else:
             tag_space = self.hidden2tag(lstm_out[:, -1, :])
         tag_score = F.log_softmax(tag_space, dim=1)  # (B, 2)
+
+        print(np.exp(tag_score.detach().numpy()))
+
         return tag_score
 
-    def vertical_attn(self, data, lens):
+        # features = self.LL(features)
+        # #         print "Features"
+        # #         print features
+        # print features.shape
+        # lenghts = [features.shape[1]]
+        # lengths = torch.cuda.LongTensor(lenghts)
+        # lengths = autograd.Variable(lengths)
+        #
+        # packed = pack_padded_sequence(features, lengths, batch_first=True)
+        #
+        # batch_size = 1
+        # self.hidden = self.init_hidden(batch_size)
+        #
+        # packed_output, self.hidden = self.lstm(packed, self.hidden)
+        # lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
+        #
+        # if (self.attn_category == 'dot'):
+        #     pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(lengths)))
+        #     #             print pad_attn
+        #     #             print "TAG SPACE"
+        #     #             print(pad_attn.shape)
+        #     tag_space = self.hidden2tag(pad_attn)
+        # #             print tag_space
+        # else:
+        #     tag_space = self.hidden2tag(lstm_out[:, -1, :])
+        # tag_score = F.log_softmax(tag_space, dim=1)
+        # return tag_score
+
+    def vertical_attn(self, data):
         """
         :param data: list: (B, 37, time_seq, 4)
                      time_seq here is a fixed num. We preprocess the data so that for every data point it has the same
@@ -193,6 +242,8 @@ class CVL(nn.Module):
                 local_b.append(local_f)
             raw_tbm.append(local_b)
 
+        # return raw_tbm
+
         raw_tbm = np.array(raw_tbm)  # (B, F, T)
         # cluster attention
         stack_data = []  # a list of (B, T), list len = num of clusters
@@ -202,7 +253,7 @@ class CVL(nn.Module):
                 for f in c:
                     local_cluster.append(torch.from_numpy(raw_tbm[:, f, :]).float().to(device))
             stacked_local = torch.stack(local_cluster, dim=1)  # (B, cluster_len, T)
-            attn = self.inner_attns[cid]((stacked_local, lens))  # (B, T)
+            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor([len(c) for _ in range(B)])))  # (B, T)
             stack_data.append(attn)
         stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, T)
         stack_data = autograd.Variable(stack_data)
