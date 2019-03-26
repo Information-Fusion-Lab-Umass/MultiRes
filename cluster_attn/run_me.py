@@ -1,28 +1,16 @@
-import sys
-import csv
-
-import torch
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-import torch.autograd as autograd
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import random
-import numpy as np
-
-from tqdm import tqdm
-import pandas as pd
-
 import cPickle as pickle
 
-
+import numpy as np
+import pandas as pd
+import torch
+import torch.autograd as autograd
+import torch.nn as nn
+import torch.optim as optim
 from sklearn.metrics import precision_recall_fscore_support
+from tqdm import tqdm
 
-import os
-
-import evaluate_plot as eval_plot
-import imputation
 import cluster_vertical_lstm as cvl
+import evaluate_plot as eval_plot
 
 label_mapping = {0: 0, 1: 1}
 
@@ -36,11 +24,30 @@ def fit(params, data_path, lr=0.0001):
     train = imputated['train']
     test = imputated['test']
     val = imputated['val']
+# =======
+# def fit(params, lr=0.0001):
+#     dataset = np.load('./pre/dataset_49_0.64.npy')
+#     outcomes = np.load('./pre/outcomes_49_0.64.npy')
+#     ts_lengths = np.load('./pre/ts_lengths_49_0.64.npy')
+
+#     trp = 0.64  # Ratio is 64:16:20
+#     vrp = 0.16
+#     print(dataset.shape)  # (4000x3x33x49)
+#     print(outcomes.shape)  # (4000,1)
+#     print(ts_lengths.shape)  # (4000x1)
+#     print('Training ratio', trp)  # 0.64
+
+#     num_data = dataset.shape[0]
+#     train_data = dataset[:int(trp * num_data)]
+#     val_data = dataset[int(trp * num_data):int((trp + vrp) * num_data)]
+#     test_data = dataset[int((trp + vrp) * num_data):]
+# >>>>>>> d53c176325521f442b5d5c55d53202ce90c1468d
 
     model = cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
     optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=0.00000000002)
     mode = 'normal'
+
     #
     if (mode == 'normal'):
         feature_ind = 0
@@ -53,9 +60,9 @@ def fit(params, data_path, lr=0.0001):
 
     print "==x==" * 20
     print "Data Statistics"
-    print "Train Data: " + str(len(train['label']))
-    print "Val Data: " + str(len(test['label']))
-    print "Test Data: " + str(len(val['label']))
+    print('Train data', train_data.shape)
+    print('Val data', val_data.shape)
+    print('Test data', test_data.shape)
     print "==x==" * 20
     #
     start_epoch = 0
@@ -91,6 +98,7 @@ def fit(params, data_path, lr=0.0001):
             preds_train += ind_.tolist()
     #         curr_label = train['label'][each_ID]
             curr_labels = [label_mapping[l] for l in train_label_block]
+
             actual_train += curr_labels
     #
     #         # print('#' * 50)
@@ -111,10 +119,11 @@ def fit(params, data_path, lr=0.0001):
                              columns=[0, 1])
         df_tr.index = ['Precision', 'Recall', 'F-score', 'Count']
         prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
+
     #     #     prf_tr, df_tr = evaluate_(model_RNN, data, 'train_ids')
         prf_test, df_test = eval_plot.evaluate_dbm(model, test, batch_size)
         prf_val, df_val = eval_plot.evaluate_dbm(model, val, batch_size)
-    #
+
         df_all = pd.concat([df_tr, df_val, df_test], axis=1)
         dict_df_prf_mod['Epoch' + str(iter_)] = df_all
     #
@@ -163,5 +172,5 @@ if __name__ == '__main__':
               'model_name': 'CVL-Phy',
               'cluster_path': '/home/sidongzhang/code/fl/data/dummy_cluster.pkl'}
     # fit(params, '/home/sidongzhang/code/fl/data/final_Physionet_avg_new.pkl')
-    fit(params, '/home/sidongzhang/code/fl/data/pc_physionet.pkl', lr=1e-5)
-    # fit(params)
+    fit(params, '/home/sidongzhang/code/fl/data/pc_physionet.pkl', lr=3e-6)
+
