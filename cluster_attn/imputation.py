@@ -190,10 +190,28 @@ def get_origin_imputation(data_path):
     return imputation
 
 
+def small_train_data(data_path, start_id, end_id):
+    imputated = pickle.load(open(data_path, 'rb'))
+    data = []
+    label = []
+    lens = []
+    traindata = imputated['train']['data']
+    trainlabel = imputated['train']['label']
+    trainlens = imputated['train']['label']
+    for i in range(start_id, end_id):
+        data.append(traindata[i])
+        label.append(trainlabel[i])
+        lens.append(trainlens[i])
+    print(np.array(data).shape)
+    small_train = {'data': data, 'label': label, 'lens': lens}
+    pickle.dump(small_train, open('./data/small_train.pkl', 'wb'))
+
+
 if __name__ == '__main__':
-    data = get_imputation('./data/final_Physionet_avg_new.pkl', 100)
-    # print(data['train']['data'][0])
-    pickle.dump(data, open('./data/pc_physionet.pkl', 'wb'))
+    # data = get_imputation('./data/final_Physionet_avg_new.pkl', 116)
+    # pickle.dump(data, open('./data/pc_physionet.pkl', 'wb'))
 
     # data = get_origin_imputation('./final_Physionet_avg_new.pkl')
     # pickle.dump(data, open('./data/origin_physionet.pkl', 'wb'))
+
+    small_train_data('./data/pc_physionet.pkl', 0, 10)

@@ -35,8 +35,8 @@ class CVL(nn.Module):
         self.cluster = pickle.load(open(params['cluster_path'], 'rb'))  # [[cluster one feats], [cluster 2 feats], ...]
 
         # self.LL = nn.Linear(self.num_features, self.input_dim)
-        self.LL = nn.Linear(self.max_len, self.input_dim)
-
+        self.LL = nn.Linear(len(self.cluster), self.input_dim)
+        torch.nn.init.xavier_uniform(self.LL.weight)
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
             self.inner_attns = nn.ModuleList([])
@@ -107,6 +107,7 @@ class CVL(nn.Module):
         # lengths = torch.cuda.LongTensor(lenghts)
         # lengths = autograd.Variable(lengths)
         features = self.vertical_attn(data)  # (B, cluster_num, T)
+        features = torch.transpose(features, 1, 2)
         #         print "FEAT"
         #         print features
         features = self.LL(features)  # (B, cluster_num, input_dim)
@@ -141,7 +142,7 @@ class CVL(nn.Module):
             tag_space = self.hidden2tag(lstm_out[:, -1, :])
         tag_score = F.log_softmax(tag_space, dim=1)  # (B, 2)
 
-        print(np.exp(tag_score.detach().numpy()))
+        #print(torch.exp(tag_score))
 
         return tag_score
 
@@ -207,8 +208,8 @@ class CVL(nn.Module):
                         # [time_seq, 4] tensor. We use tbm
                         # on this [time_seq, 4] tensor and get a [time_seq, 1] output.
         """
-        # print(np.array(data).shape)
-        # print(data)
+        #print(np.array(data).shape)
+        #print(data)
         B = len(data)
         F = len(data[0])
         T = len(data[0][0])
