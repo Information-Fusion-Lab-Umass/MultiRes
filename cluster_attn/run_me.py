@@ -36,7 +36,8 @@ def fit(params, data_path, lr=0.0001):
     train_small = pickle.load(open('./small_train.pkl','rb'))
     model = cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=0.00000000002)
+    #optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=0.00000000002)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     mode = 'normal'
 
     if (mode == 'normal'):
@@ -70,12 +71,14 @@ def fit(params, data_path, lr=0.0001):
         for each_ID in tqdm(range(len(train_small['label']))):
             model.zero_grad()
             tag_scores = model([train_small['data'][each_ID]])
-
-            _, ind_ = torch.max(tag_scores, dim=1)
+            
+            print(tag_scores)
+            ind_ = torch.argmax(tag_scores, dim=1)
             preds_train += ind_.tolist()
             curr_labels = [label_mapping[train_small['label'][each_ID]]]
             actual_train += curr_labels
-
+            
+            #print(preds_train, actual_train)
             curr_labels = torch.cuda.LongTensor(curr_labels)
             curr_labels = autograd.Variable(curr_labels)
             loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
