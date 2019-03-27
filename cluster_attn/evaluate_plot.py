@@ -1,5 +1,7 @@
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import torch
 
