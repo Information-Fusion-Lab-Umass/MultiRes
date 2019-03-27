@@ -51,6 +51,7 @@ if __name__ == '__main__':
 #    plt.show()
      dummy_cluster = [list(range(0, 5)), list(range(5, 10)), list(range(10, 15)), list(range(15, 20)),
                       list(range(20, 25)), list(range(25, 30)), list(range(30, 35))]
+
      pickle.dump(dummy_cluster, open('./data/dummy_cluster.pkl', 'wb'))
 
     # data = pickle.load(open('../../data/imputed_physionet.pkl', 'rb'))

@@ -208,6 +208,7 @@ def small_train_data(data_path, start_id, end_id):
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     # data = get_imputation('./data/final_Physionet_avg_new.pkl', 116)
     # pickle.dump(data, open('./data/pc_physionet.pkl', 'wb'))
 
@@ -215,3 +216,11 @@ if __name__ == '__main__':
     # pickle.dump(data, open('./data/origin_physionet.pkl', 'wb'))
 
     small_train_data('./data/pc_physionet.pkl', 0, 10)
+=======
+    data = get_imputation('./data/final_Physionet_avg_new.pkl', 116)
+    # print(data['train']['data'][0])
+    pickle.dump(data, open('./data/pc_physionet.pkl', 'wb'))
+
+    # data = get_origin_imputation('./final_Physionet_avg_new.pkl')
+    # pickle.dump(data, open('./data/origin_physionet.pkl', 'wb'))
+>>>>>>> 00a5f117317adc8d9fb749727660b0ea4e1e0cf3

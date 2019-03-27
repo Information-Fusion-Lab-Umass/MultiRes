@@ -133,7 +133,7 @@ def small_fit(params, data_path, start_idx, end_idx, lr):
 
     model = cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=0.00000000002)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.00000000002)
 
     start_epoch = 0
     end_epoch = 60
@@ -162,6 +162,7 @@ def small_fit(params, data_path, start_idx, end_idx, lr):
             curr_labels = autograd.Variable(curr_labels)
             #
             loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
+            # print(curr_labels.reshape(tag_scores.shape[0]), tag_scores)
             total_loss += loss.item()
             #
             loss.backward()
