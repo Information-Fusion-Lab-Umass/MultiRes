@@ -31,6 +31,10 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
     n_epochs = len(loss_over_n_epochs[first_key])
 
     for key in loss_over_n_epochs:
+        # If nothing to plot just skip that split.
+        if len(loss_over_n_epochs[key]) == 0:
+            continue
+
         ax.plot(range(1, n_epochs + 1), loss_over_n_epochs[key], label=key)
 
     plt.legend()
@@ -39,6 +43,8 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
         file_path = os.path.join(PLOTTING_ROOT, file_path)
         print("File Path: ", file_path)
         fig.savefig(file_path)
+
+    plt.close()
 
 
 def plot_score_over_n_epochs(scores_over_n_epochs: dict,

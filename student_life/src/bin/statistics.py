@@ -101,3 +101,15 @@ def get_train_test_val_label_counts_from_predictions(*predictions):
     overall_counts = convert_label_counters_to_list(*counters)
 
     return tabulate(overall_counts, LABEL_COUNT_HEADERS)
+
+
+def get_class_weights_in_inverse_proportion(data: dict):
+
+    train_label_counts = get_label_count_in_split(data, 'train')
+    # todo(abhinavshaw): Make it general for 3 or 5 classes.
+    train_label_counts = [train_label_counts[label] for label in range(3)]
+    class_weights = [x / max(train_label_counts) for x in train_label_counts]
+    class_weights = [1 / x for x in class_weights]
+    class_weights = [x / max(class_weights) for x in class_weights]
+
+    return class_weights
