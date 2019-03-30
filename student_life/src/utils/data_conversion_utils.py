@@ -186,3 +186,7 @@ def get_indices_list_in_another_list(a, b):
         indices.append(b.index(element))
 
     return indices
+
+
+def drop_duplicate_indices_from_df(df:pd.DataFrame) -> pd.DataFrame:
+    return df[~df.index.duplicated(keep="first")]

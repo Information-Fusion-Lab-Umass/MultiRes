@@ -19,7 +19,8 @@ DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_mana
 MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
 
 # Frequency constants
-DEFAULT_BASE_FREQ = '5 min'
+DEFAULT_BASE_FREQ = '1 min'
+DEFAULT_EXPLODING_BASE_FREQ = '1 min'
 
 # Data manager config Keys
 VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"

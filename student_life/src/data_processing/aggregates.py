@@ -72,8 +72,9 @@ def inferred_feature(array_like):
     # Since the features are in a scale.
     if len(array_like) == 0:
         return np.nan
+    array_like = array_like[array_like != 0]
 
-    return array_like.max(skipna=True)
+    return mode(array_like)
 
 
 def robust_sum(array_like):

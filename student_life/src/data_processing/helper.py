@@ -64,7 +64,6 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
 def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, student_id) -> pd.DataFrame:
     """
 
-    @attention : Imputes missing value with -1.
     @param feature_data: Un-resampled data for the feature.
     @param feature_config: Configs for the specific feature.
     @return: Aggregated data on the resampled frequency.
@@ -99,6 +98,7 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
     # Pre-processing
     feature_data_first = student_data[0]
     start_date = feature_data_first.index[0].floor("D")
+    # todo(abhinavshaw): add one more day to end date to give some room while data processing. Verify end to end.
     end_date = feature_data_first.index[-1].floor("D")
     flattened_df_index = pd.date_range(start_date, end_date, freq=definitions.DEFAULT_BASE_FREQ)
     flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
@@ -237,3 +237,16 @@ def process_covariates(flattened_student_data: pd.DataFrame, covariates: dict) -
                 processed_flattened_student_data is not None else flattened_student_data
 
     return flattened_student_data
+
+
+def get_feature_cols_from_data(feature_data: pd.DataFrame):
+    """
+
+    @return: The columns that contain actual feature. This ignores student_id as a column,
+             as that does not contain any feature values.
+    """
+
+    feature_cols = list(feature_data.columns.values)
+    feature_cols.remove("student_id")
+
+    return feature_cols
