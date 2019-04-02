@@ -117,11 +117,15 @@ def extract_keys_and_labels_from_dict(data: dict):
 
 
 def extract_student_ids_from_keys(keys):
-    student_ids = set()
+    student_ids = []
     for key in keys:
-        student_ids.add(extract_student_id_from_key(key))
+        student_ids.append(extract_student_id_from_key(key))
 
-    return list(student_ids)
+    return student_ids
+
+
+def extract_distinct_student_idsfrom_keys(keys):
+    return set(extract_student_ids_from_keys(keys))
 
 
 def extract_student_id_from_key(key):

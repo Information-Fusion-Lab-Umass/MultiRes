@@ -1,4 +1,5 @@
 from src.bin import validations
+from src.utils import data_conversion_utils as conversions
 
 
 def validate_key_set_str(key_set: str):
@@ -57,3 +58,57 @@ def evaluate_autoencoder_set(data, key_set: str, autoencoder, criterion, optimiz
     # print("Total Loss:", total_loss)
 
     return total_loss, decoded_outputs
+
+
+def evaluate_multitask_learner(data,
+                               key_set: str,
+                               multitask_lerner_model,
+                               reconstruction_criterion,
+                               classification_criterion,
+                               optimizer=None,
+                               alpha=1,
+                               beta=1):
+    validations.validate_data_dict_keys(data)
+    validate_key_set_str(key_set)
+
+    total_reconstruction_loss = 0
+    total_classification_loss = 0
+    total_loss = 0
+
+    labels = []
+    predictions = []
+
+    if not optimizer:
+        multitask_lerner_model.eval()
+    else:
+        multitask_lerner_model.train()
+
+    for key in data[key_set]:
+
+        student_key = 'student_' + str(conversions.extract_student_id_from_key(key))
+        actual_data, covariate_data, train_label = data['data'][key]
+        actual_data = actual_data[0].unsqueeze(0)
+        decoded_output, y_pred = multitask_lerner_model(student_key, actual_data, covariate_data)
+
+        reconstruction_loss = reconstruction_criterion(actual_data, decoded_output)
+        total_reconstruction_loss += reconstruction_loss.item()
+
+        classification_loss = classification_criterion(y_pred, train_label)
+        total_classification_loss += classification_loss.item()
+
+        total_loss = alpha * reconstruction_loss + beta * classification_loss
+
+        # Check if training
+        if optimizer:
+            multitask_lerner_model.zero_grad()
+            total_loss.backward()
+            optimizer.step()
+
+        labels.append(train_label)
+        _, max_idx = y_pred.max(0)
+        predictions.append(max_idx)
+
+        print("Running on key set{}: ", key)
+        print(total_loss)
+
+    return total_loss, total_reconstruction_loss, total_classification_loss, labels, predictions

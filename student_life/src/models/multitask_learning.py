@@ -69,9 +69,10 @@ class MultiTaskLearner(nn.Module):
         validations.validate_integrity_of_covariates(self.num_covariates, covariate_data)
         autoencoder_out = self.autoencoder(input_seq)
         bottle_neck = self.autoencoder.get_bottleneck_features(input_seq)
+        bottle_neck = bottle_neck[:, -1, :]
 
-        if covariate_data:
-            torch.cat(bottle_neck, covariate_data)
+        if covariate_data is not None:
+            bottle_neck = torch.cat((bottle_neck, covariate_data.unsqueeze(0)), dim=1)
 
         y_out = self.user_heads(user, bottle_neck)
 

@@ -67,12 +67,13 @@ def explode_feature_data(feature_data: pd.DataFrame):
     return resampled_feature_data
 
 
-def rename_postfix_from_cols(dataFrame: pd.DataFrame):
+def rename_postfix_from_cols(data_frame: pd.DataFrame):
     def remove_suffix(col):
         col = col.replace("_robust_sum", "_inferred")
         return col
 
-    return exploded_feature_data.rename(remove_suffix, axis="columns")
+    return data_frame.rename(remove_suffix, axis="columns")
+
 
 ############## Main Loop To Process Data ##################
 for student_id in AVAILABLE_STUDENTS:
