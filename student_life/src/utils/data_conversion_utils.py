@@ -119,10 +119,13 @@ def extract_keys_and_labels_from_dict(data: dict):
 def extract_student_ids_from_keys(keys):
     student_ids = set()
     for key in keys:
-        student_id = key.split("_")[0]
-        student_ids.add(student_id)
+        student_ids.add(extract_student_id_from_key(key))
 
     return list(student_ids)
+
+
+def extract_student_id_from_key(key):
+    return key.split("_")[0]
 
 
 def extract_actual_missing_and_time_delta_from_raw_data_for_student(raw_data, student_id):
@@ -190,3 +193,11 @@ def get_indices_list_in_another_list(a, b):
 
 def drop_duplicate_indices_from_df(df:pd.DataFrame) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="first")]
+
+
+def convert_to_string_if_int(value):
+    return str(value) if isinstance(value, int) else value
+
+
+def prepend_ids_with_string(ids, string):
+    return [string + str(x) for x in ids]

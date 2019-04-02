@@ -71,3 +71,8 @@ def check_if_enough_indices_in_data_frame(training_vales: pd.DataFrame, time_ind
     intersection_len = len(training_vales.index.intersection(time_indices_to_keep))
 
     return required_len == intersection_len
+
+
+def validate_integrity_of_covariates(covariates, covariate_data):
+    assert covariates == 0 and not covariate_data, "Initialized with no covariates, but covariates passed as input"
+    assert covariates > 0 and covariate_data, "Initialized with covariates, but no covariates passed as input"

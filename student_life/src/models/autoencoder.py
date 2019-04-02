@@ -4,79 +4,52 @@ import numpy as np
 
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, bidirectional, isCuda, covariates=0):
+    def __init__(self, input_size, hidden_size, num_layers, isCuda):
         super(EncoderRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        # self.hidden_size = self.hidden_size + covariates if covariates > 0 else self.hidden_size
         self.isCuda = isCuda
-        self.covariates = covariates
-        self.bidirectional = bidirectional
-
-        if bidirectional:
-            self.hidden_size = self.hidden_size // 2
 
         self.lstm = nn.LSTM(input_size=self.input_size,
                             hidden_size=self.hidden_size,
                             num_layers=self.num_layers,
-                            batch_first=True,
-                            bidirectional=self.bidirectional)
+                            batch_first=True)
         self.relu = nn.ReLU()
 
         # initialize weights
         nn.init.xavier_uniform(self.lstm.weight_ih_l0, gain=np.sqrt(2))
         nn.init.xavier_uniform(self.lstm.weight_hh_l0, gain=np.sqrt(2))
 
-
-    def forward(self, input_seq, covariates=None):
-        assert covariates is not None and self.covariates > 0 or covariates is None and self.covariates == 0, \
-            "If training for covariates, initialize correctly."
-
-        if covariates is not None:
-            assert covariates.shape[0] == self.covariates, "Expected covariate size and input mismatch."
-
+    def forward(self, input_seq):
         tt = torch.cuda if self.isCuda else torch
         h0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
         c0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
 
         encoded_input, hidden = self.lstm(input_seq)
-
-        if self.covariates > 0 and covariates is not None:
-            # Adding two dummy dimensions.
-            covariates = covariates.unsqueeze(0).unsqueeze(0)
-            encoded_input = torch.cat((encoded_input, covariates), dim=2)
-
         encoded_input = self.relu(encoded_input)
         return encoded_input
 
     def get_encoded_input_size(self):
-        if self.bidirectional:
-            return self.hidden_size * 2
-        else:
-            return self.hidden_size
+        return self.hidden_size
 
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, num_layers,  bidirectional, isCuda, covariates=0):
+    def __init__(self, hidden_size, output_size, num_layers, isCuda):
         """
 
-        @param hidden_size: Hidden size is the size of the encoded input, usually encoder hidden size +
-                            covariates.
+        @param hidden_size: Hidden size is the size of the encoded input, usually encoder hidden size.
         """
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.num_layers = num_layers
         self.isCuda = isCuda
-        self.coavariates = covariates
-        self.bidirectional = bidirectional
 
         self.lstm = nn.LSTM(input_size=self.hidden_size,
                             hidden_size=self.output_size,
                             num_layers=self.num_layers,
-                            batch_first=True,
-                            bidirectional=False)
+                            batch_first=True)
         self.sigmoid = nn.Sigmoid()
 
         # initialize weights
@@ -93,20 +66,16 @@ class DecoderRNN(nn.Module):
 
 
 class LSTMAE(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, bidirectional=True, isCuda=False, covariates=0):
+    def __init__(self, input_size, hidden_size, num_layers, isCuda=False):
         super(LSTMAE, self).__init__()
         self.encoder = EncoderRNN(input_size,
                                   hidden_size,
                                   num_layers,
-                                  bidirectional,
-                                  isCuda,
-                                  covariates)
+                                  isCuda)
         self.decoder = DecoderRNN(self.encoder.get_encoded_input_size(),
                                   input_size,
                                   num_layers,
-                                  bidirectional,
-                                  isCuda,
-                                  covariates)
+                                  isCuda)
 
     def forward(self, input_seq):
         encoded_input = self.encoder(input_seq)

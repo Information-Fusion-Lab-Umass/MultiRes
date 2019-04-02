@@ -62,14 +62,14 @@ def explode_feature_data(feature_data: pd.DataFrame):
         exploded_feature_values = explode_values(values_to_explode, col)
         overlapping_indices = resampled_feature_data[col].index.intersection(exploded_feature_values.index)
         resampled_feature_data[col].loc[overlapping_indices] = exploded_feature_values[col].loc[overlapping_indices]
-
+        resampled_feature_data[col].fillna(value=0, inplace=True)
         # Todo (abhinavshaw): see how to handle appending the last duration sequence.
     return resampled_feature_data
 
 
-def remove_suffix_from_cols(dataFrame:pd.DataFrame):
+def rename_postfix_from_cols(dataFrame: pd.DataFrame):
     def remove_suffix(col):
-        col = col.replace("_robust_sum", "")
+        col = col.replace("_robust_sum", "_inferred")
         return col
 
     return exploded_feature_data.rename(remove_suffix, axis="columns")
@@ -86,7 +86,7 @@ for student_id in AVAILABLE_STUDENTS:
         feature_data = pd.read_csv(feature_data_path, index_col=[0])
         feature_data.index = pd.to_datetime(feature_data.index)
         exploded_feature_data = explode_feature_data(feature_data)
-        exploded_feature_data = remove_suffix_from_cols(exploded_feature_data)
+        exploded_feature_data = rename_postfix_from_cols(exploded_feature_data)
         exploded_feature_path_to_folder = os.path.join(definitions.MINIMAL_PROCESSED_DATA_PATH,
                                                        definitions.STUDENT_FOLDER_NAME_PREFIX + str(student_id))
         exploded_feature_filename = feature + "_inferred.csv"
