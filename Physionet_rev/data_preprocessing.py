@@ -8,7 +8,7 @@ def get_fast_slow_features_per_ID(data, key, num_feats = 37):
     Calculates the normalized sum of the delta_t of each feature PER ID and saves it to a csv file
     """
     
-    with open("temp/33feat_output_scores.csv", "a", newline='') as fp:
+    with open("temp/multires_output_scores.csv", "a", newline='') as fp:
         for ID in data[key]:
            # print('Running ID: '+ str(ID))
             data_matrix = np.matrix(data['data'][ID][0])
@@ -118,6 +118,47 @@ def _split_data_fast_slow(data,num_features, fast_indexes, slow_indexes):
 
     return fast_data, slow_data
 
+def _split_data_fast_slow_moderate(data,num_features, fast_indexes, moderate_indexes, slow_indexes):  
+    """
+    Returns fast/moderate/slow data the same structure as data
+    """
+    fast_data = copy.deepcopy(data)
+    moderate_data = copy.deepcopy(data)
+    slow_data = copy.deepcopy(data)
+
+    #NOTE: PYTHON2 is
+    #for ID, current_data in data.iteritems():
+    #NOTE PYTHON3 is
+    #for ID, current_data in data.items():
+    list_data = data[0] #get the data as a list
+    numpy_data = np.matrix(list_data) #convert it to numpy matrix
+
+    fast_feats = numpy_data[:,fast_indexes]
+    moderate_feats = numpy_data[:,moderate_indexes]
+    slow_feats = numpy_data[:,slow_indexes]
+
+    list_missing = data[1]#get the missing matrix
+    numpy_missing = np.matrix(list_missing)
+    fast_missing = numpy_missing[:,fast_indexes]
+    moderate_missing = numpy_missing[:,moderate_indexes]
+    slow_missing = numpy_missing[:,slow_indexes]
+
+    #print(fast_feats.shape)
+    #print(slow_feats.shape)
+    #some sanity checks
+    assert fast_feats.shape[1] == len(fast_indexes)
+    assert slow_feats.shape[1] == len(slow_indexes)
+    assert moderate_feats.shape[1] == len(moderate_indexes)    
+
+    #A tuple is immutable, so you need to create a new one
+    #index 2 (timestamps) and index 3 (label) are unchanged
+    fast_data = (fast_feats.tolist(), fast_missing.tolist(), fast_data[2], fast_data[3])
+    moderate_data= (moderate_feats.tolist(), moderate_missing.tolist(), moderate_data[2], moderate_data[3])
+    slow_data = (slow_feats.tolist(), slow_missing.tolist(), slow_data[2], slow_data[3])
+   
+    return fast_data,moderate_data, slow_data
+
+
 def _remove_missing_rows(data):
     """
     Removes rows that are all missing (missing flag is 1 for each feature)
@@ -146,20 +187,20 @@ def _remove_missing_rows(data):
     return (numpy_data, numpy_missing, timestamps, data[3])
 
 
-def create_split_dataset(data):
+def create_split_dataset(data,num_features, fast_indexes, slow_indexes):
     fast_ids_with_zero = []
     slow_ids_with_zero = []
     for ID, current_data in data['data'].items():
         fast_zero_flag = 0
         slow_zero_flag = 0
         print('Running ID: ' + str(ID))
-        fast_data, slow_data = _split_data_fast_slow(data['data'][ID], 37, [4,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23,24,25,26,29,30,33,34,35,36], [0,1,2,3,5,6,16,27,28,31,32])
+        fast_data, slow_data = _split_data_fast_slow(data['data'][ID], num_features, fast_indexes, slow_indexes)
         fast_data = _remove_missing_rows(fast_data)
         slow_data = _remove_missing_rows(slow_data)
         if fast_data[0].shape[0] == 0:
             fast_ids_with_zero.append(ID)
             fast_zero_flag = 1
-        elif slow_data[0].shape[0] == 0:
+        if slow_data[0].shape[0] == 0:
             slow_ids_with_zero.append(ID)
             slow_zero_flag = 1
 
@@ -171,9 +212,58 @@ def create_split_dataset(data):
     return data 
 
 
-#data = pickle.load(open('data/final_Physionet_avg_new.pkl','rb'))
-#new_data = create_split_dataset(data)
-#pickle.dump(new_data, open('data/final_Physionet_avg_new_split.pkl','wb'), protocol=2)
-data =  pickle.load(open('data/final_Physionet_avg_33feats_new.pkl','rb')) 
-get_fast_slow_features_per_ID(data, 'train_ids', num_feats = 33)
+
+def create_threeway_dataset(data,num_features, fast_indexes,moderate_indexes, slow_indexes):
+    fast_ids_with_zero = []
+    slow_ids_with_zero = []
+    moderate_ids_with_zero = []
+    for ID, current_data in data['data'].items():
+        fast_zero_flag = 0
+        moderate_zero_flag = 0
+        slow_zero_flag = 0
+        print('Running ID: ' + str(ID))
+        fast_data, moderate_data ,slow_data = _split_data_fast_slow_moderate(data['data'][ID], num_features, fast_indexes,moderate_indexes ,slow_indexes)
+        fast_data = _remove_missing_rows(fast_data)
+        moderate_data = _remove_missing_rows(moderate_data)
+        slow_data = _remove_missing_rows(slow_data)
+         
+        
+        if fast_data[0].shape[0] == 0:
+            fast_ids_with_zero.append(ID)
+            fast_zero_flag = 1
+            print(fast_data[0].shape,moderate_data[0].shape,slow_data[0].shape)
+        if slow_data[0].shape[0] == 0:
+            slow_ids_with_zero.append(ID)
+            slow_zero_flag = 1
+        if moderate_data[0].shape[0] == 0:
+            moderate_ids_with_zero.append(ID)
+            moderate_zero_flag = 1
+        data['data'][ID] = (fast_data[0].tolist(), fast_data[1].tolist(), fast_data[2], fast_zero_flag,moderate_data[0].tolist(), moderate_data[1].tolist(), moderate_data[2], moderate_zero_flag,slow_data[0].tolist(),slow_data[1].tolist(), slow_data[2],slow_zero_flag,fast_data[3])
+
+    #for ID in fast_id_to_remove:
+        #del data[ID]
+    print("Fast Zero Number: " + str(len(fast_ids_with_zero)) + " Slow Zero Number: " + str(len(slow_ids_with_zero)) + " Moderate Zerp Number: " + str(len(moderate_ids_with_zero)) + " Total: " + str(len(fast_ids_with_zero) + len(slow_ids_with_zero)) )
+    return data
+
+
+
+#data = pickle.load(open('data/phy_data_set_3.pkl','rb'))
+#new_data = create_split_dataset(data,37,[4,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23,24,25,26,29,30,33,34,35,36],[0,1,2,3,5,6,16,27,28,31,32])
+#pickle.dump(new_data, open('data/phy_data_set_3_split.pkl','wb'), protocol=2)
+
+
+#data = pickle.load(open('data/final_Physionet_avg_33feats_new.pkl','rb'))
+#new_data = create_split_dataset(data,33,[4,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,25,26,29,30,31,32],[0,1,2,3,5,6,16,23,24,27,28])
+#pickle.dump(new_data, open('data/final_Physionet_avg_33feats_new_split.pkl','wb'), protocol=2)
+
+
+#data =  pickle.load(open('data/phy_data_set_1.pkl','rb')) 
+#get_fast_slow_features_per_ID(data, 'train_ids', num_feats = 37)
  
+
+data = pickle.load(open('data/phy_data_set_3.pkl','rb'))
+new_data = create_threeway_dataset(data,37,[14, 33, 30, 10],[13, 7, 4, 12, 15, 26, 23, 19, 34, 29, 8, 17, 11, 22, 20, 21, 35, 36, 9, 25, 24, 18],[16,27,28,5,2,1,0,3,32,6,31])
+pickle.dump(new_data, open('data/phy_data_set_3_split_threeway.pkl','wb'), protocol=2)
+
+#data = pickle.load(open('data/final_Physionet_avg_new_split_threeway.pkl','rb'))
+#print(np.matrix(data['data']['136459'][0]).shape)

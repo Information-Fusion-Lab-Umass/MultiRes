@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import torch
 import batchify
 
@@ -43,6 +44,23 @@ def evaluate_dbm(model, data, data_choice):
     df_.index = ['Precision','Recall','F-score','Count']
     return precision_recall_fscore_support(actual, preds, average='weighted'), df_
 
+def evaluate_mlhc(model,data):
+    preds = []
+    actual = []
+    for datapoint in data:
+        label_scores = model(datapoint)
+        
+        val, ind = torch.max(label_scores, dim=1)
+        preds+=ind.tolist()
+        
+        labels = [datapoint[4]]
+        labels = [batchify.label_mapping[x] for x in labels]
+        actual+=labels
+    df_ = pd.DataFrame(list(precision_recall_fscore_support(actual, preds, labels = [0,1])),
+                       columns = [0,1])
+    df_.index = ['Precision','Recall','F-score','Count']
+    return precision_recall_fscore_support(actual, preds, average='weighted'), df_
+
 def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     fig, (ax1) = plt.subplots(1, 1, sharex=True)
     # Train
@@ -62,13 +80,13 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     plt.title(title)
     plt.legend()
     plt.savefig(fig_name)
-    # plt.show()
-    print "=="*5+max_key+"=="*4
-    print "TRAIN: "+str(get_prf_metrics(data[max_key],'train'))
-    print "VAL: "+str(get_prf_metrics(data[max_key],'val'))
-    print "TEST: "+str(get_prf_metrics(data[max_key],'test'))
-    print "=="*4+" Detailed Results "+"=="*4
-    print data[max_key]
+    #plt.show()
+    print("=="*5+max_key+"=="*4)
+    print("TRAIN: "+str(get_prf_metrics(data[max_key],'train')))
+    print("VAL: "+str(get_prf_metrics(data[max_key],'val')))
+    print("TEST: "+str(get_prf_metrics(data[max_key],'test')))
+    print("=="*4+" Detailed Results "+"=="*4)
+    print(data[max_key])
     
 def get_prf_metrics(data, key):
     if(key=='train'):
