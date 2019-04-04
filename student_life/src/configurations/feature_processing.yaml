@@ -1,33 +1,58 @@
 features:
   activity_details:
-    resample_freq_min: 5
+    resample_freq_min: 1
     simple_aggregates: []
     custom_aggregates: ["mode", "inferred_feature"]
 
   audio_details:
-    resample_freq_min: 5
+    resample_freq_min: 1
     simple_aggregates: []
     custom_aggregates: ["mode", "inferred_feature"]
 
-  conversation_details:
-    resample_freq_min: 5
-    simple_aggregates: ["sum"]
+  sms_details:
+    resample_freq_min: 1
+    simple_aggregates: ["count"]
     custom_aggregates: []
 
-  phonecharge_details:
-    resample_freq_min: 5 # Daily
+  conversation_details_inferred:
+    resample_freq_min: 1
     simple_aggregates: []
-    custom_aggregates: ["robust_sum"]
+    custom_aggregates: ["mode"]
 
-  phonelock_details:
-    resample_freq_min: 5
+  phonecharge_details_inferred:
+    resample_freq_min: 1
     simple_aggregates: []
-    custom_aggregates: ["robust_sum"]
+    custom_aggregates: ["mode"]
 
-  dark_details:
-    resample_freq_min: 5
+  phonelock_details_inferred:
+    resample_freq_min: 1
     simple_aggregates: []
-    custom_aggregates: ["robust_sum"]
+    custom_aggregates: ["mode"]
+
+  dark_details_inferred:
+    resample_freq_min: 1
+    simple_aggregates: []
+    custom_aggregates: ["mode"]
+
+#  conversation_details:
+#    resample_freq_min: 1
+#    simple_aggregates: ["sum"]
+#    custom_aggregates: []
+#
+#  phonecharge_details:
+#    resample_freq_min: 5 # Daily
+#    simple_aggregates: []
+#    custom_aggregates: ["robust_sum"]
+#
+#  phonelock_details:
+#    resample_freq_min: 5
+#    simple_aggregates: []
+#    custom_aggregates: ["robust_sum"]
+#
+#  dark_details:
+#    resample_freq_min: 5
+#    simple_aggregates: []
+#    custom_aggregates: ["robust_sum"]
 
   sleep_details:
     resample_freq_min: 5
@@ -40,7 +65,7 @@ features:
     custom_aggregates: ["mode"]
 
   stress_details:
-    resample_freq_min: 60
+    resample_freq_min: 1
     simple_aggregates: []
     custom_aggregates: ["mode"]
 
@@ -53,31 +78,46 @@ covariates:
   previous_stress_label: True
   time_to_next_deadline: True
 
-feature_imputation_stategy:
+feature_imputation_strategy:
   # Imputed on the base bin.
   # Don't impute feature if not set to true.
   impute_features: True
   # Always no-op for student_id.
-  student_id: 'none'
-  day_of_week: 'none'
-  epoch_of_day: 'none'
-  time_since_last_label: 'mean_fill'
-  time_to_next_label: 'mean_fill'
-  previous_stress_label: 'mode_fill'
-  time_to_next_deadline: 'none'
-  activity_inference_mode: 'mode_fill'
-  activity_inference_inferred_feature: 'mode_fill'
-  audio_activity_inference_mode: 'mode_fill'
-  audio_activity_inference_inferred_feature: 'mode_fill'
-  conv_duration_min_sum: 'mean_fill'
-  phonecharge_duration_min_robust_sum: 'mean_fill'
-  phonelock_duration_min_robust_sum: 'mean_fill'
-  dark_duration_min_robust_sum: 'forward_fill'
-  hours_slept_robust_sum: 'mean_fill'
-  sleep_rating_robust_sum: 'mean_fill'
-  latitude_mode: 'forward_fill'
-  longitude_mode: 'forward_fill'
-  stress_level_mode: 'none'
+  student_id: []
+  day_of_week: []
+  epoch_of_day: []
+  time_since_last_label: ['mean_fill']
+  time_to_next_label: ['mean_fill']
+  previous_stress_label: ['mode_fill']
+  time_to_next_deadline: []
+  activity_inference_mode: ['mode_fill']
+  activity_inference_inferred_feature: ['mode_fill']
+  audio_activity_inference_mode: ['mode_fill']
+  audio_activity_inference_inferred_feature: ['mode_fill']
+  conv_duration_min_sum: ['forward_fill']
+  conv_duration_min_inferred_mode: ['mode_fill']
+  phonecharge_duration_min_robust_sum: ['forward_fill', 'mean_fill']
+  phonecharge_duration_min_inferred_mode: ['mode_fill']
+  phonelock_duration_min_robust_sum: ['forward_fill']
+  phonelock_duration_min_inferred_mode: ['mode_fill']
+  dark_duration_min_robust_sum: ['forward_fill']
+  dark_duration_min_inferred_mode: ['mode_fill']
+  hours_slept_robust_sum: ['forward_fill', 'mean_fill']
+  sleep_rating_robust_sum: ['forward_fill', 'mean_fill']
+  latitude_mode: ['forward_fill']
+  longitude_mode: ['forward_fill']
+  sms_instance_count: ['mode_fill']
+  stress_level_mode: []
+
+explode_duration_based_features:
+  conversation_details:
+    explode_freq: 1
+  phonecharge_details:
+    explode_freq: 1
+  phonelock_details:
+    explode_freq: 1
+  dark_details:
+    explode_freq: 1
 
 # Todo(@abhinavshaw) : Check this feature out. Data Doesn't make sense.
 #  call_log_details:
@@ -92,6 +132,7 @@ feature_imputation_stategy:
 
 students:
   # We use data only for students that have good data.
+#  student_list: [53, 46, 7, 49, 22, 24, 2]
   student_list: []
   # This list will override the student_list while selecting students.
   student_ignore_list: [0,3,13]
@@ -100,4 +141,4 @@ data_paths:
   cluster_data_path: "/mnt/nfs/scratch1/abhinavshaw/data"
 
 # This is true in gypsum cluster.
-cluster_mode: True
+cluster_mode: False

@@ -108,7 +108,4 @@ def evaluate_multitask_learner(data,
         _, max_idx = y_pred.max(0)
         predictions.append(max_idx)
 
-        print("Running on key set{}: ", key)
-        print(total_loss)
-
     return total_loss, total_reconstruction_loss, total_classification_loss, labels, predictions

@@ -55,3 +55,5 @@ if config['cluster_mode']:
         os.path.join(cluster_data_root, "student_life_minimal_processed_data"))
     BINNED_ON_VAR_FREQ_DATA_PATH = pathlib.Path(
         os.path.join(cluster_data_root, "student_life_var_binned_data"))
+    SURVEYS_AND_COVARIATES_DATA_PATH = pathlib.Path(
+        os.path.join(cluster_data_root, "surveys_and_covariates"))
