@@ -14,6 +14,7 @@ class MultiTaskLearner(nn.Module):
                  autoencoder_input_size,
                  autoencoder_bottleneck_feature_size,
                  autoencoder_num_layers,
+                 shared_hidden_layer_size,
                  user_dense_layer_hidden_size,
                  num_classes,
                  num_covariates=0):
@@ -35,6 +36,7 @@ class MultiTaskLearner(nn.Module):
         self.autoencoder_input_size = autoencoder_input_size
         self.autoencoder_bottleneck_feature_size = autoencoder_bottleneck_feature_size
         self.autoencoder_num_layers = autoencoder_num_layers
+        self.shared_hidden_layer_size = shared_hidden_layer_size
         self.user_dense_layer_hidden_size = user_dense_layer_hidden_size
         self.num_classes = num_classes
         self.num_covariates = num_covariates
@@ -45,8 +47,11 @@ class MultiTaskLearner(nn.Module):
                                               self.autoencoder_num_layers,
                                               self.is_cuda_avail)
 
+        self.shared_linear = nn.Linear(self.autoencoder_bottleneck_feature_size + self.num_covariates,
+                                       self.shared_hidden_layer_size)
+
         self.user_heads = user_dense_heads.UserDenseHead(self.users,
-                                                         self.autoencoder_bottleneck_feature_size + self.num_covariates,
+                                                         self.shared_hidden_layer_size,
                                                          self.user_dense_layer_hidden_size,
                                                          self.num_classes)
 
@@ -74,6 +79,7 @@ class MultiTaskLearner(nn.Module):
         if covariate_data is not None:
             bottle_neck = torch.cat((bottle_neck, covariate_data.unsqueeze(0)), dim=1)
 
-        y_out = self.user_heads(user, bottle_neck)
+        shared_hidden_state = self.shared_linear(bottle_neck)
+        y_out = self.user_heads(user, shared_hidden_state)
 
         return autoencoder_out, y_out
