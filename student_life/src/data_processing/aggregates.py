@@ -73,8 +73,9 @@ def inferred_feature(array_like):
     if len(array_like) == 0:
         return np.nan
     array_like = array_like[array_like != 0]
+    mode_value = mode(array_like)
 
-    return mode(array_like)
+    return mode_value if not math.isnan(mode_value) else 0
 
 
 def robust_sum(array_like):
