@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
+from copy import deepcopy
 from src.data_processing import imputation
 from src import definitions
 
@@ -47,7 +48,7 @@ def evaluate_epoch(hour):
 
 def time_since_last_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     null_mask = flattened_student_data['stress_level_mode'].isnull()
-    flattened_student_data.insert(loc=3, column='time_since_last_label', value=flattened_student_data.index)
+    flattened_student_data.insert(loc=3, column='time_since_last_label', value=deepcopy(flattened_student_data.index))
     flattened_student_data.loc[null_mask, 'time_since_last_label'] = np.nan
     flattened_student_data['time_since_last_label'].fillna(method='ffill', inplace=True)
     # Filling the sequences which do not have a last label and appear first in the data set.
@@ -59,7 +60,7 @@ def time_since_last_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFr
 
 def time_to_next_label_min(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     null_mask = flattened_student_data['stress_level_mode'].isnull()
-    flattened_student_data.insert(loc=4, column='time_to_next_label', value=flattened_student_data.index)
+    flattened_student_data.insert(loc=4, column='time_to_next_label', value=deepcopy(flattened_student_data.index))
     flattened_student_data.loc[null_mask, 'time_to_next_label'] = np.nan
     flattened_student_data['time_to_next_label'].fillna(method='bfill', inplace=True)
     flattened_student_data['time_to_next_label'] = (flattened_student_data[
@@ -86,7 +87,7 @@ def time_to_next_deadline(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     flattened_student_data = flattened_student_data.join(deadlines, how='left', sort=True)
     flattened_student_data.insert(loc=6,
                                   column='time_to_next_deadline',
-                                  value=flattened_student_data.index)
+                                  value=deepcopy(flattened_student_data.index))
     null_mask = np.logical_not(flattened_student_data['deadlines'] >= 1)
     flattened_student_data.loc[null_mask, 'time_to_next_deadline'] = np.nan
     flattened_student_data['time_to_next_deadline'].fillna(method='bfill', inplace=True)
