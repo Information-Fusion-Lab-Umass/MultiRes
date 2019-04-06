@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 
-from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure, output_file, show, save
 from src import definitions
 
 LOSS_OVER_N_EPOCHS_DICT_KEYS = ["train_loss", "val_loss", "test_loss"]
@@ -109,6 +109,6 @@ def plot_line_chart_using_bokeh(x_axis_data: list, y_axis_data: list, colors: li
     p.xaxis.axis_label = x_label
     p.yaxis.axis_label = y_label
     p.multi_line(x_axis_data, y_axis_data, line_color=colors, line_width=line_width, line_alpha=line_alpha)
+    output_file(output_file_name)
     if show_fig:
         show(p)
-    output_file(output_file_name)
