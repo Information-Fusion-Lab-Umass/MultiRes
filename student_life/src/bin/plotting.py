@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 
+from bokeh.plotting import figure, output_file, show
 from src import definitions
 
 LOSS_OVER_N_EPOCHS_DICT_KEYS = ["train_loss", "val_loss", "test_loss"]
@@ -91,3 +92,23 @@ def get_empty_stat_over_n_epoch_dictionaries():
     }
 
     return loss_over_epochs, scores_over_epochs
+
+
+def plot_line_chart_using_bokeh(x_axis_data: list, y_axis_data: list, colors: list,
+                                title: str, output_file_name: str,
+                                plot_height=350, plot_width=800,
+                                line_alpha=0.5, line_width=1,
+                                x_label='Time', y_label='Value',
+                                show_fig=True):
+    assert len(x_axis_data) == len(y_axis_data) and len(x_axis_data) == len(
+        y_axis_data), "Length miss-match for x-axis or y-axis data."
+
+    p = figure(x_axis_type="datetime", title=title, plot_height=plot_height, plot_width=plot_width)
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_alpha = 0.5
+    p.xaxis.axis_label = x_label
+    p.yaxis.axis_label = y_label
+    p.multi_line(x_axis_data, y_axis_data, line_color=colors, line_width=line_width, line_alpha=line_alpha)
+    if show_fig:
+        show(p)
+    output_file(output_file_name)

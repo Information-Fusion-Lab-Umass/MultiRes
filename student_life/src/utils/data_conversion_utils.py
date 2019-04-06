@@ -72,7 +72,7 @@ def add_mean_vector_to_data(data: dict):
     return data
 
 
-def normalize(data_frame: pd.DataFrame, norm_type="mean")-> pd.DataFrame:
+def normalize(data_frame: pd.DataFrame, norm_type="mean") -> pd.DataFrame:
     if norm_type == "min_max":
         result = (data_frame - data_frame.min()) / (data_frame.max() - data_frame.min())
     else:
