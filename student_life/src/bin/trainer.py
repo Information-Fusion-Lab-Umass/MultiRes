@@ -105,7 +105,8 @@ def evaluate_multitask_learner(data,
             optimizer.step()
 
         labels.append(train_label)
-        _, max_idx = y_pred.max(0)
+        y_pred_squeezed = y_pred.squeeze(0)
+        _, max_idx = y_pred_squeezed.max(0)
         predictions.append(max_idx)
 
     return total_loss, total_reconstruction_loss, total_classification_loss, labels, predictions
