@@ -4,7 +4,7 @@ student_life_var_binned_data:
   # Default student list for data manager.
   student_list: [35]
   feature_list: ['epoch_of_day', 'time_since_last_label' , 'time_to_next_label',
-                 'time_to_next_deadline', 'activity_inference_inferred_feature','audio_activity_inference_inferred_feature',
+                 'time_to_next_deadline', 'activity_inference_mode','audio_activity_inference_mode',
                  'conv_duration_min_inferred_mode','phonecharge_duration_min_inferred_mode', 'phonelock_duration_min_inferred_mode',
                  'dark_duration_min_inferred_mode']
   # The covariates are flattened by taking the nearest value. If empty nothing will be flattened.
@@ -27,3 +27,41 @@ student_life_var_binned_data:
     sub_sample_count: 5
     # This cannot be more than the actual sequence length.
     output_sequence_len: 36
+  use_histogram: False
+  histogram:
+    epoch_of_day:
+      simple_aggregates: []
+      custom_aggregates: ['mode']
+    time_since_last_label:
+      simple_aggregates: []
+      custom_aggregates: ['time']
+    time_to_next_label:
+      simple_aggregates: []
+      custom_aggregates: ['time']
+    time_to_next_deadline:
+      simple_aggregates: []
+      custom_aggregates: ['time']
+    activity_inference_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1', '2', '3']
+    audio_activity_inference_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1', '2']
+    activity_inference_inferred_feature:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1', '2', '3']
+    audio_activity_inference_inferred_feature:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1', '2']
+    conv_duration_min_inferred_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1']
+    phonecharge_duration_min_inferred_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1']
+    phonelock_duration_min_inferred_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1']
+    dark_duration_min_inferred_mode:
+      simple_aggregates: []
+      custom_aggregates: ['0', '1']

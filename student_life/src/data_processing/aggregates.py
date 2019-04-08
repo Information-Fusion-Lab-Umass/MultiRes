@@ -117,3 +117,37 @@ def extend_complex_features(feature_name, resampled_df, columns=None):
         )
 
     return complex_feature
+
+
+def count_int_element(int_element):
+
+    def count_ele(array_like):
+        array_like = array_like[array_like == int_element]
+        return len(array_like)
+
+    return count_ele
+
+
+def count_0(array_like):
+    array_like = array_like[array_like == 0]
+    return len(array_like)
+
+
+def count_1(array_like):
+    array_like = array_like[array_like == 1]
+    return len(array_like)
+
+
+def count_2(array_like):
+    array_like = array_like[array_like == 2]
+    return len(array_like)
+
+
+def count_3(array_like):
+    array_like = array_like[array_like == 3]
+    return len(array_like)
+
+
+def time_group(array_like):
+    first_value = array_like[0]
+    return first_value / 60

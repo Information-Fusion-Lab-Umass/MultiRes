@@ -24,7 +24,13 @@ COVARIATE_FUNC_MAPPING = {
 AGGREGATE_FUNC_MAPPING = {
     'mode': aggregates.mode,
     'inferred_feature': aggregates.inferred_feature,
-    'robust_sum': aggregates.robust_sum
+    'robust_sum': aggregates.robust_sum,
+    'time': aggregates.time_group,
+    "0": aggregates.count_0,
+    "1": aggregates.count_1,
+    "2": aggregates.count_2,
+    "3": aggregates.count_3
+
 }
 
 INTERPOLATION_FUNC_MAPPING = {
@@ -57,6 +63,18 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
 
     for col in feature_inference_cols:
         rule[col] = simple_aggregates + custom_aggregates
+
+    return rule
+
+
+def get_aggregation_rule_for_histogram(feature_name, feature_config):
+    simple_aggregate = feature_config['simple_aggregates']
+    custom_aggregate = []
+
+    for agg in feature_config['custom_aggregates']:
+        custom_aggregate.append(AGGREGATE_FUNC_MAPPING[agg])
+
+    rule = {feature_name: simple_aggregate + custom_aggregate}
 
     return rule
 

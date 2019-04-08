@@ -23,8 +23,8 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input_seq):
         tt = torch.cuda if self.isCuda else torch
-        h0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
-        c0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
+        # h0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
+        # c0 = torch.autograd.Variable(tt.FloatTensor(self.num_layers, input_seq.size(0), self.hidden_size))
 
         encoded_input, hidden = self.lstm(input_seq)
         encoded_input = self.relu(encoded_input)
