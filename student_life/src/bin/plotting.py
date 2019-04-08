@@ -45,7 +45,7 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
         print("File Path: ", file_path)
         fig.savefig(file_path)
 
-    plt.close()
+    plt.show()
 
 
 def plot_score_over_n_epochs(scores_over_n_epochs: dict,

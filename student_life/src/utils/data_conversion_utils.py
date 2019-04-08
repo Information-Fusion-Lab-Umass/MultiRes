@@ -205,3 +205,11 @@ def convert_to_string_if_int(value):
 
 def prepend_ids_with_string(ids, string):
     return [string + str(x) for x in ids]
+
+
+def tensor_list_to_int_list(tensor_list):
+    int_list = []
+    for t in tensor_list:
+        int_list.append(t.item())
+
+    return int_list
