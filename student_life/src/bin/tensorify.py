@@ -20,9 +20,9 @@ def get_data_and_label_tensor(data: dict, key, cuda_enabled):
     train_label = torch.tensor([train_label], dtype=torch.long)
 
     if cuda_enabled:
-        tensor_data.cuda()
-        covariate_data.cuda()
-        train_label.cuda()
+        tensor_data = tensor_data.cuda()
+        covariate_data = covariate_data.cuda()
+        train_label = train_label.cuda()
 
     return tensor_data, covariate_data, train_label
 
