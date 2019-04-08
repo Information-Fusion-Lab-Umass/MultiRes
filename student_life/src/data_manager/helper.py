@@ -49,20 +49,14 @@ def get_data_for_single_label_based_on_time_delta(training_values, covariate_val
     missing_values = missing_values.reindex(time_indices_to_keep)
     time_delta = time_delta.reindex(time_indices_to_keep)
     delta = training_values.index[1] - training_values.index[0]
+    histogram_values = get_histogram(training_values)
 
-    if USE_HISTOGRAM :
-        histogram_values = get_histogram(training_values)
-        return (histogram_values.values.tolist(),
+    return (training_values.values.tolist(),
             missing_values.values.tolist(),
             time_delta.values.tolist(),
             covariate_values.loc[label_idx - delta, :].values.tolist(),
+            histogram_values.values.tolist(),
             y_labels.loc[label_idx].values.tolist()[0])
-    else:
-        return (training_values.values.tolist(),
-                missing_values.values.tolist(),
-                time_delta.values.tolist(),
-                covariate_values.loc[label_idx - delta, :].values.tolist(),
-                y_labels.loc[label_idx].values.tolist()[0])
 
 
 def get_histogram(training_values: pd.DataFrame) -> pd.DataFrame:

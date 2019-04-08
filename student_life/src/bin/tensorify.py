@@ -16,15 +16,18 @@ def get_data_and_label_tensor(data: dict, key, cuda_enabled):
                                dtype=torch.float)
     covariate_data = torch.tensor(list(data['data'][key][definitions.COVARIATE_DATA_IDX]),
                                   dtype=torch.float)
+    histogram_data = torch.tensor(list(data['data'][key][definitions.HISTOGRAM_IDX]),
+                                  dtype=torch.float)
     train_label = torch.tensor(data['data'][key][definitions.LABELS_IDX]).item()
     train_label = torch.tensor([train_label], dtype=torch.long)
 
     if cuda_enabled:
         tensor_data = tensor_data.cuda()
         covariate_data = covariate_data.cuda()
+        histogram_data = histogram_data.cuda()
         train_label = train_label.cuda()
 
-    return tensor_data, covariate_data, train_label
+    return tensor_data, covariate_data, histogram_data, train_label
 
 
 def tensorify_data_gru_d(data: dict, cuda_enabled=False):

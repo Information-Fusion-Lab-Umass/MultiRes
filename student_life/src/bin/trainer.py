@@ -1,6 +1,8 @@
 from src.bin import validations
 from src.utils import data_conversion_utils as conversions
 
+HISTOGRAM_IDX_AFTER_TENSORIFY = 2
+
 
 def validate_key_set_str(key_set: str):
     assert key_set in ['test_ids', 'val_ids', 'train_ids'], "Invalid Key Set. Must be either test or val!"
@@ -38,14 +40,18 @@ def evaluate_set(data, key_set: str, model, criterion, optimizer=None, train_cov
     return total_loss, labels, predictions
 
 
-def evaluate_autoencoder_set(data, key_set: str, autoencoder, criterion, optimizer):
+def evaluate_autoencoder_set(data, key_set: str, autoencoder, criterion, optimizer, use_histogram=False):
     validate_key_set_str(key_set)
 
     total_loss = 0
     decoded_outputs = {}
 
     for key in data[key_set]:
-        input_seq = data['data'][key][0][0].unsqueeze(0)
+        if use_histogram:
+            input_seq = data['data'][key][HISTOGRAM_IDX_AFTER_TENSORIFY]
+        else:
+            input_seq = data['data'][key][0][0].unsqueeze(0)
+
         decoded_output = autoencoder(input_seq)
         decoded_outputs[key] = decoded_output
 
@@ -54,8 +60,6 @@ def evaluate_autoencoder_set(data, key_set: str, autoencoder, criterion, optimiz
 
         loss.backward()
         optimizer.step()
-
-    # print("Total Loss:", total_loss)
 
     return total_loss, decoded_outputs
 
@@ -67,7 +71,8 @@ def evaluate_multitask_learner(data,
                                classification_criterion,
                                optimizer=None,
                                alpha=1,
-                               beta=1):
+                               beta=1,
+                               use_histogram=False):
     validations.validate_data_dict_keys(data)
     validate_key_set_str(key_set)
 
@@ -86,8 +91,10 @@ def evaluate_multitask_learner(data,
     for key in data[key_set]:
 
         student_key = 'student_' + str(conversions.extract_student_id_from_key(key))
-        actual_data, covariate_data, train_label = data['data'][key]
+        actual_data, covariate_data, histogram_data, train_label = data['data'][key]
         actual_data = actual_data[0].unsqueeze(0)
+        if use_histogram:
+            actual_data = histogram_data.unsqueeze(0)
         decoded_output, y_pred = multitask_lerner_model(student_key, actual_data, covariate_data)
 
         reconstruction_loss = reconstruction_criterion(actual_data, decoded_output)

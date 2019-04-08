@@ -39,11 +39,12 @@ SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_c
 STUDENT_RAW_DATA_ANALYSIS_ROOT = os.path.join(ROOT_DIR, "../data/raw_student_data_information")
 
 # Data Tuple Indices
-DATA_TUPLE_LEN = 5
+DATA_TUPLE_LEN = 6
 ACTUAL_DATA_IDX = 0
 MISSING_FLAGS_IDX = 1
 TIME_DELTA_IDX = 2
 COVARIATE_DATA_IDX = 3
+HISTOGRAM_IDX = 4
 LABELS_IDX = -1  # Always last!
 
 # Data Folder Paths - CLUSTER
