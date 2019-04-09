@@ -1,8 +1,6 @@
 import pickle
 import os
 from tqdm import tqdm
-# import matplotlib.pyplot as plt
-# import random
 
 import torch
 import torch.nn as nn
@@ -12,11 +10,11 @@ import torch.autograd as autograd
 import pandas as pd
 import evaluate_plot as eval_plot
 import batchify as batchify
-import mlhc as mlhc
+import signal_split as icml_workshop
 from sklearn.metrics import precision_recall_fscore_support
 
-filename = 'mlhc_preprocessed.pkl'
-datapath = os.path.join("data",filename)
+filename = 'signal_splits_residual_frac_1_set_3_normalized.pkl'
+datapath = os.path.join("..", "..", "Data","signal_splits", filename)
 
 
 # 1 starts the process on GPU-0
@@ -43,6 +41,14 @@ print ("==x=="*20)
 #val_data = val_data[:10]
 #test_data = test_data[:10]
 
+opt = 'SGD'
+learning_rate = 0.0001
+lstm_output_type = 'same'    #'different'
+use_second_attention = False
+lstm_hidden_dim = 100        # only usec if lstm_output_type is same
+hidden_constant = 4          # only used if lstm_output_type is different
+
+model_name = filename[:-4] + '_' + opt + '_LR-' + str(learning_rate) + '_hidden_dim-' + str(lstm_hidden_dim) + '_output_type-' + str(lstm_output_type) + '_second_attention-' + str(use_second_attention) + '_' 
 
 params = {'bilstm_flag':True,
         'dropout' : 0.9,
@@ -51,29 +57,39 @@ params = {'bilstm_flag':True,
         'layers' : 1,
         'dropout' : 0.9,
         'num_features' : 37,
+        'hidden_constant':hidden_constant,
+        'lstm_output_type': lstm_output_type,
+        'use_second_attention': use_second_attention,
+        'lstm_hidden_dim': lstm_hidden_dim,
         'batch_size':1,
         'same_device':True,
         'same_feat_other_device':False,
-        'model_name':'MLHC-',
+        'model_name':model_name,
         'fast_features_indexes': [15, 34, 31, 11],
         'moderate_features_indexes': [14, 8, 5, 13, 16, 27, 24, 20, 35, 30, 9, 18, 12, 23, 21, 22, 36, 37, 10, 26, 25, 19],
         'slow_features_indexes': [17, 28, 29, 6, 3, 2, 1, 4, 33, 7, 32]}
 save_flag = True
-pickle.dump(params, open('models/config_'+params['model_name']+'.pt','wb'))
+savepath = os.path.join("..", "..")
+pickle.dump(params, open(os.path.join(savepath,"Models/config_")+params['model_name']+'.pt','wb'))
 
 dict_df_prf_mod = {}
-model = mlhc.Model(params).cuda()
+model = icml_workshop.Model(params).cuda()
 loss_function = nn.NLLLoss()
-# optimizer = optim.Adam(model_RNN.parameters(), lr=0.01, weight_decay=0.00005)
-optimizer = optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.000000002)
 
+if opt == 'adam':
+	optimizer = optim.Adam(model_RNN.parameters(), lr=learning_rate, weight_decay=0.00005)
+elif opt == 'SGD':
+	optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.000000002)
 
-epochs = 60
+epochs = 200
 model_name = params['model_name']
 total_loss = 0
 preds_train = []
 actual_train = []
  
+#f = open('text_files/' + params['model_name']+ '_' + opt + '_' + str(learning_rate) + '_' + '.txt','w')
+f =  open(os.path.join('stdout', model_name) + '.txt','w')
+
 for iter_ in range(epochs):
     print ("=#="*5+str(iter_)+"=#="*5)
 
@@ -126,16 +142,29 @@ for iter_ in range(epochs):
     print('=='*40)
     print('\n')
 
+    f.write('=='*5 + "Epoch No:"+str(iter_) +"=="*5 + "\n")
+    f.write("Training Loss: "+str(total_loss) + "\n")
+    f.write("=="*4 + "\n")
+    f.write("Train: " + str(prf_tr)+ "\n")
+    f.write(str(df_tr.values) + "\n")
+    f.write("--"*4 + "\n")
+    f.write("Val: " + str(prf_val)+ "\n")
+    f.write(str(df_val.values) + "\n")
+    f.write("--"*4 + "\n")
+    f.write("Test: " + str(prf_test)+ "\n")
+    f.write(str(df_test.values) + "\n")
+    f.write('=='*40 + "\n")
+    f.write('\n')
+
     if(save_flag):
-        torch.save(model, 'models/'+model_name+str(iter_)+'.pt')
-        pickle.dump(dict_df_prf_mod, open('results/dict_prf_'+model_name+str(iter_)+'.pkl','wb'))
+        torch.save(model, savepath+"/Models/"+model_name+str(iter_)+'.pt')
+        pickle.dump(dict_df_prf_mod, open(savepath+'/Results/dict_prf_'+model_name+str(iter_)+'.pkl','wb'))
         eval_plot.plot_graphs(dict_df_prf_mod, 'F-score', 
-                              'plots/'+model_name+str(iter_)+'.png',
+                              savepath+'/Plots/'+model_name+str(iter_)+'.png',
                               0, iter_+1, 
                               model_name)
 
-eval_plot.plot_graphs(dict_df_prf_mod, 'F-score', 
-                              'plots/'+model_name+str(iter_)+'.png',
-                              0, iter_, 
-                              model_name)
+eval_plot.plot_graphs(dict_df_prf_mod, 'F-score', savepath+'/Plots/'+model_name+str(iter_)+'.png',0, iter_,                               model_name)
+
+f.close()
 
