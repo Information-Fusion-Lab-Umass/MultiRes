@@ -19,7 +19,7 @@ import torch.autograd as autograd
 
 import evaluate_plot as eval_plot
 import batchify as batchify
-import dbm as dbm
+import dbm_multires as dbm
 from sklearn.metrics import precision_recall_fscore_support
 
 import os

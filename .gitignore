@@ -1,5 +1,6 @@
 Physionet_rev/slurm
-*.pyc
+Physionet_rev/*.pyc
+Multires/*.pyc
 data/
 Data/
 Models/
