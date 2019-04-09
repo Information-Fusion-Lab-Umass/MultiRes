@@ -3,6 +3,7 @@ Physionet_rev/slurm
 data/
 Data/
 Models/
+Multires/stdout/
 
 # ignore pycharm project files
 .idea/
