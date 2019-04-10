@@ -2,6 +2,8 @@ import cPickle as pickle
 
 import numpy as np
 
+import random
+
 
 def get_imputation(data_path, max_len):
     """
@@ -190,7 +192,7 @@ def get_origin_imputation(data_path):
     return imputation
 
 
-def small_train_data(data_path, start_id, end_id):
+def small_train_data(data_path, ids):
     imputated = pickle.load(open(data_path, 'rb'))
     data = []
     label = []
@@ -198,7 +200,7 @@ def small_train_data(data_path, start_id, end_id):
     traindata = imputated['train']['data']
     trainlabel = imputated['train']['label']
     trainlens = imputated['train']['label']
-    for i in range(start_id, end_id):
+    for i in ids:
         data.append(traindata[i])
         label.append(trainlabel[i])
         lens.append(trainlens[i])
@@ -214,4 +216,19 @@ if __name__ == '__main__':
     # data = get_origin_imputation('./final_Physionet_avg_new.pkl')
     # pickle.dump(data, open('./data/origin_physionet.pkl', 'wb'))
 
-    small_train_data('./data/pc_physionet.pkl', 0, 10)
+    # ids = random.sample(range(0, 2517), 50)
+    # small_train_data('./data/pc_physionet.pkl', ids)
+    print('data1')
+    data = get_origin_imputation('./data/phy_data_set_1.pkl')
+    pickle.dump(data, open('./data/origin_physionet_1.pkl', 'wb'))
+    print
+
+    print('data2')
+    data = get_origin_imputation('./data/phy_data_set_2.pkl')
+    pickle.dump(data, open('./data/origin_physionet_2.pkl', 'wb'))
+    print
+
+    print('data3')
+    data = get_origin_imputation('./data/phy_data_set_3.pkl')
+    pickle.dump(data, open('./data/origin_physionet_3.pkl', 'wb'))
+    print

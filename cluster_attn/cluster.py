@@ -1,10 +1,13 @@
 import csv
 import numpy as np
 
-import cPickle as pickle
+# import cPickle as pickle
+import pickle
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+import networkx as nx
 
 
 def read_corr_csv(file_name):
@@ -46,12 +49,66 @@ def oppo_dot(data):
     return scores / B
 
 
+def mst_corr_cluster(corr_path, cluster_num=None):
+    corr = np.abs(read_corr_csv(corr_path))
+    feats = list(range(0, 37))
+
+    print(corr[23][36])
+    print(corr[24][36])
+
+    rank = np.argsort(corr, axis=0)
+    clusters = []
+
+    G = nx.Graph()
+
+    G.add_nodes_from(feats)
+
+    # for a in feats:
+    #     for b in range(a, 37):
+    #         G.add_edge(a, b, weight=corr[a, b])
+
+    for a in feats:
+        for b in range(a, 37):
+            if corr[a, b] > 0.2:
+                G.add_edge(a, b, weight=corr[a, b])
+    T = nx.maximum_spanning_tree(G)
+
+    nx.draw(T, with_labels=True, font_weight='bold')
+
+    sorted_edges = sorted(T.edges.data('weight'), key=lambda x: x[2])
+    # if cluster_num is None:
+    #     for e in sorted_edges:
+    #         # print(e)
+    #         if e[2] < 0.1:
+    #             T.remove_edge(e[0], e[1])
+    # else:
+    #     for eid in range(cluster_num-1):
+    #         T.remove_edge(sorted_edges[eid][0], sorted_edges[eid][1])
+    nx.draw(T, with_labels=True, font_weight='bold')
+
+    comp = nx.connected_components(T)
+    for i in comp:
+        clusters.append(list(i))
+    print(clusters)
+
+    return clusters
+
+
 if __name__ == '__main__':
-#    ax = sns.heatmap(read_corr_csv('../../data/intercorr_physionet.csv'))
-#    plt.show()
-     dummy_cluster = [list(range(0, 5)), list(range(5, 10)), list(range(10, 15)), list(range(15, 20)),
-                      list(range(20, 25)), list(range(25, 30)), list(range(30, 35))]
-     pickle.dump(dummy_cluster, open('./data/dummy_cluster.pkl', 'wb'))
+    mst_cluster = mst_corr_cluster('./data/intercorr_physionet.csv')
+    print(len(mst_cluster))
+    pickle.dump(mst_cluster, open('./data/mst_cluster.pkl', 'wb'), protocol=2)
+    # cluster = pickle.load(open('./data/mst_cluster.pkl', 'rb'))
+    # print(cluster)
+    # print(len(cluster))
+
+   # ax = sns.heatmap(read_corr_csv('../../data/intercorr_physionet.csv'))
+   # plt.show()
+#      dummy_cluster = [list(range(0, 5)), list(range(5, 10)), list(range(10, 15)), list(range(15, 20)),
+#                       list(range(20, 25)), list(range(25, 30)), list(range(30, 37))]
+#
+#      # dummy_cluster = [list(range(i, i+1)) for i in range(0, 37)]
+#      pickle.dump(dummy_cluster, open('./data/dummy_cluster.pkl', 'wb'))
 
     # data = pickle.load(open('../../data/imputed_physionet.pkl', 'rb'))
     # train = data['train']['data']  # [[time_seq0, 37, 4]]

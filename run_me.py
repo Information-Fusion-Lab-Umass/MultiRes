@@ -181,14 +181,38 @@ def small_fit(params, data_path, start_idx, end_idx, lr):
 
 
 def tri_fit(params, lr=0.0001):
-    imputated = [pickle.load(open('./data/origin_physionet_%d.pkl' % i, 'rb')) for i in range(1, 4)]
-    trains = [imputated[i]['train'] for i in range(0, 3)]
-    tests = [imputated[i]['test'] for i in range(0, 3)]
-    vals = [imputated[i]['val'] for i in range(0, 3)]
+    imputated1 = pickle.load(open('./data/origin_physionet_1.pkl', 'rb'))
 
-    models = [cvl.CVL(params).cuda() for _ in range(0, 3)]
-    optimizers = [optim.Adam(models[i].parameters(), lr=lr) for i in range(0, 3)]
-    loss_functions = [nn.NLLLoss() for _ in range(0, 3)]
+    train1 = imputated1['train']
+
+    test1 = imputated1['test']
+    val1 = imputated1['val']
+
+    imputated2 = pickle.load(open('./data/origin_physionet_2.pkl', 'rb'))
+
+    train2 = imputated2['train']
+
+    test2 = imputated2['test']
+    val2 = imputated2['val']
+
+    imputated3 = pickle.load(open('./data/origin_physionet_3.pkl', 'rb'))
+
+    train3 = imputated3['train']
+
+    test3 = imputated3['test']
+    val3 = imputated3['val']
+
+    model1 = cvl.CVL(params).cuda()
+    loss_function1 = nn.NLLLoss()
+    optimizer1 = optim.Adam(model1.parameters(), lr=lr)
+
+    model2 = cvl.CVL(params).cuda()
+    loss_function2 = nn.NLLLoss()
+    optimizer2 = optim.Adam(model2.parameters(), lr=lr)
+
+    model3 = cvl.CVL(params).cuda()
+    loss_function3 = nn.NLLLoss()
+    optimizer3 = optim.Adam(model3.parameters(), lr=lr)
 
     mode = 'normal'
     #
@@ -199,20 +223,11 @@ def tri_fit(params, lr=0.0001):
     save_flag = True
     dict_df_prf_mod = {}
 
-    assert (len(trains[0]['label']) == len(trains[1]['label']))
-    assert (len(trains[0]['label']) == len(trains[2]['label']))
-
-    assert (len(tests[0]['label']) == len(tests[1]['label']))
-    assert (len(tests[0]['label']) == len(tests[2]['label']))
-
-    assert (len(vals[0]['label']) == len(vals[1]['label']))
-    assert (len(vals[0]['label']) == len(vals[2]['label']))
-
     print "==x==" * 20
     print "Data Statistics"
-    print "Train Data: " + str(len(trains[0]['label']))
-    print "Val Data: " + str(len(tests[0]['label']))
-    print "Test Data: " + str(len(vals[0]['label']))
+    print "Train Data: " + str(len(train1['label']))
+    print "Val Data: " + str(len(test1['label']))
+    print "Test Data: " + str(len(val1['label']))
     print "==x==" * 20
     #
     start_epoch = 0
@@ -224,65 +239,124 @@ def tri_fit(params, lr=0.0001):
     for iter_ in range(start_epoch, end_epoch):
         print "=#=" * 5 + str(iter_) + "=#=" * 5
         total_loss = 0
+        preds_train1 = []
+        actual_train1 = []
 
-        preds_trains = [[], [], []]
-        actual_trains = [[], [], []]
+        preds_train2 = []
+        actual_train2 = []
 
-        for each_ID in tqdm(range(len(trains[0]['label']))):
-            for i in range(0, 3):
-                models[i].zero_grad()
-                tag_scores = models[i]([trains[i]['data'][each_ID]])
+        preds_train3 = []
+        actual_train3 = []
 
-                _, ind_ = torch.max(tag_scores, dim=1)
-                preds_trains[i] += ind_.tolist()
-                curr_labels = [label_mapping[trains[i]['label'][each_ID]]]
-                actual_trains[i] += curr_labels
+        for each_ID in tqdm(range(len(train1['label']))):
+            model1.zero_grad()
+            tag_scores1 = model1([train1['data'][each_ID]])
 
-                curr_labels = torch.cuda.LongTensor(curr_labels)
-                curr_labels = autograd.Variable(curr_labels)
-                #
-                loss = loss_functions[i](tag_scores, curr_labels.reshape(tag_scores.shape[0]))
-                total_loss += loss.item() / 3.0
-                #
-                loss.backward()
-                optimizers[i].step()
+            _, ind1_ = torch.max(tag_scores1, dim=1)
+            preds_train1 += ind1_.tolist()
+            curr_labels1 = [label_mapping[train1['label'][each_ID]]]
+            actual_train1 += curr_labels1
+    #
+    #         # print('#' * 50)
+    #         # print(preds_train)
+    #         # print(actual_train)
+    #
+            curr_labels1 = torch.cuda.LongTensor(curr_labels1)
+            curr_labels1 = autograd.Variable(curr_labels1)
+    #
+            loss1 = loss_function1(tag_scores1, curr_labels1.reshape(tag_scores1.shape[0]))
+            total_loss += loss1.item()
+    #
+            loss1.backward()
+            optimizer1.step()
+
+            model2.zero_grad()
+            tag_scores2 = model2([train2['data'][each_ID]])
+
+            _, ind2_ = torch.max(tag_scores2, dim=1)
+            preds_train2 += ind2_.tolist()
+            curr_labels2 = [label_mapping[train2['label'][each_ID]]]
+            actual_train2 += curr_labels2
+            #
+            #         # print('#' * 50)
+            #         # print(preds_train)
+            #         # print(actual_train)
+            #
+            curr_labels2 = torch.cuda.LongTensor(curr_labels2)
+            curr_labels2 = autograd.Variable(curr_labels2)
+            #
+            loss2 = loss_function2(tag_scores2, curr_labels2.reshape(tag_scores2.shape[0]))
+            total_loss += loss2.item()
+            #
+            loss2.backward()
+            optimizer2.step()
+
+            model3.zero_grad()
+            tag_scores3 = model3([train3['data'][each_ID]])
+
+            _, ind3_ = torch.max(tag_scores3, dim=1)
+            preds_train3 += ind3_.tolist()
+            curr_labels3 = [label_mapping[train3['label'][each_ID]]]
+            actual_train3 += curr_labels3
+            #
+            #         # print('#' * 50)
+            #         # print(preds_train)
+            #         # print(actual_train)
+            #
+            curr_labels3 = torch.cuda.LongTensor(curr_labels3)
+            curr_labels3 = autograd.Variable(curr_labels3)
+            #
+            loss3 = loss_function3(tag_scores3, curr_labels3.reshape(tag_scores3.shape[0]))
+            total_loss += loss3.item()
+            #
+            loss3.backward()
+            optimizer3.step()
+
+            total_loss /= 3.0
         #
         #
-        df_trs = [pd.DataFrame(list(precision_recall_fscore_support(actual_trains[i], preds_trains[i],
+        df_tr1 = pd.DataFrame(list(precision_recall_fscore_support(actual_train1, preds_train1,
                                                                   labels=[0, 1])),
-                             columns=[0, 1]) for i in range(0, 3)]
-        for i in range(0, 3):
-            df_trs[i].index = ['Precision', 'Recall', 'F-score', 'Count']
+                             columns=[0, 1])
+        df_tr1.index = ['Precision', 'Recall', 'F-score', 'Count']
 
-        prf_trs = [precision_recall_fscore_support(actual_trains[i], preds_trains[i], average='weighted') for i in range(0, 3)]
+        prf_tr1 = precision_recall_fscore_support(actual_train1, preds_train1, average='weighted')
+        prf_test1, df_test1 = eval_plot.evaluate_dbm(model1, test1, batch_size)
+        prf_val1, df_val1 = eval_plot.evaluate_dbm(model1, val1, batch_size)
 
-        prf_tests = []
-        prf_vals = []
-        df_tests = []
-        df_vals = []
-        for i in range(0, 3):
-            prf_test, df_test = eval_plot.evaluate_dbm(models[i], tests[i], batch_size)
-            prf_val, df_val = eval_plot.evaluate_dbm(models[i], vals[i], batch_size)
-            prf_tests.append(prf_test)
-            prf_vals.append(prf_val)
-            df_tests.append(df_test)
-            df_vals.append(df_val)
+        df_tr2 = pd.DataFrame(list(precision_recall_fscore_support(actual_train2, preds_train2,
+                                                                   labels=[0, 1])),
+                              columns=[0, 1])
+        df_tr2.index = ['Precision', 'Recall', 'F-score', 'Count']
 
-        df_tr = (df_trs[0] + df_trs[1] + df_trs[2]) / 3.0
-        df_val = (df_vals[0] + df_vals[1] + df_vals[2]) / 3.0
-        df_test = (df_tests[0] + df_tests[1] + df_tests[2]) / 3.0
+        prf_tr2 = precision_recall_fscore_support(actual_train2, preds_train2, average='weighted')
+        prf_test2, df_test2 = eval_plot.evaluate_dbm(model2, test2, batch_size)
+        prf_val2, df_val2 = eval_plot.evaluate_dbm(model2, val2, batch_size)
 
-        prf_tr = ((prf_trs[0][0] + prf_trs[1][0] + prf_trs[2][0]) / 3.0,
-                  (prf_trs[0][1] + prf_trs[1][1] + prf_trs[2][1]) / 3.0,
-                  (prf_trs[0][2] + prf_trs[1][2] + prf_trs[2][2]) / 3.0, None)
+        df_tr3 = pd.DataFrame(list(precision_recall_fscore_support(actual_train3, preds_train3,
+                                                                   labels=[0, 1])),
+                              columns=[0, 1])
+        df_tr3.index = ['Precision', 'Recall', 'F-score', 'Count']
 
-        prf_val = ((prf_vals[0][0] + prf_vals[1][0] + prf_vals[2][0]) / 3.0,
-                  (prf_vals[0][1] + prf_vals[1][1] + prf_vals[2][1]) / 3.0,
-                  (prf_vals[0][2] + prf_vals[1][2] + prf_vals[2][2]) / 3.0, None)
+        prf_tr3 = precision_recall_fscore_support(actual_train3, preds_train3, average='weighted')
+        prf_test3, df_test3 = eval_plot.evaluate_dbm(model3, test3, batch_size)
+        prf_val3, df_val3 = eval_plot.evaluate_dbm(model3, val3, batch_size)
 
-        prf_test = ((prf_tests[0][0] + prf_tests[1][0] + prf_tests[2][0]) / 3.0,
-                   (prf_tests[0][1] + prf_tests[1][1] + prf_tests[2][1]) / 3.0,
-                   (prf_tests[0][2] + prf_tests[1][2] + prf_tests[2][2]) / 3.0, None)
+        df_tr = (df_tr1 + df_tr2 + df_tr3) / 3.0
+        df_val = (df_val1 + df_val2 + df_val3) / 3.0
+        df_test = (df_test1 + df_test2 + df_test3) / 3.0
+
+        prf_tr = ((prf_tr1[0] + prf_tr2[0] + prf_tr3[0]) / 3.0,
+                  (prf_tr1[1] + prf_tr2[1] + prf_tr3[1]) / 3.0,
+                  (prf_tr1[2] + prf_tr2[2] + prf_tr3[2]) / 3.0, None)
+        
+        prf_val = ((prf_val1[0] + prf_val2[0] + prf_val3[0]) / 3.0,
+                  (prf_val1[1] + prf_val2[1] + prf_val3[1]) / 3.0,
+                  (prf_val1[2] + prf_val2[2] + prf_val3[2]) / 3.0, None)
+
+        prf_test = ((prf_test1[0] + prf_test2[0] + prf_test3[0]) / 3.0,
+                   (prf_test1[1] + prf_test2[1] + prf_test3[1]) / 3.0,
+                   (prf_test1[2] + prf_test2[2] + prf_test3[2]) / 3.0, None)
     #
         df_all = pd.concat([df_tr, df_val, df_test], axis=1)
         dict_df_prf_mod['Epoch' + str(iter_)] = df_all
@@ -355,7 +429,7 @@ if __name__ == '__main__':
               'batch_size': 1,
               'same_device': False,
               'same_feat_other_device': False,
-              'model_name': 'CVL-Phy-8-',
+              'model_name': 'CVL-Phy-7-',
               'cluster_path': './data/mst_cluster.pkl'}
     # fit(params, '/home/sidongzhang/code/fl/data/final_Physionet_avg_new.pkl')
 

@@ -29,25 +29,29 @@ class CVL(nn.Module):
         self.tagset_size = params['tagset_size']
         self.attn_category = params['attn_category']
         self.num_features = params['num_features']
-        self.max_len = params['max_len']
+        # self.max_len = params['max_len']
         self.input_dim = params['input_dim']
         self.hidden_dim = params['hidden_dim']
         self.cluster = pickle.load(open(params['cluster_path'], 'rb'))  # [[cluster one feats], [cluster 2 feats], ...]
 
-        # vertical dot attns: [B, one_cluster_feats, T] -> [B, 1, T]
+        # horizontal dot attns: [B, T, one_cluster_feats] -> [B, 1, one_cluster_feats] for each cluster
         # initial strategy: xavier
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
             self.inner_attns = nn.ModuleList([])
-            for _ in self.cluster:
-                self.inner_attns.append(DotAttentionLayer(self.max_len).cuda())
+            for c in self.cluster:
+                self.inner_attns.append(DotAttentionLayer(len(c)).cuda())
 
-        # dense layer: [B, T, num_clusters] -> [B, T, input_dims]
+        # dense layer: [B, 1, one_cluster_feats] -> [B, 1, input_dims] for each cluster
         # initial strategy: xavier
-        self.LL = nn.Linear(len(self.cluster), self.input_dim)
-        torch.nn.init.xavier_uniform(self.LL.weight)
+        self.ll_list = nn.ModuleList([])
+        for c in self.cluster:
+            self.ll_list.append(nn.Linear(len(c), self.input_dim).cuda())
 
-        # Bilistm: [B, T, input_dims] -> [B, T, hidden_dims]
+        for l in self.ll_list:
+            torch.nn.init.xavier_uniform(l.weight)
+
+        # Bilistm: [B, cluster_num, input_dims] -> [B, cluster_num, hidden_dims]
         # initial strategy: zero hiddens
         if self.bilstm_flag:
             self.lstm = nn.LSTM(self.input_dim, self.hidden_dim / 2, num_layers=self.layers,
@@ -56,7 +60,7 @@ class CVL(nn.Module):
             self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers=self.layers,
                                 bidirectional=False, batch_first=True, dropout=self.dropout)
 
-        # Final dot attention: [B, T, hidden_dims] -> [B, hidden_dims]
+        # Final dot attention: [B, cluster_num, hidden_dims] -> [B, hidden_dims]
         # initial strategy: xavier
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
@@ -88,37 +92,20 @@ class CVL(nn.Module):
         :return: tag_score: [B, 2]
         """
 
-        features = self.vertical_attn(data)  # (B, cluster_num, T)
-
-        tools.validate_no_nans_in_tensor(features)
-
-        features = torch.transpose(features, 1, 2)
-        #         print "FEAT"
-        #         print features
-        features = self.LL(features)  # (B, T, input_dim)
-        #         print "Features"
-        #         print features
-        #         print features.shape
+        features = self.vertical_attn(data)  # (B, cluster_num, input_dim)
 
         tools.validate_no_nans_in_tensor(features)
 
         batch_size = len(data)
 
-        # packed = pack_padded_sequence(features,
-        #                               torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)]),
-        #                               batch_first=True)
-
+        # vertical attn over clusters by bilstm-attn
         self.hidden = self.init_hidden(batch_size)
+        lstm_out, self.hidden = self.lstm(features, self.hidden)  # (B, cluster_num, hidden_dim)
 
-        # packed_output, self.hidden = self.lstm(packed, self.hidden)
-        # lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]  # (B, T, hidden_dim)
-
-        lstm_out, self.hidden = self.lstm(features, self.hidden)
         tools.validate_no_nans_in_tensor(lstm_out)
-        # tools.validate_no_nans_in_tensor(self.hidden)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([self.max_len for _ in range(batch_size)])))  # (B, T, hidden_dim) -> B,H
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))   # (B, cluster_num, hidden_dim) ->  # (B, hidden_dim)
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
@@ -136,7 +123,7 @@ class CVL(nn.Module):
                      time_seq. We call it max_time_len or T for short
                lens: list of int. Has length B. Saves the actual length for every data point.
 
-        :return: imputation_attn: pytorch tensor: (B, cluster_num, T)
+        :return: imputation_attn: pytorch tensor: (B, cluster_num, input_dim)
         """
 
         B = len(data)
@@ -173,17 +160,21 @@ class CVL(nn.Module):
             raw_tbm.append(local_b)
 
         raw_tbm = np.array(raw_tbm)  # (B, F, T)
+        raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
+
         # cluster attention
-        stack_data = []  # a list of (B, T), list len = num of clusters
+        stack_data = []  # a list of (B, input_dim)
         for cid, c in enumerate(self.cluster):
-            local_cluster = []  # cluster_len (B, T) tensor lists
+            # horizontal attention in every cluster
+            local_cluster = []  # lists of (B, T) tensor, has len = cluster_len
             for b in range(B):
                 for f in c:
-                    local_cluster.append(torch.from_numpy(raw_tbm[:, f, :]).float().to(device))
-            stacked_local = torch.stack(local_cluster, dim=1)  # (B, cluster_len, T)
-            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor([len(c) for _ in range(B)])))  # (B, T)
+                    local_cluster.append(torch.from_numpy(raw_tbm[:, :, f]).float().to(device))
+            stacked_local = torch.stack(local_cluster, dim=2)  # (B, T, cluster_len)
+            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor(T)))  # (B, cluster_len)
+            attn = self.ll_list[cid](attn)   # (B, input_dim)
             stack_data.append(attn)
-        stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, T)
+        stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, input_dim)
         stack_data = autograd.Variable(stack_data)
         return stack_data
 

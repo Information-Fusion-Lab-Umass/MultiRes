@@ -54,7 +54,7 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     plt.xlabel("Epochs")
     plt.ylabel(metric)
     plt.title(title)
-    plt.legend()
+    plt.legend(loc='lower right')
     plt.savefig(fig_name)
     plt.show()
     # print "=="*5+max_key+"=="*4
