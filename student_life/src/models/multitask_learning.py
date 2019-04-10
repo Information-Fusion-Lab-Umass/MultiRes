@@ -96,10 +96,10 @@ class MultiTaskLSTMLearner(nn.Module):
                  lstm_hidden_size,
                  lstm_num_layers,
                  lstm_bidirectional,
-                 lstm_dropout,
                  shared_hidden_layer_size,
                  user_dense_layer_hidden_size,
                  num_classes,
+                 dropout=0,
                  num_covariates=0):
         """
         This model has a dense layer for each student. This is used for MultiTask learning.
@@ -126,7 +126,7 @@ class MultiTaskLSTMLearner(nn.Module):
             self.lstm_hidden_size = lstm_hidden_size
 
         self.lstm_num_layers = lstm_num_layers
-        self.lstm_dropout = lstm_dropout
+        self.dropout = dropout
         self.shared_hidden_layer_size = shared_hidden_layer_size
         self.user_dense_layer_hidden_size = user_dense_layer_hidden_size
         self.num_classes = num_classes
@@ -137,7 +137,7 @@ class MultiTaskLSTMLearner(nn.Module):
                             hidden_size=self.lstm_hidden_size,
                             batch_first=True,
                             bidirectional=self.lstm_bidirectional,
-                            dropout=self.lstm_dropout)
+                            dropout=self.dropout)
 
         self.shared_linear = nn.Linear(self.lstm_hidden_size + self.num_covariates,
                                        self.shared_hidden_layer_size)

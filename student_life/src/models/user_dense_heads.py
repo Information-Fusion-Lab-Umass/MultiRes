@@ -27,6 +27,7 @@ class UserDenseHead(nn.Module):
             warnings.warn(LOW_MODEL_CAPACITY_WARNING)
         dense_layer = {}
         for user in users:
+            # todo(abhinavshaw): Make this configurable to any model of the users choice. can take those layers as a list.
             sequential_liner = nn.Sequential(
                 nn.Linear(self.input_size, self.hidden_size),
                 nn.ReLU(),

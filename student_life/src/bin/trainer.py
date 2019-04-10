@@ -78,7 +78,7 @@ def evaluate_multitask_learner(data,
 
     total_reconstruction_loss = 0
     total_classification_loss = 0
-    total_loss = 0
+    total_joint_loss = 0
 
     labels = []
     predictions = []
@@ -103,12 +103,13 @@ def evaluate_multitask_learner(data,
         classification_loss = classification_criterion(y_pred, train_label)
         total_classification_loss += classification_loss.item()
 
-        total_loss = alpha * reconstruction_loss + beta * classification_loss
+        joint_loss = alpha * reconstruction_loss + beta * classification_loss
+        total_joint_loss += joint_loss.item()
 
         # Check if training
         if optimizer:
             multitask_lerner_model.zero_grad()
-            total_loss.backward()
+            joint_loss.backward()
             optimizer.step()
 
         labels.append(train_label)
@@ -116,4 +117,10 @@ def evaluate_multitask_learner(data,
         _, max_idx = y_pred_squeezed.max(0)
         predictions.append(max_idx)
 
-    return total_loss, total_reconstruction_loss, total_classification_loss, labels, predictions
+    return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions
+
+
+def is_reconstruction_loss_available(y_pred):
+    if isinstance(y_pred, tuple) and len(y_pred) == 2:
+        return True
+    return False
