@@ -14,7 +14,10 @@ def validate_loss_over_n_dict_keys(loss_over_n_epochs: dict):
     assert all([key in LOSS_OVER_N_EPOCHS_DICT_KEYS for key in loss_over_n_epochs.keys()])
 
 
-def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: tuple = (10, 6)):
+def plot_loss_over_n_epochs(loss_over_n_epochs: dict,
+                            title=None,
+                            file_path=None,
+                            fig_size: tuple = (10, 6)):
     """
 
     @param loss_over_n_epochs: Dictionary loss over epochs.
@@ -27,6 +30,8 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
     ax = fig.add_subplot(111)
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Loss')
+    if title:
+        ax.set_title(title)
 
     first_key = next(iter(loss_over_n_epochs.keys()))
     n_epochs = len(loss_over_n_epochs[first_key])
@@ -50,6 +55,7 @@ def plot_loss_over_n_epochs(loss_over_n_epochs: dict, file_path=None, fig_size: 
 
 def plot_score_over_n_epochs(scores_over_n_epochs: dict,
                              score_type='f1',
+                             title=None,
                              file_path=None,
                              fig_size: tuple = (10, 6)):
     assert score_type in SCORE_KEY_MAP.keys(), "Invalid Score type."
@@ -58,6 +64,9 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
     ax = fig.add_subplot(111)
     ax.set_xlabel('Epochs')
     ax.set_ylabel('{} Score'.format(score_type))
+    if title:
+        ax.set_title(title)
+
     f1_score_key = SCORE_KEY_MAP[score_type]
 
     first_key = next(iter(scores_over_n_epochs.keys()))
