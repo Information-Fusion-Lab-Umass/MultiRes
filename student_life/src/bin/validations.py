@@ -2,7 +2,6 @@
 Stores all validations required by the Lib.
 """
 import pandas as pd
-import torch
 
 from src import definitions
 
@@ -80,3 +79,19 @@ def validate_integrity_of_covariates(covariates, covariate_data):
     assert (covariates == 0 and covariate_data is None
             ) or (covariates > 0 and covariate_data is not None
                   ), "Mismatch in covariate initialization and covariate data."
+
+
+def validate_single_values_column_in_df(df: pd.DataFrame, column):
+    """
+    Validate if the passed column of the data frame just has one column.
+    """
+
+    assert len(df[column].value_counts()) == 1, "Column: {} has multiple value. This must have only one value.".format(column)
+
+
+def check_if_all_columns_present_in_df(df: pd.DataFrame, columns:list):
+    return all(col in df.columns for col in columns)
+
+
+def validate_user_data(user_data):
+    assert check_if_all_columns_present_in_df(user_data, ['label', 'user', 'prediction'])

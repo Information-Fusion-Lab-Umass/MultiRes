@@ -5,9 +5,16 @@ from collections import Counter
 from tabulate import tabulate
 from src import definitions
 from src.bin import validations
+from src.bin import user_statistics
+from src.utils import data_conversion_utils as conversions
 from src.data_manager import student_life_var_binned_data_manager as data_manager
 
 LABEL_COUNT_HEADERS = ['Train', 'Val', 'Test']
+USER_TRAIN_STATISTICS_MAP = {
+    'confusion_matrix': user_statistics.user_confusion_matrix,
+    'f1_score': user_statistics.user_f1_score,
+    'accuracy': user_statistics.user_accuracy
+}
 
 
 def get_statistics_on_data_dict(data: dict, feature_list: list):
@@ -75,12 +82,8 @@ def convert_label_counters_to_list(*counters):
             counts_per_element.append(count[label])
         overall_counts.append(counts_per_element)
 
-    if data_manager.ADJUST_LABELS_WRT_MEDIAN:
-        for label in range(3):
-            append_count_for_label(label)
-    else:
-        for label in range(5):
-            append_count_for_label(label)
+    for label in definitions.LABELS:
+        append_count_for_label(label)
 
     return overall_counts
 
@@ -104,12 +107,52 @@ def get_train_test_val_label_counts_from_predictions(*predictions):
 
 
 def get_class_weights_in_inverse_proportion(data: dict):
-
     train_label_counts = get_label_count_in_split(data, 'train')
-    # todo(abhinavshaw): Make it general for 3 or 5 classes.
-    train_label_counts = [train_label_counts[label] for label in range(3)]
+    train_label_counts = [train_label_counts[label] for label in definitions.LABELS]
+
+    # Weight All classes equally if any one class label missing.
+    if any([True if x == 0 else False for x in train_label_counts]):
+        return [1.0] * len(definitions.LABELS)
+
     class_weights = [x / max(train_label_counts) for x in train_label_counts]
     class_weights = [1 / x for x in class_weights]
     class_weights = [x / max(class_weights) for x in class_weights]
 
     return class_weights
+
+
+def generate_training_statistics_for_user(labels, predictions, users, print_confusion=False):
+    """
+    Prints the confusion matrix for each student.
+
+    @param labels: The target labels.
+    @param predictions: Predictions from the model.
+    @param users: The user for the respective label.
+    @param print_confusion: If true, it prints the result.
+    @return Returns the confusion matrix of each student in a dictionary.
+    """
+
+    data_frame_dict = {"user": users,
+                       "label": conversions.tensor_list_to_int_list(labels),
+                       "prediction": conversions.tensor_list_to_int_list(predictions)}
+
+    distinct_users = set(users)
+    statistics_per_user = {}
+    labels_predictions_users = pd.DataFrame(data_frame_dict)
+
+    for distinct_user in distinct_users:
+        filter_mask = labels_predictions_users['user'] == distinct_user
+        user_data = labels_predictions_users[filter_mask]
+        statistics = {}
+
+        for statistic in USER_TRAIN_STATISTICS_MAP:
+            statistics[statistic] = USER_TRAIN_STATISTICS_MAP[statistic](user_data)
+
+        statistics_per_user[distinct_user] = statistics
+
+    if print_confusion:
+        for user in statistics_per_user:
+            print(tabulate(statistics_per_user[user]['confusion_matrix']))
+            print("---")
+
+    return statistics_per_user

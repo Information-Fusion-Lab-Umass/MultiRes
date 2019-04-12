@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from src import definitions
 import src.bin.validations as validations
 
 
@@ -111,7 +112,7 @@ def extract_keys_and_labels_from_dict(data: dict):
 
     for key in data['data']:
         keys.append(key)
-        labels.append(data['data'][key][-1])
+        labels.append(data['data'][key][definitions.LABELS_IDX])
 
     return keys, labels
 
@@ -142,6 +143,26 @@ def extract_actual_missing_and_time_delta_from_raw_data_for_student(raw_data, st
     time_delta = time_delta[time_delta['student_id'] == student_id]
 
     return student_data, missing_data, time_delta
+
+
+def extract_keys_of_student_from_data(data: dict, student_id):
+    keys = []
+
+    for key in data['data']:
+        if str(student_id) == extract_student_id_from_key(key):
+            keys.append(key)
+
+    return keys
+
+
+def extract_labels_for_student_id_form_data(data: dict, student_id):
+    student_keys = extract_keys_of_student_from_data(data, student_id)
+    labels = []
+
+    for key in student_keys:
+        labels.append(data['data'][key][definitions.LABELS_IDX])
+
+    return labels
 
 
 def get_filtered_keys_for_these_students(*student_id, keys):

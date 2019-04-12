@@ -82,6 +82,7 @@ def evaluate_multitask_learner(data,
 
     labels = []
     predictions = []
+    users = []
 
     if not optimizer:
         multitask_lerner_model.eval()
@@ -89,8 +90,8 @@ def evaluate_multitask_learner(data,
         multitask_lerner_model.train()
 
     for key in data[key_set]:
-
-        student_key = 'student_' + str(conversions.extract_student_id_from_key(key))
+        student_id = conversions.extract_student_id_from_key(key)
+        student_key = 'student_' + str(student_id)
         actual_data, covariate_data, histogram_data, train_label = data['data'][key]
         actual_data = actual_data[0].unsqueeze(0)
         if use_histogram:
@@ -116,8 +117,9 @@ def evaluate_multitask_learner(data,
         y_pred_squeezed = y_pred.squeeze(0)
         _, max_idx = y_pred_squeezed.max(0)
         predictions.append(max_idx)
+        users.append(student_id)
 
-    return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions
+    return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions, users
 
 
 def is_reconstruction_loss_available(y_pred):

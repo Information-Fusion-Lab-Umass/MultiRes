@@ -58,3 +58,14 @@ if config['cluster_mode']:
         os.path.join(cluster_data_root, "student_life_var_binned_data"))
     SURVEYS_AND_COVARIATES_DATA_PATH = pathlib.Path(
         os.path.join(cluster_data_root, "surveys_and_covariates"))
+
+
+# Labels
+
+ADJUST_WRT_MEDIAN = read_yaml(
+    DATA_MANAGER_CONFIG_FILE_PATH)['student_life_var_binned_data']['adjust_labels_wrt_median']
+
+if ADJUST_WRT_MEDIAN:
+    LABELS = list(range(3))
+else:
+    LABELS = list(range(5))
