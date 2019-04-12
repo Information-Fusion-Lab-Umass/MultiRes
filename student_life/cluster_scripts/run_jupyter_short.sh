@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --partition 1080ti-long
+#SBATCH --partition 1080ti-short
 #SBATCH --gres gpu:1
 #SBATCH --mem=15000
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=2
 #SBATCH --nodes=2
-#SBATCH --output jupyter-notebook.log
+#SBATCH --output jupyter-notebook-short.log
 
 # get tunneling info
 XDG_RUNTIME_DIR=""

@@ -2,15 +2,14 @@ import pandas as pd
 import numpy as np
 
 from src import definitions
-from src import definitions
 from src.utils import read_utils
 from src.bin import validations as validations
 from src.data_processing import aggregates
 from src.data_processing import covariates as covariate_processor
 from src.data_processing import imputation
 
-FEATURE_IMPUTATION_STRATEGY = FEATURE_CONFIG = read_utils.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)[
-    'feature_imputation_stategy']
+FEATURE_IMPUTATION_STRATEGY = read_utils.read_yaml(definitions.FEATURE_CONFIG_FILE_PATH)[
+    'feature_imputation_strategy']
 
 COVARIATE_FUNC_MAPPING = {
     'day_of_week': covariate_processor.day_of_week,
@@ -25,7 +24,13 @@ COVARIATE_FUNC_MAPPING = {
 AGGREGATE_FUNC_MAPPING = {
     'mode': aggregates.mode,
     'inferred_feature': aggregates.inferred_feature,
-    'robust_sum': aggregates.robust_sum
+    'robust_sum': aggregates.robust_sum,
+    'time': aggregates.time_group,
+    "0": aggregates.count_0,
+    "1": aggregates.count_1,
+    "2": aggregates.count_2,
+    "3": aggregates.count_3
+
 }
 
 INTERPOLATION_FUNC_MAPPING = {
@@ -62,10 +67,21 @@ def get_aggregation_rule(feature_inference_cols, feature_config, student_id):
     return rule
 
 
+def get_aggregation_rule_for_histogram(feature_name, feature_config):
+    simple_aggregate = feature_config['simple_aggregates']
+    custom_aggregate = []
+
+    for agg in feature_config['custom_aggregates']:
+        custom_aggregate.append(AGGREGATE_FUNC_MAPPING[agg])
+
+    rule = {feature_name: simple_aggregate + custom_aggregate}
+
+    return rule
+
+
 def get_resampled_aggregated_data(feature_data: pd.DataFrame, feature_config, student_id) -> pd.DataFrame:
     """
 
-    @attention : Imputes missing value with -1.
     @param feature_data: Un-resampled data for the feature.
     @param feature_config: Configs for the specific feature.
     @return: Aggregated data on the resampled frequency.
@@ -100,6 +116,7 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
     # Pre-processing
     feature_data_first = student_data[0]
     start_date = feature_data_first.index[0].floor("D")
+    # todo(abhinavshaw): add one more day to end date to give some room while data processing. Verify end to end.
     end_date = feature_data_first.index[-1].floor("D")
     flattened_df_index = pd.date_range(start_date, end_date, freq=definitions.DEFAULT_BASE_FREQ)
     flattened_df = pd.DataFrame(np.full(len(flattened_df_index), student_id),
@@ -114,14 +131,15 @@ def get_flattened_student_data_from_list(student_data: pd.DataFrame, student_id)
 
 
 def impute_missing_feature(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
-    # TODO(abhinavshaw): allow multiple sequential imputation for features.
+    # TODO(abhinavshaw): allow multiple sequential imputation for features and clean up this code.
     if FEATURE_IMPUTATION_STRATEGY['impute_features']:
         for feature_col in flattened_student_data.columns:
-            propagation_type = FEATURE_IMPUTATION_STRATEGY[feature_col]
-            if propagation_type != 'none':
-                flattened_student_data[feature_col] = INTERPOLATION_FUNC_MAPPING[propagation_type](
-                    flattened_student_data[feature_col])
-                flattened_student_data[feature_col] = flattened_student_data[feature_col].round(decimals=0)
+            propagation_types = FEATURE_IMPUTATION_STRATEGY[feature_col]
+            if len(propagation_types) > 0:
+                for propagation_type in propagation_types:
+                    flattened_student_data[feature_col] = INTERPOLATION_FUNC_MAPPING[propagation_type](
+                        flattened_student_data[feature_col])
+                    flattened_student_data[feature_col] = flattened_student_data[feature_col].round(decimals=0)
 
     return flattened_student_data
 
@@ -237,3 +255,16 @@ def process_covariates(flattened_student_data: pd.DataFrame, covariates: dict) -
                 processed_flattened_student_data is not None else flattened_student_data
 
     return flattened_student_data
+
+
+def get_feature_cols_from_data(feature_data: pd.DataFrame):
+    """
+
+    @return: The columns that contain actual feature. This ignores student_id as a column,
+             as that does not contain any feature values.
+    """
+
+    feature_cols = list(feature_data.columns.values)
+    feature_cols.remove("student_id")
+
+    return feature_cols
