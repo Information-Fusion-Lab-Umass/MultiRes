@@ -44,15 +44,15 @@ student_life_var_binned_data:
     activity_inference_mode:
       simple_aggregates: []
       custom_aggregates: ['0', '1', '2', '3']
+#    activity_inference_inferred_feature:
+#      simple_aggregates: []
+#      custom_aggregates: ['0', '1', '2', '3']
     audio_activity_inference_mode:
       simple_aggregates: []
-      custom_aggregates: ['0', '1', '2']
-    activity_inference_inferred_feature:
-      simple_aggregates: []
       custom_aggregates: ['0', '1', '2', '3']
-    audio_activity_inference_inferred_feature:
-      simple_aggregates: []
-      custom_aggregates: ['0', '1', '2']
+#    audio_activity_inference_inferred_feature:
+#      simple_aggregates: []
+#      custom_aggregates: ['0', '1', '2']
     conv_duration_min_inferred_mode:
       simple_aggregates: []
       custom_aggregates: ['0', '1']

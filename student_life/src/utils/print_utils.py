@@ -17,3 +17,11 @@ def data_debug_string(data: dict, seq_limit):
             print("Label: ", datum)
         else:
             print(datum[:seq_limit])
+
+
+def debug_set(train_set, val_set, test_set, title):
+
+    print(title)
+    print("Train Set: {}".format(train_set))
+    print("Val Set: {}".format(val_set))
+    print("Test Set: {}".format(test_set))

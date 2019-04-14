@@ -73,17 +73,7 @@ def add_mean_vector_to_data(data: dict):
     return data
 
 
-def normalize(data_frame: pd.DataFrame, norm_type="mean") -> pd.DataFrame:
-    if norm_type == "min_max":
-        result = (data_frame - data_frame.min()) / (data_frame.max() - data_frame.min())
-    else:
-        result = (data_frame - data_frame.mean())/data_frame.std()
-
-    return result.fillna(0)
-
-
 def adjust_classes_wrt_median(label):
-
     if label < 2:
         return 0
     elif label > 2:
@@ -98,7 +88,8 @@ def flatten_matrix(matrix):
     @param matrix: Accepts numpy matrix of list to be flattened.
     @return: Flattened list or Matrix.
     """
-    assert isinstance(matrix, np.ndarray) or isinstance(matrix, list), "Invalid data type, please give either np.ndarray or a lists."
+    assert isinstance(matrix, np.ndarray) or isinstance(matrix,
+                                                        list), "Invalid data type, please give either np.ndarray or a lists."
 
     if isinstance(matrix, np.ndarray):
         return matrix.flatten()
@@ -181,7 +172,7 @@ def flatten_data(data: list):
     """
 
     @param data: Data to be flattened, i.e. the rows will be appended as columns.
-    @return: Flattened_data.
+    @return: Convert sequences to columns by flattening all rows into a single row.
     """
     assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
     flattened_data_list = []
@@ -216,7 +207,7 @@ def get_indices_list_in_another_list(a, b):
     return indices
 
 
-def drop_duplicate_indices_from_df(df:pd.DataFrame) -> pd.DataFrame:
+def drop_duplicate_indices_from_df(df: pd.DataFrame) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="first")]
 
 
