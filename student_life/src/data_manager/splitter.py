@@ -1,5 +1,4 @@
 from datetime import datetime
-from src.utils import print_utils
 
 DEFAULT_STUDENT_LIFE_YEAR = 2013
 
@@ -98,21 +97,15 @@ def get_date_split_by_date(data_list):
     val_set = split_data_by_date_range(data_list, start_date='04_10_0', end_date='04_16_0')
     test_set = split_data_by_date_range(data_list, start_date='04_16_0', end_date='04_17_0')
 
-    print_utils.debug_set(train_set, val_set, test_set, title="Before Midterm")
-
     # During midterm.
     train_set_2 = split_data_by_date_range(data_list, start_date='04_17_0', end_date='04_27_0')
     val_set_2 = split_data_by_date_range(data_list, start_date='04_27_0', end_date='04_30_0')
     test_set_2 = split_data_by_date_range(data_list, start_date='04_30_0', end_date='05_2_0')
 
-    print_utils.debug_set(train_set_2, val_set_2, test_set_2, title="During Midterm")
-
     # after midterm
     train_set_3 = split_data_by_date_range(data_list, start_date='05_2_0', end_date='05_11_0')
     val_set_3 = split_data_by_date_range(data_list, start_date='05_11_0', end_date='05_13_0')
     test_set_3 = split_data_by_date_range(data_list, start_date='05_16_0', end_date=None)
-
-    print_utils.debug_set(train_set_3, val_set_3, test_set_3, title="AFter Midterm")
 
     train_set = train_set + train_set_2 + train_set_3
     val_set = val_set + val_set_2 + val_set_3
