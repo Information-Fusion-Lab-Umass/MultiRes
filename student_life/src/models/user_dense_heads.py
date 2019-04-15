@@ -7,7 +7,7 @@ LOW_MODEL_CAPACITY_WARNING = "Input size greater than hidden size. This may resu
 
 
 class UserDenseHead(nn.Module):
-    def __init__(self, users: list, input_size, hidden_size, num_classes):
+    def __init__(self, users: list, input_size, hidden_size, num_classes, dropout=0):
         """
         This model has a dense layer for each student. This is used for MultiTask learning.
 
@@ -21,6 +21,7 @@ class UserDenseHead(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_classes = num_classes
+        self.dropout = dropout
 
         # Layer initialization.
         if self.input_size > self.hidden_size:
@@ -31,6 +32,7 @@ class UserDenseHead(nn.Module):
             sequential_liner = nn.Sequential(
                 nn.Linear(self.input_size, self.hidden_size),
                 nn.ReLU(),
+                nn.Dropout(p=dropout),
                 nn.Linear(self.hidden_size, self.num_classes))
             dense_layer[user] = sequential_liner
 

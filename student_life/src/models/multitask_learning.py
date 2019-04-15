@@ -17,7 +17,9 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                  shared_hidden_layer_size,
                  user_dense_layer_hidden_size,
                  num_classes,
-                 num_covariates=0):
+                 num_covariates=0,
+                 shared_layer_dropout_prob=0,
+                 user_head_dropout_prob=0):
         """
         This model has a dense layer for each student. This is used for MultiTask learning.
 
@@ -40,6 +42,8 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         self.user_dense_layer_hidden_size = user_dense_layer_hidden_size
         self.num_classes = num_classes
         self.num_covariates = num_covariates
+        self.shared_layer_dropout_prob = shared_layer_dropout_prob
+        self.user_head_dropout_prob = user_head_dropout_prob
 
         # Layer initialization.
         self.autoencoder = autoencoder.LSTMAE(self.autoencoder_input_size,
@@ -51,11 +55,13 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                                        self.shared_hidden_layer_size)
 
         self.shared_activation = nn.ReLU()
+        self.shared_layer_dropout = nn.Dropout(p=self.shared_layer_dropout_prob)
 
         self.user_heads = user_dense_heads.UserDenseHead(self.users,
                                                          self.shared_hidden_layer_size,
                                                          self.user_dense_layer_hidden_size,
-                                                         self.num_classes)
+                                                         self.num_classes,
+                                                         self.user_head_dropout_prob)
 
     def forward(self, user, input_seq, covariate_data=None):
         """
