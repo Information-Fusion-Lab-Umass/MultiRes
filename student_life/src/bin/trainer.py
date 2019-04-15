@@ -122,6 +122,53 @@ def evaluate_multitask_learner(data,
     return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions, users
 
 
+def evaluate_multitask_lstm_learner(data,
+                               key_set: str,
+                               multitask_lerner_model,
+                               classification_criterion,
+                               optimizer=None,
+                               use_histogram=False):
+    validations.validate_data_dict_keys(data)
+    validate_key_set_str(key_set)
+
+    total_classification_loss = 0
+
+    labels = []
+    predictions = []
+    users = []
+
+    if not optimizer:
+        multitask_lerner_model.eval()
+    else:
+        multitask_lerner_model.train()
+
+    for key in data[key_set]:
+        student_id = conversions.extract_student_id_from_key(key)
+        student_key = 'student_' + str(student_id)
+        actual_data, covariate_data, histogram_data, train_label = data['data'][key]
+        actual_data = actual_data[0].unsqueeze(0)
+        if use_histogram:
+            actual_data = histogram_data.unsqueeze(0)
+        y_pred = multitask_lerner_model(student_key, actual_data, covariate_data)
+
+        classification_loss = classification_criterion(y_pred, train_label)
+        total_classification_loss += classification_loss.item()
+
+        # Check if training
+        if optimizer:
+            multitask_lerner_model.zero_grad()
+            classification_loss.backward()
+            optimizer.step()
+
+        labels.append(train_label)
+        y_pred_squeezed = y_pred.squeeze(0)
+        _, max_idx = y_pred_squeezed.max(0)
+        predictions.append(max_idx)
+        users.append(student_id)
+
+    return total_classification_loss, labels, predictions, users
+
+
 def is_reconstruction_loss_available(y_pred):
     if isinstance(y_pred, tuple) and len(y_pred) == 2:
         return True
