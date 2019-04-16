@@ -64,6 +64,10 @@ def get_histogram(training_values: pd.DataFrame) -> pd.DataFrame:
     rule = {}
 
     for feature in training_values.columns:
+        # Skip if not in config. A simple way to controll what feature to process.
+        if feature not in HISTOGRAM_CONFIGS.keys():
+            continue
+
         feature_rule = processing_helper.get_aggregation_rule_for_histogram(feature,
                                                                             HISTOGRAM_CONFIGS[feature])
 

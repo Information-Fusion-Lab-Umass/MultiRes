@@ -91,7 +91,7 @@ def get_data_split_by_percentage(data_list):
     return train_set, val_set, test_set
 
 
-def get_date_split_by_date(data_list):
+def get_data_split_by_date(data_list):
     # Before midterm
     train_set = split_data_by_date_range(data_list, start_date=None, end_date='04_10_0')
     val_set = split_data_by_date_range(data_list, start_date='04_10_0', end_date='04_16_0')

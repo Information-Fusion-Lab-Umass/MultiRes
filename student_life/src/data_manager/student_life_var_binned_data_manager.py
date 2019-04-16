@@ -88,7 +88,8 @@ def process_student_data(raw_data, student_id: int,
                          splitting_strategy,
                          normalize: bool,
                          fill_na: bool,
-                         flatten_sequence: bool):
+                         flatten_sequence: bool,
+                         split_type='percentage'):
     """
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
@@ -131,7 +132,10 @@ def process_student_data(raw_data, student_id: int,
                                                                 flatten_sequence,
                                                                 normalize)
 
-    train_set, val_set, test_set = splitter.get_date_split_by_date(data_list)
+    if split_type=='percentage':
+        train_set, val_set, test_set = splitter.get_data_split_by_percentage(data_list)
+    else:
+        train_set, val_set, test_set = splitter.get_data_split_by_date(data_list)
 
     return data_list, train_set, val_set, test_set
 
@@ -140,7 +144,8 @@ def get_data_for_training_in_dict_format(*student_ids,
                                          splitting_strategy=DEFAULT_SPLITTING_STRATEGY,
                                          normalize=False,
                                          fill_na=True,
-                                         flatten_sequence=False):
+                                         flatten_sequence=False,
+                                         split_type='percentage'):
     """
 
     @attention: If no student_ids given to function the default students are returned.
