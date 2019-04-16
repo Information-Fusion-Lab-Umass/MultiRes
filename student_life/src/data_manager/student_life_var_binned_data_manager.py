@@ -132,7 +132,7 @@ def process_student_data(raw_data, student_id: int,
                                                                 flatten_sequence,
                                                                 normalize)
 
-    if split_type=='percentage':
+    if split_type == 'percentage':
         train_set, val_set, test_set = splitter.get_data_split_by_percentage(data_list)
     else:
         train_set, val_set, test_set = splitter.get_data_split_by_date(data_list)
@@ -172,7 +172,8 @@ def get_data_for_training_in_dict_format(*student_ids,
                                                                        splitting_strategy=splitting_strategy,
                                                                        normalize=normalize,
                                                                        fill_na=fill_na,
-                                                                       flatten_sequence=flatten_sequence)
+                                                                       flatten_sequence=flatten_sequence,
+                                                                       split_type=split_type)
 
         # Prefixing the IDs with student_id.
         for month_day, daily_data in data_list:
