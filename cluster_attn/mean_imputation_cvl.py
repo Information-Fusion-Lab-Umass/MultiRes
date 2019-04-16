@@ -1,5 +1,6 @@
 import cPickle as pickle
 
+import impyute as imp
 import numpy as np
 import torch
 import torch.autograd as autograd
@@ -103,7 +104,8 @@ class CVL(nn.Module):
         tools.validate_no_nans_in_tensor(lstm_out)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))   # (B, cluster_num, hidden_dim) ->  # (B, hidden_dim)
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor(
+                [len(self.cluster) for _ in range(batch_size)])))  # (B, cluster_num, hidden_dim) ->  # (B, hidden_dim)
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
@@ -128,37 +130,12 @@ class CVL(nn.Module):
         F = len(data[0])
         T = len(data[0][0])
 
-        # tbm
-        raw_tbm = []  # (B, F, T)
-        for b in range(B):
-            one_batch = data[b]
-            local_b = []
-            for f in range(F):
-                one_feat = one_batch[f]
-                local_f = []
-                for t in range(T):
-                    curr_feat = one_feat[t]
-                    # if(curr_feat[2]==1):
-                    # TBM parameters
-                    beta_val = 0.75
-                    tau_val = 2
-                    h_val = 0.4
-                    m_t = curr_feat[2]
-                    x_l = curr_feat[0]
-                    x_m = curr_feat[1]
-                    curr_delta_t = curr_feat[3]
-                    b_t_dash = np.exp(-beta_val * curr_delta_t * 1.0 / tau_val)
-                    if b_t_dash > h_val:
-                        b_t = 1
-                    else:
-                        b_t = 0
-                    feat_val = (1 - m_t) * x_l + m_t * (b_t * x_l + (1 - b_t) * x_m)
-                    local_f.append(feat_val)
-                local_b.append(local_f)
-            raw_tbm.append(local_b)
-
-        raw_tbm = np.array(raw_tbm)  # (B, F, T)
-        raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
+        x = np.array(data[0][0])
+        missing = np.array(data[0][1])
+        assert np.count_nonzero(np.isnan(x)) > 0
+        x[missing == 1] = np.nan
+        imp.mean(x)
+        assert np.count_nonzero(np.isnan(x)) == 0
 
         # cluster attention
         stack_data = []  # a list of (B, input_dim)
@@ -167,10 +144,10 @@ class CVL(nn.Module):
             local_cluster = []  # lists of (B, T) tensor, has len = cluster_len
             for b in range(B):
                 for f in c:
-                    local_cluster.append(torch.from_numpy(raw_tbm[:, :, f]).float().to(device))
+                    local_cluster.append(torch.from_numpy(x[:, :, f]).float().to(device))
             stacked_local = torch.stack(local_cluster, dim=2)  # (B, T, cluster_len)
-            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor(T)))  # (B, cluster_len)
-            attn = self.ll_list[cid](attn)   # (B, input_dim)
+            attn = self.inner_attns[cid]((stacked_local, torch.cuda.LongTensor(T)))  # (B, cluster_len)
+            attn = self.ll_list[cid](attn)  # (B, input_dim)
             stack_data.append(attn)
         stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, input_dim)
         stack_data = autograd.Variable(stack_data)
@@ -191,7 +168,7 @@ class DotAttentionLayer(nn.Module):
         tuple[1]: a list of B integers (actual time_seq len))
         """
         inputs, lengths = input  # (B, Cl, ML); (B)
-        batch_size, T,  _ = inputs.size()
+        batch_size, T, _ = inputs.size()
 
         flat_input = inputs.contiguous().view(-1, self.hidden_size)  # (B * CL, ML)
         logits = self.W(flat_input).view(batch_size, T)  # (B * Cl, ML) ->  (B, CL)
@@ -216,5 +193,6 @@ class DotAttentionLayer(nn.Module):
 
         alphas = F.softmax(logits, dim=1)  # (B, Cl)
 
-        output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)  # (B, 1, Cl) dot (B, Cl, ML) -> (B, 1, ML) -> (B, ML)
+        output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(
+            1)  # (B, 1, Cl) dot (B, Cl, ML) -> (B, 1, ML) -> (B, ML)
         return output  # (batch_size, max_len)

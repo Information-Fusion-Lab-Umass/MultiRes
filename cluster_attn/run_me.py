@@ -1,29 +1,19 @@
+import cPickle as pickle
 import sys
-import csv
 
+import pandas as pd
 import torch
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.autograd as autograd
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import random
-import numpy as np
-
-from tqdm import tqdm
-import pandas as pd
-
-import cPickle as pickle
-
-
 from sklearn.metrics import precision_recall_fscore_support
-
-import os
+from tqdm import tqdm
 
 import evaluate_plot as eval_plot
-import imputation
+import mean_imputation_cvl as mean_cvl
 # import cluster_vertical_lstm as cvl
 import neo_cvl as cvl
+
 label_mapping = {0: 0, 1: 1}
 
 
@@ -131,7 +121,7 @@ def fit(params, data_path, lr=0.0001):
 def small_fit(params, data_path, start_idx, end_idx, lr):
     train = pickle.load(open(data_path, 'rb'))
 
-    model = cvl.CVL(params).cuda()
+    model = mean_cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
     # optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.00000000002)
     optimizer = optim.Adam(model.parameters(), lr=lr)
