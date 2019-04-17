@@ -130,12 +130,20 @@ class CVL(nn.Module):
         F = len(data[0])
         T = len(data[0][0])
 
-        x = np.array(data[0][0])
-        missing = np.array(data[0][1])
-        assert np.count_nonzero(np.isnan(x)) > 0
+        x_orig = np.array(data[0])
+        x_orig = np.transpose(x_orig, (2,1,0))
+        print(x_orig.shape)
+        x = x_orig[0]
+        missing = x_orig[2]
+        print(missing.shape)
         x[missing == 1] = np.nan
-        imp.mean(x)
-        assert np.count_nonzero(np.isnan(x)) == 0
+        print(x)
+        assert np.count_nonzero(np.isnan(x)) > 0
+        arr = imp.mean(x)
+        print(arr)
+        print(np.count_nonzero(np.isnan(arr)))
+        arr = np.expand_dims(arr, axis=0)
+        print(arr.shape)
 
         # cluster attention
         stack_data = []  # a list of (B, input_dim)
@@ -144,7 +152,7 @@ class CVL(nn.Module):
             local_cluster = []  # lists of (B, T) tensor, has len = cluster_len
             for b in range(B):
                 for f in c:
-                    local_cluster.append(torch.from_numpy(x[:, :, f]).float().to(device))
+                    local_cluster.append(torch.from_numpy(arr[:, :, f]).float().to(device))
             stacked_local = torch.stack(local_cluster, dim=2)  # (B, T, cluster_len)
             attn = self.inner_attns[cid]((stacked_local, torch.cuda.LongTensor(T)))  # (B, cluster_len)
             attn = self.ll_list[cid](attn)  # (B, input_dim)

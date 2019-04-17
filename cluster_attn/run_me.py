@@ -121,7 +121,7 @@ def fit(params, data_path, lr=0.0001):
 def small_fit(params, data_path, start_idx, end_idx, lr):
     train = pickle.load(open(data_path, 'rb'))
 
-    model = mean_cvl.CVL(params).cuda()
+    model = cvl.CVL(params).cuda()
     loss_function = nn.NLLLoss()
     # optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.00000000002)
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -176,7 +176,7 @@ def tri_fit(params, lr=0.0001):
     tests = [imputated[i]['test'] for i in range(0, 3)]
     vals = [imputated[i]['val'] for i in range(0, 3)]
 
-    models = [cvl.CVL(params).cuda() for _ in range(0, 3)]
+    models = [mean_cvl.CVL(params).cuda() for _ in range(0, 3)]
     optimizers = [optim.Adam(models[i].parameters(), lr=lr) for i in range(0, 3)]
     loss_functions = [nn.NLLLoss() for _ in range(0, 3)]
 
@@ -309,7 +309,7 @@ def tri_fit(params, lr=0.0001):
 if __name__ == '__main__':
     p = sys.argv[1:]
     if not p:
-        lr = 1e-6
+        lr = 5e-5
     else:
         lr = float(p[0])
     # params = {'bilstm_flag': True,
@@ -337,15 +337,15 @@ if __name__ == '__main__':
               'tagset_size': 2,
               'attn_category': 'dot',
               'num_features': 37,
-              'input_dim': 60,
-              'hidden_dim': 100,
+              'input_dim': 10,
+              'hidden_dim': 50,
               # 'hidden_dim': 150,
               # 'input_dim': 50,
               # 'max_len': 116,
               'batch_size': 1,
               'same_device': False,
               'same_feat_other_device': False,
-              'model_name': 'CVL-Phy-8-',
+              'model_name': 'CVL-Mean-Phy-',
               'cluster_path': './data/mst_cluster.pkl'}
     # fit(params, '/home/sidongzhang/code/fl/data/final_Physionet_avg_new.pkl')
 
