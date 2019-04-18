@@ -12,7 +12,7 @@ student_life_var_binned_data:
                    'sleep_rating_robust_sum',
                    'hours_slept_robust_sum',
                    'previous_stress_label']
-  process_covariates_as_regular_features: True
+  process_covariates_as_regular_features: False
   label_list: ['stress_level_mode']
   train_set_size: 60
   val_set_size: 20
