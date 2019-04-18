@@ -62,6 +62,6 @@ student_life_var_binned_data:
     phonelock_duration_min_inferred_mode:
       simple_aggregates: []
       custom_aggregates: ['1']
-    dark_duration_min_inferred_mode:
-      simple_aggregates: []
-      custom_aggregates: ['1']
+#    dark_duration_min_inferred_mode:
+#      simple_aggregates: []
+#      custom_aggregates: ['1']
