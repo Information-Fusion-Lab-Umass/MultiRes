@@ -25,7 +25,7 @@ def get_data_for_single_day(training_values, covariate_values, missing_values,
     """
     day_string_format = '%Y-%m-%d'
     day_string = label_idx.to_pydatetime().strftime(day_string_format)
-
+    # todo(@abhinavshaw): For covariates adjust wth delta as you can carry the original label here.
     return (training_values.loc[day_string, :].values.tolist(),
             missing_values.loc[day_string, :].values.tolist(),
             time_delta.loc[day_string, :].values.tolist(),

@@ -7,6 +7,7 @@ from src.utils import read_utils
 from src.utils import student_utils
 from src.utils import set_utils
 from src.utils import data_conversion_utils as conversions
+from src.data_processing import covariates
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_MANAGER_ROOT]
@@ -105,7 +106,10 @@ def process_student_data(raw_data, student_id: int,
     validations.validate_all_columns_present_in_data_frame(student_data, columns=LABEL_LIST)
 
     training_values = student_data.loc[:, FEATURE_LIST]
+
     covariate_values = student_data.loc[:, COVARIATE_LIST]
+    covariate_values = covariates.exam_period(covariate_values)
+
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
