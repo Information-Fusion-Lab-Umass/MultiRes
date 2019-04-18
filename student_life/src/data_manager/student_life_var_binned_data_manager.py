@@ -114,7 +114,7 @@ def process_student_data(raw_data, student_id: int,
     if ADJUST_LABELS_WRT_MEDIAN:
         y_labels['stress_level_mode'] = y_labels['stress_level_mode'].map(conversions.adjust_classes_wrt_median,
                                                                           na_action='ignore')
-        if 'previous_stress_label' in COVARIATE_LIST:
+        if 'previous_stress_label' in FEATURE_LIST:
             training_values['previous_stress_label'] = training_values['previous_stress_label'].map(
                 conversions.adjust_classes_wrt_median,
                 na_action='ignore')
