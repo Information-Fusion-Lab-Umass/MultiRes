@@ -2,8 +2,7 @@ import warnings
 import torch
 import torch.nn as nn
 
-
-LOW_MODEL_CAPACITY_WARNING = "Input size greater than hidden size. This may result in a low capacity network"
+from src.definitions import LOW_MODEL_CAPACITY_WARNING
 
 
 class UserDenseHead(nn.Module):
