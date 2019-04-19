@@ -95,7 +95,7 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         shared_hidden_state_1 = self.shared_linear_1(shared_hidden_state)
         shared_hidden_state_1 = self.shared_activation_1(shared_hidden_state_1)
 
-        y_out = self.user_heads(user, shared_hidden_state)
+        y_out = self.user_heads(user, shared_hidden_state_1)
 
         return autoencoder_out, y_out
 
