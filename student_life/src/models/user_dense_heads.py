@@ -6,7 +6,7 @@ from src.definitions import LOW_MODEL_CAPACITY_WARNING
 
 
 class UserDenseHead(nn.Module):
-    def __init__(self, users: list, input_size, hidden_size, num_classes, dropout=0):
+    def __init__(self, users: list, input_size, hidden_size, num_classes, dropout=0, ordinal_regression_head=False):
         """
         This model has a dense layer for each student. This is used for MultiTask learning.
 
@@ -33,6 +33,10 @@ class UserDenseHead(nn.Module):
                 nn.ReLU(),
                 nn.Dropout(p=dropout),
                 nn.Linear(self.hidden_size, self.num_classes))
+
+            if ordinal_regression_head:
+                sequential_liner.add_module(nn.Sigmoid())
+
             dense_layer[user] = sequential_liner
 
         self.student_dense_layer = nn.ModuleDict(dense_layer)

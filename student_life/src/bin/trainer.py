@@ -77,7 +77,7 @@ def evaluate_multitask_learner(data,
                                alpha=1,
                                beta=1,
                                use_histogram=False,
-                               convert_target_for_rank=False):
+                               ordinal_regression=False):
     validations.validate_data_dict_keys(data)
     validate_key_set_str(key_set)
 
@@ -99,7 +99,7 @@ def evaluate_multitask_learner(data,
         student_key = 'student_' + str(student_id)
         actual_data, covariate_data, histogram_data, train_label = data['data'][key]
 
-        if convert_target_for_rank:
+        if ordinal_regression:
             train_label = get_target_vector_for_ordinal_regression(train_label, num_classes, device)
 
         actual_data = actual_data[0].unsqueeze(0)
@@ -123,9 +123,8 @@ def evaluate_multitask_learner(data,
             optimizer.step()
 
         labels.append(train_label)
-        y_pred_squeezed = y_pred.squeeze(0)
-        _, max_idx = y_pred_squeezed.max(0)
-        predictions.append(max_idx)
+        predicted_class = get_predicted_class(y_pred, ordinal_regression=ordinal_regression)
+        predictions.append(predicted_class)
         users.append(student_id)
 
     return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions, users
@@ -185,11 +184,24 @@ def is_reconstruction_loss_available(y_pred):
 
 
 def get_target_vector_for_ordinal_regression(train_label, num_classes, device):
-    label_val = train_label.item()
-    new_target_vector = torch.ones(label_val + 1, dtype=torch.long, device=device)
+    label_val = train_label.item() + 1
+    new_target_vector = torch.ones(label_val, dtype=torch.float, device=device)
 
     if new_target_vector.shape[-1] < num_classes:
-        zeroes = torch.zeros(num_classes - 1 - label_val, device=device)
-        new_target_vector = torch.cat(0, [new_target_vector, zeroes])
+        zeroes = torch.zeros(num_classes - label_val, dtype=torch.float, device=device)
+        new_target_vector = torch.cat([new_target_vector, zeroes], 0)
 
-    return new_target_vector
+    return new_target_vector.unsqueeze(0)
+
+
+def get_predicted_class(y_pred, ordinal_regression=False, or_threshold=0.5):
+    y_pred_squeezed = y_pred.squeeze(0)
+
+    if ordinal_regression:
+        predicted_class = y_pred_squeezed.ge(or_threshold).sum().int()
+
+    else:
+        _, predicted_class = y_pred_squeezed.max(0)
+
+    return predicted_class
+
