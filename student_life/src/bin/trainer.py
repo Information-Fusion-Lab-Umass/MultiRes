@@ -100,7 +100,7 @@ def evaluate_multitask_learner(data,
         actual_data, covariate_data, histogram_data, train_label = data['data'][key]
 
         if ordinal_regression:
-            train_label = get_target_vector_for_ordinal_regression(train_label, num_classes, device)
+            train_label_vector = get_target_vector_for_ordinal_regression(train_label, num_classes, device)
 
         actual_data = actual_data[0].unsqueeze(0)
         if use_histogram:
@@ -110,7 +110,11 @@ def evaluate_multitask_learner(data,
         reconstruction_loss = reconstruction_criterion(actual_data, decoded_output)
         total_reconstruction_loss += reconstruction_loss.item()
 
-        classification_loss = classification_criterion(y_pred, train_label)
+        if ordinal_regression:
+            classification_loss = classification_criterion(y_pred, train_label_vector)
+        else:
+            classification_loss = classification_criterion(y_pred, train_label)
+
         total_classification_loss += classification_loss.item()
 
         joint_loss = alpha * reconstruction_loss + beta * classification_loss

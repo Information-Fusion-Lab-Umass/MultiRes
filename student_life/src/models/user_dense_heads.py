@@ -35,7 +35,7 @@ class UserDenseHead(nn.Module):
                 nn.Linear(self.hidden_size, self.num_classes))
 
             if ordinal_regression_head:
-                sequential_liner.add_module(nn.Sigmoid())
+                sequential_liner.add_module("sigmoid", nn.Sigmoid())
 
             dense_layer[user] = sequential_liner
 
