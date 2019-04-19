@@ -1,11 +1,12 @@
+import matplotlib
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support
+
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import torch
 
 from tqdm import tqdm
-
-import cPickle as pickle
 
 label_mapping = {0: 0, 1: 1}
 

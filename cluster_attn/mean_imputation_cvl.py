@@ -1,12 +1,10 @@
 import cPickle as pickle
 
-import impyute as imp
 import numpy as np
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pack_padded_sequence
 
 import tools
 
@@ -131,19 +129,19 @@ class CVL(nn.Module):
         T = len(data[0][0])
 
         x_orig = np.array(data[0])
-        x_orig = np.transpose(x_orig, (2,1,0))
-        print(x_orig.shape)
+        x_orig = np.transpose(x_orig, (2, 1, 0))
         x = x_orig[0]
-        missing = x_orig[2]
-        print(missing.shape)
-        x[missing == 1] = np.nan
-        print(x)
-        assert np.count_nonzero(np.isnan(x)) > 0
-        arr = imp.mean(x)
-        print(arr)
-        print(np.count_nonzero(np.isnan(arr)))
-        arr = np.expand_dims(arr, axis=0)
-        print(arr.shape)
+        # missing = x_orig[2]
+        # print(missing.shape)
+        # x[missing == 1] = np.nan
+        # print(x)
+        # assert np.count_nonzero(np.isnan(x)) > 0
+        # arr = imp.mean(x)
+        arr = x
+        # print(arr)
+        # print(np.count_nonzero(np.isnan(arr)))
+        # arr = np.expand_dims(arr, axis=0)
+        # print(arr.shape)
 
         # cluster attention
         stack_data = []  # a list of (B, input_dim)
