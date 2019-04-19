@@ -1,3 +1,5 @@
+import torch
+
 from src.bin import validations
 from src.utils import data_conversion_utils as conversions
 
@@ -66,13 +68,16 @@ def evaluate_autoencoder_set(data, key_set: str, autoencoder, criterion, optimiz
 
 def evaluate_multitask_learner(data,
                                key_set: str,
+                               num_classes,
                                multitask_lerner_model,
                                reconstruction_criterion,
                                classification_criterion,
+                               device,
                                optimizer=None,
                                alpha=1,
                                beta=1,
-                               use_histogram=False):
+                               use_histogram=False,
+                               convert_target_for_rank=False):
     validations.validate_data_dict_keys(data)
     validate_key_set_str(key_set)
 
@@ -93,6 +98,10 @@ def evaluate_multitask_learner(data,
         student_id = conversions.extract_student_id_from_key(key)
         student_key = 'student_' + str(student_id)
         actual_data, covariate_data, histogram_data, train_label = data['data'][key]
+
+        if convert_target_for_rank:
+            train_label = get_target_vector_for_ordinal_regression(train_label, num_classes, device)
+
         actual_data = actual_data[0].unsqueeze(0)
         if use_histogram:
             actual_data = histogram_data.unsqueeze(0)
@@ -173,3 +182,14 @@ def is_reconstruction_loss_available(y_pred):
     if isinstance(y_pred, tuple) and len(y_pred) == 2:
         return True
     return False
+
+
+def get_target_vector_for_ordinal_regression(train_label, num_classes, device):
+    label_val = train_label.item()
+    new_target_vector = torch.ones(label_val + 1, dtype=torch.long, device=device)
+
+    if new_target_vector.shape[-1] < num_classes:
+        zeroes = torch.zeros(num_classes - 1 - label_val, device=device)
+        new_target_vector = torch.cat(0, [new_target_vector, zeroes])
+
+    return new_target_vector
