@@ -91,8 +91,7 @@ def get_empty_stat_over_n_epoch_dictionaries():
     loss_over_epochs = {
         "train_loss": [],
         "val_loss": [],
-        "test_loss": [],
-        "overall_loss": []
+        "test_loss": []
     }
 
     scores_over_epochs = {

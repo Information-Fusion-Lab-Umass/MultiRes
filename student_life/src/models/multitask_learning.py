@@ -56,9 +56,10 @@ class MultiTaskAutoEncoderLearner(nn.Module):
 
         self.shared_activation = nn.ReLU()
         self.shared_layer_dropout = nn.Dropout(p=self.shared_layer_dropout_prob)
+        self.shared_linear_1 = nn.Linear(self.shared_hidden_layer_size, self.shared_hidden_layer_size // 2)
 
         self.user_heads = user_dense_heads.UserDenseHead(self.users,
-                                                         self.shared_hidden_layer_size,
+                                                         self.shared_hidden_layer_size // 2,
                                                          self.user_dense_layer_hidden_size,
                                                          self.num_classes,
                                                          self.user_head_dropout_prob)
