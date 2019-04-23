@@ -4,6 +4,7 @@ import torch.nn as nn
 from src.models import autoencoder
 from src.models import user_dense_heads
 from src.bin import validations
+from src.utils import object_generator_utils as object_generator
 
 
 class MultiTaskAutoEncoderLearner(nn.Module):
@@ -97,7 +98,7 @@ class MultiTaskAutoEncoderLearner(nn.Module):
             bottle_neck = self.autoencoder.get_bottleneck_features(input_seq)
             bottle_neck = bottle_neck[:, -1, :]
         else:
-            bottle_neck = torch.Tensor()
+            bottle_neck = object_generator.get_tensor_on_correct_device([0])
 
         if covariate_data is not None:
             bottle_neck = torch.cat((bottle_neck, covariate_data.unsqueeze(0)), dim=1)
