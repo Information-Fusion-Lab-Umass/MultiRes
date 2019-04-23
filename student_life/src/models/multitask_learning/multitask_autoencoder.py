@@ -111,4 +111,4 @@ class MultiTaskAutoEncoderLearner(nn.Module):
 
         y_out = self.user_heads(user, shared_hidden_state_1)
 
-        return autoencoder_out, y_out
+        return autoencoder_out if not self.train_only_with_covariates else None, y_out

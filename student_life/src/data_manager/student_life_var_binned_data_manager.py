@@ -21,6 +21,7 @@ DEFAULT_STUDENT_LIST = list(set(DEFAULT_STUDENT_LIST).intersection(set(available
 FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.FEATURE_LIST_CONFIG_KEY]
 LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.LABEL_LIST_CONFIG_KEY]
 COVARIATE_LIST = VAR_BINNED_DATA_CONFIG[definitions.COVARIATE_LIST_CONFIG_KEY]
+NORMALIZE_STRAT = VAR_BINNED_DATA_CONFIG['normalize_strategy']
 
 if VAR_BINNED_DATA_CONFIG['process_covariates_as_regular_features']:
     FEATURE_LIST = FEATURE_LIST + COVARIATE_LIST
@@ -82,7 +83,7 @@ def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_v
             data = conversions.flatten_data(data) if flatten_sequence_to_cols else data
             data_list.append((month_day_hour_key, data))
 
-    return normalizer.normalize_data_list(data_list) if normalize else data_list
+    return normalizer.normalize_data_list(data_list, normalize_strat=NORMALIZE_STRAT) if normalize else data_list
 
 
 def process_student_data(raw_data, student_id: int,
