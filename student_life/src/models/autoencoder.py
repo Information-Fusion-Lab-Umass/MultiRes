@@ -65,7 +65,7 @@ class DecoderRNN(nn.Module):
         return decoded_output
 
 
-class LSTMAE(nn.Module):
+class LSTMAE(nn.Module) :
     def __init__(self, input_size, hidden_size, num_layers, isCuda=False):
         super(LSTMAE, self).__init__()
         self.encoder = EncoderRNN(input_size,

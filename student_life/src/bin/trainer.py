@@ -77,7 +77,8 @@ def evaluate_multitask_learner(data,
                                alpha=1,
                                beta=1,
                                use_histogram=False,
-                               ordinal_regression=False):
+                               ordinal_regression=False,
+                               use_covariates=True):
     validations.validate_data_dict_keys(data)
     validate_key_set_str(key_set)
 
@@ -105,7 +106,9 @@ def evaluate_multitask_learner(data,
         actual_data = actual_data[0].unsqueeze(0)
         if use_histogram:
             actual_data = histogram_data.unsqueeze(0)
-        decoded_output, y_pred = multitask_lerner_model(student_key, actual_data, covariate_data)
+        decoded_output, y_pred = multitask_lerner_model(student_key,
+                                                        actual_data,
+                                                        covariate_data if use_covariates else None)
 
         reconstruction_loss = reconstruction_criterion(actual_data, decoded_output)
         total_reconstruction_loss += reconstruction_loss.item()
