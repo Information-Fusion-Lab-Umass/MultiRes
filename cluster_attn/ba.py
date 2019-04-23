@@ -33,43 +33,20 @@ class CVL(nn.Module):
         self.input_dim = params['input_dim']
         self.hidden_dim = params['hidden_dim']
 
-        self.cluster = pickle.load(open(params['cluster_path'], 'rb'))  # [[cluster one feats], [cluster 2 feats], ...]
-        # self.cluster = [[i] for i in range(0, 37)]
-        # self.cluster = [[i for i in range(0, 10)], [i for i in range(10, 20)], [i for i in range(20, 37)]]
+        self.LL = nn.Linear(self.num_features, self.input_dim)
 
-        # horizontal dot attns: [B, T, one_cluster_feats] -> [B, 1, one_cluster_feats] for each cluster
-        # initial strategy: xavier
-        if self.attn_category == 'dot':
-            print "Dot Attention is being used!"
-            self.inner_attns = nn.ModuleList([])
-            for c in self.cluster:
-                self.inner_attns.append(DotAttentionLayer(len(c)).cuda())
-
-        # dense layer: [B, 1, one_cluster_feats] -> [B, 1, input_dims] for each cluster
-        # initial strategy: xavier
-        self.ll_list = nn.ModuleList([])
-        for c in self.cluster:
-            self.ll_list.append(nn.Linear(len(c), self.input_dim).cuda())
-
-        for l in self.ll_list:
-            torch.nn.init.xavier_uniform(l.weight)
-
-        # Bilistm: [B, cluster_num, input_dims] -> [B, cluster_num, hidden_dims]
-        # initial strategy: zero hiddens
-        if self.bilstm_flag:
+        if (self.bilstm_flag):
             self.lstm = nn.LSTM(self.input_dim, self.hidden_dim / 2, num_layers=self.layers,
                                 bidirectional=True, batch_first=True, dropout=self.dropout)
         else:
             self.lstm = nn.LSTM(self.input_dim, self.hidden_dim, num_layers=self.layers,
                                 bidirectional=False, batch_first=True, dropout=self.dropout)
 
-        # Final dot attention: [B, cluster_num, hidden_dims] -> [B, hidden_dims]
-        # initial strategy: xavier
-        if self.attn_category == 'dot':
+        self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
+
+        if (self.attn_category == 'dot'):
             print "Dot Attention is being used!"
             self.attn = DotAttentionLayer(self.hidden_dim).cuda()
-
-        self.hidden2tag = nn.Linear(self.hidden_dim, self.tagset_size)
 
     def init_hidden(self, batch_size):
         # num_layes, minibatch size, hidden_dim
@@ -90,27 +67,29 @@ class CVL(nn.Module):
 
     def forward(self, data):
         """
-        :param data: list: batch data: [B, 37, T, 4]
+        :param data: list: batch data: [B, 37, T]
                lens: list of int. Has length B. Saves the actual length for every data point.
         :return: tag_score: [B, 2]
         """
-        features = self.vertical_attn(data)  # (B, cluster_num, input_dim)
-
-        # features = torch.cuda.FloatTensor(data)
-        # features = autograd.Variable(features)
-
-        tools.validate_no_nans_in_tensor(features)
-
         batch_size = len(data)
+        T = len(data[0][0])
+        input_ = torch.cuda.FloatTensor(data)
+
+        # transpose the data into shape (B, T, 37)
+        # input_ = torch.transpose(input_, 1, 2)
+        input_ = autograd.Variable(input_)
+
+        # pass the original data to ll
+        densed_data = self.LL(input_)  # (B, T, input_dim)
 
         # vertical attn over clusters by bilstm-attn
         self.hidden = self.init_hidden(batch_size)
-        lstm_out, self.hidden = self.lstm(features, self.hidden)  # (B, cluster_num, hidden_dim)
+        lstm_out, self.hidden = self.lstm(densed_data, self.hidden)  # (B, T, hidden_dim)
 
         tools.validate_no_nans_in_tensor(lstm_out)
 
         if self.attn_category == 'dot':
-            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([len(self.cluster) for _ in range(batch_size)])))   # (B, cluster_num, hidden_dim) ->  # (B, hidden_dim)
+            pad_attn = self.attn((lstm_out, torch.cuda.LongTensor([T for _ in range(batch_size)])))
             #             print pad_attn
             #             print "TAG SPACE"
             tag_space = self.hidden2tag(pad_attn)  # (B, 2)
@@ -120,71 +99,6 @@ class CVL(nn.Module):
         tag_score = F.log_softmax(tag_space, dim=1)  # (B, 2)
 
         return tag_score
-
-    def vertical_attn(self, data):
-        """
-        :param data: list: (B, 37, time_seq, 4)
-                     time_seq here is a fixed num. We preprocess the data so that for every data point it has the same
-                     time_seq. We call it max_time_len or T for short
-               lens: list of int. Has length B. Saves the actual length for every data point.
-
-        :return: imputation_attn: pytorch tensor: (B, cluster_num, input_dim)
-        """
-
-        B = len(data)
-        F = len(data[0])
-        T = len(data[0][0])
-
-        # tbm
-        # raw_tbm = []  # (B, F, T)
-        # for b in range(B):
-        #     one_batch = data[b]
-        #     local_b = []
-        #     for f in range(F):
-        #         one_feat = one_batch[f]
-        #         local_f = []
-        #         for t in range(T):
-        #             curr_feat = one_feat[t]
-        #             # if(curr_feat[2]==1):
-        #             # TBM parameters
-        #             beta_val = 0.75
-        #             tau_val = 2
-        #             h_val = 0.4
-        #             m_t = curr_feat[2]
-        #             x_l = curr_feat[0]
-        #             x_m = curr_feat[1]
-        #             curr_delta_t = curr_feat[3]
-        #             b_t_dash = np.exp(-beta_val * curr_delta_t * 1.0 / tau_val)
-        #             if b_t_dash > h_val:
-        #                 b_t = 1
-        #             else:
-        #                 b_t = 0
-        #             feat_val = (1 - m_t) * x_l + m_t * (b_t * x_l + (1 - b_t) * x_m)
-        #             local_f.append(feat_val)
-        #         local_b.append(local_f)
-        #     raw_tbm.append(local_b)
-        #
-        # raw_tbm = np.array(raw_tbm)  # (B, F, T)
-        # raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
-
-        raw_tbm = np.array(data)  # (B, F, T)
-        raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
-
-        # cluster attention
-        stack_data = []  # a list of (B, input_dim)
-        for cid, c in enumerate(self.cluster):
-            # horizontal attention in every cluster
-            local_cluster = []  # lists of (B, T) tensor, has len = cluster_len
-            for b in range(B):
-                for f in c:
-                    local_cluster.append(torch.from_numpy(raw_tbm[:, :, f]).float().to(device))
-            stacked_local = torch.stack(local_cluster, dim=2)  # (B, T, cluster_len)
-            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor(T)))  # (B, cluster_len)
-            attn = self.ll_list[cid](attn)   # (B, input_dim)
-            stack_data.append(attn)
-        stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, input_dim)
-        stack_data = autograd.Variable(stack_data)
-        return stack_data
 
 
 class DotAttentionLayer(nn.Module):

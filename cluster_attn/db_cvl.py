@@ -37,22 +37,16 @@ class CVL(nn.Module):
         # self.cluster = [[i] for i in range(0, 37)]
         # self.cluster = [[i for i in range(0, 10)], [i for i in range(10, 20)], [i for i in range(20, 37)]]
 
-        # horizontal dot attns: [B, T, one_cluster_feats] -> [B, 1, one_cluster_feats] for each cluster
+        # horizontal bilstm dot attns: [B, T, one_cluster_feats] -> [B, input_dim] for each cluster
         # initial strategy: xavier
         if self.attn_category == 'dot':
             print "Dot Attention is being used!"
             self.inner_attns = nn.ModuleList([])
+            self.inner_lstm = nn.ModuleList([])
             for c in self.cluster:
-                self.inner_attns.append(DotAttentionLayer(len(c)).cuda())
-
-        # dense layer: [B, 1, one_cluster_feats] -> [B, 1, input_dims] for each cluster
-        # initial strategy: xavier
-        self.ll_list = nn.ModuleList([])
-        for c in self.cluster:
-            self.ll_list.append(nn.Linear(len(c), self.input_dim).cuda())
-
-        for l in self.ll_list:
-            torch.nn.init.xavier_uniform(l.weight)
+                self.inner_lstm.append(nn.LSTM(len(c), self.input_dim / 2, num_layers=self.layers,
+                                               bidirectional=True, batch_first=True, dropout=self.dropout))
+                self.inner_attns.append(DotAttentionLayer(self.input_dim).cuda())
 
         # Bilistm: [B, cluster_num, input_dims] -> [B, cluster_num, hidden_dims]
         # initial strategy: zero hiddens
@@ -88,6 +82,23 @@ class CVL(nn.Module):
                                                              batch_size,
                                                              self.hidden_dim).fill_(0)))
 
+    def init_inner_hidden(self, batch_size):
+        # num_layes, minibatch size, hidden_dim
+        if self.bilstm_flag:
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
+                                                             batch_size,
+                                                             self.input_dim / 2).fill_(0)),
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers * 2,
+                                                             batch_size,
+                                                             self.input_dim / 2).fill_(0)))
+        else:
+            return (autograd.Variable(torch.cuda.FloatTensor(self.layers,
+                                                             batch_size,
+                                                             self.input_dim).fill_(0)),
+                    autograd.Variable(torch.cuda.FloatTensor(self.layers,
+                                                             batch_size,
+                                                             self.input_dim).fill_(0)))
+
     def forward(self, data):
         """
         :param data: list: batch data: [B, 37, T, 4]
@@ -95,9 +106,6 @@ class CVL(nn.Module):
         :return: tag_score: [B, 2]
         """
         features = self.vertical_attn(data)  # (B, cluster_num, input_dim)
-
-        # features = torch.cuda.FloatTensor(data)
-        # features = autograd.Variable(features)
 
         tools.validate_no_nans_in_tensor(features)
 
@@ -136,38 +144,35 @@ class CVL(nn.Module):
         T = len(data[0][0])
 
         # tbm
-        # raw_tbm = []  # (B, F, T)
-        # for b in range(B):
-        #     one_batch = data[b]
-        #     local_b = []
-        #     for f in range(F):
-        #         one_feat = one_batch[f]
-        #         local_f = []
-        #         for t in range(T):
-        #             curr_feat = one_feat[t]
-        #             # if(curr_feat[2]==1):
-        #             # TBM parameters
-        #             beta_val = 0.75
-        #             tau_val = 2
-        #             h_val = 0.4
-        #             m_t = curr_feat[2]
-        #             x_l = curr_feat[0]
-        #             x_m = curr_feat[1]
-        #             curr_delta_t = curr_feat[3]
-        #             b_t_dash = np.exp(-beta_val * curr_delta_t * 1.0 / tau_val)
-        #             if b_t_dash > h_val:
-        #                 b_t = 1
-        #             else:
-        #                 b_t = 0
-        #             feat_val = (1 - m_t) * x_l + m_t * (b_t * x_l + (1 - b_t) * x_m)
-        #             local_f.append(feat_val)
-        #         local_b.append(local_f)
-        #     raw_tbm.append(local_b)
-        #
-        # raw_tbm = np.array(raw_tbm)  # (B, F, T)
-        # raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
+        raw_tbm = []  # (B, F, T)
+        for b in range(B):
+            one_batch = data[b]
+            local_b = []
+            for f in range(F):
+                one_feat = one_batch[f]
+                local_f = []
+                for t in range(T):
+                    curr_feat = one_feat[t]
+                    # if(curr_feat[2]==1):
+                    # TBM parameters
+                    beta_val = 0.75
+                    tau_val = 2
+                    h_val = 0.4
+                    m_t = curr_feat[2]
+                    x_l = curr_feat[0]
+                    x_m = curr_feat[1]
+                    curr_delta_t = curr_feat[3]
+                    b_t_dash = np.exp(-beta_val * curr_delta_t * 1.0 / tau_val)
+                    if b_t_dash > h_val:
+                        b_t = 1
+                    else:
+                        b_t = 0
+                    feat_val = (1 - m_t) * x_l + m_t * (b_t * x_l + (1 - b_t) * x_m)
+                    local_f.append(feat_val)
+                local_b.append(local_f)
+            raw_tbm.append(local_b)
 
-        raw_tbm = np.array(data)  # (B, F, T)
+        raw_tbm = np.array(raw_tbm)  # (B, F, T)
         raw_tbm = np.transpose(raw_tbm, (0, 2, 1))   # (B, T, F)
 
         # cluster attention
@@ -179,8 +184,8 @@ class CVL(nn.Module):
                 for f in c:
                     local_cluster.append(torch.from_numpy(raw_tbm[:, :, f]).float().to(device))
             stacked_local = torch.stack(local_cluster, dim=2)  # (B, T, cluster_len)
-            attn = self.inner_attns[cid]((stacked_local,  torch.cuda.LongTensor(T)))  # (B, cluster_len)
-            attn = self.ll_list[cid](attn)   # (B, input_dim)
+            attn = self.inner_lstm[cid](stacked_local, self.init_inner_hidden(B))  # (B, T, input_dim)
+            attn = self.inner_attns[cid](attn)   # (B, input_dim)
             stack_data.append(attn)
         stack_data = torch.stack(stack_data, dim=1)  # (B, cluster_num, input_dim)
         stack_data = autograd.Variable(stack_data)

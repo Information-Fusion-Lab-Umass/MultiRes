@@ -69,7 +69,7 @@ def mst_corr_cluster(corr_path, cluster_num=None):
 
     for a in feats:
         for b in range(a, 37):
-            if corr[a, b] > 0.2:
+            if corr[a, b] > 0.3:
                 G.add_edge(a, b, weight=corr[a, b])
     T = nx.maximum_spanning_tree(G)
 
@@ -97,6 +97,14 @@ def mst_corr_cluster(corr_path, cluster_num=None):
 if __name__ == '__main__':
     mst_cluster = mst_corr_cluster('./data/intercorr_physionet.csv')
     print(len(mst_cluster))
+    count = 0
+    l_cluster = []
+    for c in mst_cluster:
+        if len(c) > 1:
+            count += 1
+            l_cluster.append(c)
+    print(count)
+    print(l_cluster)
     pickle.dump(mst_cluster, open('./data/mst_cluster.pkl', 'wb'), protocol=2)
     # cluster = pickle.load(open('./data/mst_cluster.pkl', 'rb'))
     # print(cluster)

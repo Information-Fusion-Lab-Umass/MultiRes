@@ -3,6 +3,9 @@ from sklearn.metrics import precision_recall_fscore_support
 import matplotlib.pyplot as plt
 import torch
 
+from sklearn.metrics import roc_auc_score
+import numpy as np
+
 from tqdm import tqdm
 
 import cPickle as pickle
@@ -16,7 +19,6 @@ def evaluate_dbm(model, value_dict, batch_size):
 
     data = value_dict['data']
     labels = value_dict['label']
-    lens = value_dict['lens']
     size = len(labels)
     # print(size)
 
@@ -35,6 +37,46 @@ def evaluate_dbm(model, value_dict, batch_size):
                        columns = [0,1])
     df_.index = ['Precision','Recall','F-score','Count']
     return precision_recall_fscore_support(actual, preds, average='weighted'), df_
+
+
+def evaluate_auc(model, value_dict):
+    preds = []
+    actual = []
+
+    data = value_dict['data']
+    labels = value_dict['label']
+    lens = value_dict['lens']
+    size = len(labels)
+    # print(size)
+    labels = [label_mapping[x] for x in labels]
+    actual += labels
+
+    for i in tqdm(range(size)):
+        label_scores = model([data[i]]).tolist()
+        # score_, _ = torch.max(label_scores, dim=1)
+        gt_score = [np.exp(label_scores[0][1])]
+        preds += gt_score
+        # print(preds)
+        # print('#' * 10)
+
+    return roc_auc_score(np.array(actual), np.array(preds), average='weighted')
+
+
+def plot_auc(data, fig_name, title):
+    fig, (ax1) = plt.subplots(1, 1, sharex=True)
+
+    ax1.plot(data['train'], color='red', label='Train')
+    ax1.plot(data['val'], color='blue', label='Val')
+    ax1.plot(data['test'], color='green', label='Test')
+
+    fig.set_size_inches(11.5, 6.5)
+
+    plt.xlabel("Epochs")
+    plt.ylabel("AUC")
+    plt.title(title)
+    plt.legend(loc='lower right')
+    plt.savefig(fig_name)
+    plt.show()
 
 
 def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
@@ -63,6 +105,7 @@ def plot_graphs(data, metric, fig_name, start_epoch, end_epoch, title):
     # print "TEST: "+str(get_prf_metrics(data[max_key],'test'))
     # print "=="*4+" Detailed Results "+"=="*4
     # print data[max_key]
+
     
 def get_prf_metrics(data, key):
     if(key=='train'):
@@ -88,6 +131,7 @@ def get_prf_metrics(data, key):
     recall = recall*count_
     recall = sum(recall)/sum(count_)
     return (precision, recall, f_score)
+
 
 def get_metric_values(data, key, metric, start_epoch, end_epoch):
     val_f_score = []

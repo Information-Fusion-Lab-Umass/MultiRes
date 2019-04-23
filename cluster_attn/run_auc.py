@@ -10,6 +10,8 @@ import torch.optim as optim
 import random
 import numpy as np
 
+from sklearn.metrics import roc_auc_score
+
 from tqdm import tqdm
 import pandas as pd
 
@@ -27,166 +29,14 @@ import neo_cvl as cvl
 label_mapping = {0: 0, 1: 1}
 
 
-def fit(params, data_path, lr=0.0001):
-    imputated = pickle.load(open(data_path, 'rb'))
-
-    train = imputated['train']
-
-    test = imputated['test']
-    val = imputated['val']
-
-    model = cvl.CVL(params).cuda()
-    loss_function = nn.NLLLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    mode = 'normal'
-    #
-    if (mode == 'normal'):
-        print "NORMAL mode with Flags"
-
-    batch_size = params['batch_size']
-    save_flag = True
-    dict_df_prf_mod = {}
-
-    print "==x==" * 20
-    print "Data Statistics"
-    print "Train Data: " + str(len(train['label']))
-    print "Val Data: " + str(len(test['label']))
-    print "Test Data: " + str(len(val['label']))
-    print "==x==" * 20
-    #
-    start_epoch = 0
-    end_epoch = 60
-    model_name = params['model_name']
-    #
-    accuracy_dict = {'prf_tr': [], 'prf_val': [], 'prf_test': []}
-    #
-    for iter_ in range(start_epoch, end_epoch):
-        print "=#=" * 5 + str(iter_) + "=#=" * 5
-        total_loss = 0
-        preds_train = []
-        actual_train = []
-
-        for each_ID in tqdm(range(len(train['label']))):
-            model.zero_grad()
-            tag_scores = model([train['data'][each_ID]])
-
-            _, ind_ = torch.max(tag_scores, dim=1)
-            preds_train += ind_.tolist()
-            curr_labels = [label_mapping[train['label'][each_ID]]]
-            actual_train += curr_labels
-    #
-    #         # print('#' * 50)
-    #         # print(preds_train)
-    #         # print(actual_train)
-    #
-            curr_labels = torch.cuda.LongTensor(curr_labels)
-            curr_labels = autograd.Variable(curr_labels)
-    #
-            loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
-            total_loss += loss.item()
-    #
-            loss.backward()
-            optimizer.step()
-    #
-        df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train,
-                                                                  labels=[0, 1])),
-                             columns=[0, 1])
-        df_tr.index = ['Precision', 'Recall', 'F-score', 'Count']
-        prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
-        prf_test, df_test = eval_plot.evaluate_dbm(model, test, batch_size)
-        prf_val, df_val = eval_plot.evaluate_dbm(model, val, batch_size)
-    #
-        df_all = pd.concat([df_tr, df_val, df_test], axis=1)
-        dict_df_prf_mod['Epoch' + str(iter_)] = df_all
-    #
-        print '==' * 5 + "Epoch No:" + str(iter_) + "==" * 5
-        print "Training Loss: " + str(total_loss)
-        print "==" * 4
-        print "Train: " + str(prf_tr)
-        print df_tr
-        print "--" * 4
-        print "Val: " + str(prf_val)
-        print df_val
-        print "--" * 4
-        print "Test: " + str(prf_test)
-        print df_test
-        print '==' * 40
-        print '\n'
-
-        if (save_flag):
-            torch.save(model, './models/' + model_name + str(iter_) + '.pt')
-            pickle.dump(dict_df_prf_mod,
-                        open('./results/prf_' + model_name + str(iter_) + '.pkl', 'wb'))
-            eval_plot.plot_graphs(dict_df_prf_mod, 'F-score',
-                                  './plots/' + model_name + str(iter_) + '.png',
-                                  0, iter_ + 1,
-                                  model_name)
-        accuracy_dict['prf_tr'].append(prf_tr)
-        accuracy_dict['prf_test'].append(prf_test)
-        accuracy_dict['prf_val'].append(prf_val)
-
-    pickle.dump(accuracy_dict, open('./results/physio_final_prf_' + model_name + '.pkl', 'wb'))
-
-
-def small_fit(params, data_path, start_idx, end_idx, lr):
-    train = pickle.load(open(data_path, 'rb'))
-
-    model = cvl.CVL(params).cuda()
-    loss_function = nn.NLLLoss()
-    # optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.00000000002)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    start_epoch = 0
-    end_epoch = 60
-    model_name = params['model_name']
-
-    for iter_ in range(start_epoch, end_epoch):
-        print "=#=" * 5 + str(iter_) + "=#=" * 5
-        total_loss = 0
-        preds_train = []
-        actual_train = []
-
-        for each_ID in tqdm(range(start_idx, end_idx)):
-            model.zero_grad()
-            tag_scores = model([train['data'][each_ID]])
-
-            _, ind_ = torch.max(tag_scores, dim=1)
-            preds_train += ind_.tolist()
-            curr_labels = [label_mapping[train['label'][each_ID]]]
-            actual_train += curr_labels
-            #
-            #         # print('#' * 50)
-            #         # print(preds_train)
-            #         # print(actual_train)
-            #
-            curr_labels = torch.cuda.LongTensor(curr_labels)
-            curr_labels = autograd.Variable(curr_labels)
-            #
-            loss = loss_function(tag_scores, curr_labels.reshape(tag_scores.shape[0]))
-            # print(curr_labels.reshape(tag_scores.shape[0]), tag_scores)
-            total_loss += loss.item()
-            #
-            loss.backward()
-            optimizer.step()
-        #
-        df_tr = pd.DataFrame(list(precision_recall_fscore_support(actual_train, preds_train,
-                                                                  labels=[0, 1])),
-                             columns=[0, 1])
-        prf_tr = precision_recall_fscore_support(actual_train, preds_train, average='weighted')
-        print '==' * 5 + "Epoch No:" + str(iter_) + "==" * 5
-        print "Training Loss: " + str(total_loss)
-        print "==" * 4
-        print "Train: " + str(prf_tr)
-        print df_tr
-
-
 def tri_fit(params, lr=0.0001):
-    imputated = [pickle.load(open('./data/origin_physionet_%d.pkl' % i, 'rb')) for i in range(1, 4)]
+    imputated = [pickle.load(open('./data/easy_physionet_%d.pkl' % i, 'rb')) for i in range(1, 4)]
     trains = [imputated[i]['train'] for i in range(0, 3)]
     tests = [imputated[i]['test'] for i in range(0, 3)]
     vals = [imputated[i]['val'] for i in range(0, 3)]
 
     models = [cvl.CVL(params).cuda() for _ in range(0, 3)]
+    # optimizers = [optim.Adam(models[i].parameters(), lr=lr, weight_decay=2e-6) for i in range(0, 3)]
     optimizers = [optim.Adam(models[i].parameters(), lr=lr) for i in range(0, 3)]
     loss_functions = [nn.NLLLoss() for _ in range(0, 3)]
 
@@ -200,6 +50,8 @@ def tri_fit(params, lr=0.0001):
     dict_df_prf_mod = {}
 
     dict_df_prf_mod_sp = [{}, {}, {}]
+
+    dict_auc = [{'train': [], 'val': [], 'test': []} for _ in range(4)]
 
     assert (len(trains[0]['label']) == len(trains[1]['label']))
     assert (len(trains[0]['label']) == len(trains[2]['label']))
@@ -229,16 +81,32 @@ def tri_fit(params, lr=0.0001):
 
         preds_trains = [[], [], []]
         actual_trains = [[], [], []]
+        preds_scores = [[], [], []]
+
+        if iter_ == 20:
+            for o in optimizers:
+                for g in o.param_groups:
+                    g['lr'] = lr / 2
+
+        if iter_ == 40:
+            for o in optimizers:
+                for g in o.param_groups:
+                    g['lr'] = lr / 3
 
         for each_ID in tqdm(range(len(trains[0]['label']))):
             for i in range(0, 3):
                 models[i].zero_grad()
                 tag_scores = models[i]([trains[i]['data'][each_ID]])
-
                 _, ind_ = torch.max(tag_scores, dim=1)
+
                 preds_trains[i] += ind_.tolist()
+                # print(trains[i]['label'][each_ID])
                 curr_labels = [label_mapping[trains[i]['label'][each_ID]]]
                 actual_trains[i] += curr_labels
+
+                scores = tag_scores.tolist()
+                preds_scores[i].append(np.exp(scores[0][1]))
+                # print(preds_scores)
 
                 curr_labels = torch.cuda.LongTensor(curr_labels)
                 curr_labels = autograd.Variable(curr_labels)
@@ -248,8 +116,7 @@ def tri_fit(params, lr=0.0001):
                 #
                 loss.backward()
                 optimizers[i].step()
-        #
-        #
+
         df_trs = [pd.DataFrame(list(precision_recall_fscore_support(actual_trains[i], preds_trains[i],
                                                                   labels=[0, 1])),
                              columns=[0, 1]) for i in range(0, 3)]
@@ -293,6 +160,26 @@ def tri_fit(params, lr=0.0001):
         for i in range(0, 3):
             dict_df_prf_mod_sp[i]['Epoch' + str(iter_)] = df_sp[i]
 
+        avg_train_auc = 0
+        avg_test_auc = 0
+        avg_val_auc = 0
+        for i in range(3):
+            train_auc = roc_auc_score(np.array(actual_trains[i]), np.array(preds_scores[i]), average='weighted')
+            val_auc = eval_plot.evaluate_auc(models[i], vals[i])
+            test_auc = eval_plot.evaluate_auc(models[i], tests[i])
+            dict_auc[i]['train'].append(train_auc)
+            dict_auc[i]['val'].append(val_auc)
+            dict_auc[i]['test'].append(test_auc)
+
+            avg_train_auc += train_auc
+            avg_val_auc += val_auc
+            avg_test_auc += test_auc
+
+        dict_auc[3]['train'].append(avg_train_auc / 3.0)
+        dict_auc[3]['val'].append(avg_val_auc / 3.0)
+        dict_auc[3]['test'].append(avg_test_auc / 3.0)
+        # val_auc = eval_plot.evaluate_auc(train_auc, './plots/' + model_name + str(iter_) + '_auc.png', model_name)
+
     #
         print '==' * 5 + "Epoch No:" + str(iter_) + "==" * 5
         print "Training Loss: " + str(total_loss)
@@ -305,8 +192,19 @@ def tri_fit(params, lr=0.0001):
         print "--" * 4
         print "Test: " + str(prf_test)
         print df_test
+        print "--" * 4
+        print "Train Auc: " + str(avg_train_auc / 3.0)
+        print "--" * 4
+        print "Val Auc: " + str(avg_val_auc / 3.0)
+        print "--" * 4
+        print "Test Auc: " + str(avg_test_auc / 3.0)
         print '==' * 40
         print '\n'
+
+        # plot auc
+        eval_plot.plot_auc(dict_auc[3], './plots/' + model_name + str(iter_) + '_auc.png', model_name)
+        pickle.dump(dict_auc,
+                    open('./results/auc_' + model_name + str(iter_) + '.pkl', 'wb'))
 
         if (save_flag):
             # torch.save(model, './models/' + model_name + str(iter_) + '.pt')
@@ -365,8 +263,8 @@ if __name__ == '__main__':
               'tagset_size': 2,
               'attn_category': 'dot',
               'num_features': 37,
-              'input_dim': 10,
-              'hidden_dim': 50,
+              'input_dim': 5,
+              'hidden_dim': 30,
               # 'input_dim': 60,
               # 'hidden_dim': 100,
               # 'hidden_dim': 150,
@@ -385,9 +283,3 @@ if __name__ == '__main__':
 
     # small_fit(params, './data/small_train.pkl', 0, 10, lr=lr)
     # fit(params)
-
-
-"""
-1) do dot attention for every main features using all the other features as a suuport feature set
-2) go back to where we start: generate a support features set for every main feature based on correlation 
-"""
