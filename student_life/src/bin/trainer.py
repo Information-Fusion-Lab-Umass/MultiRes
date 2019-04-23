@@ -78,6 +78,7 @@ def evaluate_multitask_learner(data,
                                alpha=1,
                                beta=1,
                                use_histogram=False,
+                               histogram_seq_len=None,
                                ordinal_regression=False,
                                use_covariates=True):
     validations.validate_data_dict_keys(data)
@@ -106,7 +107,10 @@ def evaluate_multitask_learner(data,
 
         actual_data = actual_data[0].unsqueeze(0)
         if use_histogram:
+            if histogram_seq_len:
+                histogram_data = histogram_data[:max(histogram_seq_len, len(histogram_data))]
             actual_data = histogram_data.unsqueeze(0)
+
         decoded_output, y_pred = multitask_lerner_model(student_key,
                                                         actual_data,
                                                         covariate_data if use_covariates else None)
