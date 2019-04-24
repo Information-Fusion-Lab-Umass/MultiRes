@@ -156,3 +156,24 @@ def generate_training_statistics_for_user(labels, predictions, users, print_conf
             print("---")
 
     return statistics_per_user
+
+
+def get_sequence_length_and_num_features_from_data(data: dict, print_output=True):
+    first_key = next(iter(data['data'].keys()))
+    actual_data = data['data'][first_key][definitions.ACTUAL_DATA_IDX]
+    histogram = data['data'][first_key][definitions.HISTOGRAM_IDX]
+    covariates = data['data'][first_key][definitions.COVARIATE_DATA_IDX]
+
+    sequence_len, num_features, histogram_seq_len, histogram_num_features = len(actual_data), len(actual_data[0]), len(
+        histogram), len(histogram[0])
+    covariate_len = len(covariates)
+
+    if print_output:
+        print("sequence_len: {} num_features: {} histogram_seq_len: {} histogram_num_feats: {} covariate_len: {}".format(
+                sequence_len,
+                num_features,
+                histogram_seq_len,
+                histogram_num_features,
+                covariate_len))
+
+    return sequence_len, num_features, histogram_seq_len, histogram_num_features, covariate_len

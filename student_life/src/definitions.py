@@ -1,5 +1,6 @@
 import os
 import pathlib
+import pandas as pd
 
 from src.utils.read_utils import read_yaml
 
@@ -69,3 +70,10 @@ if ADJUST_WRT_MEDIAN:
     LABELS = list(range(3))
 else:
     LABELS = list(range(5))
+
+# Dates
+MIDTERM_START_DATE = pd.to_datetime('2013-04-17')
+MIDTERM_END_DATE = pd.to_datetime('2013-05-02')
+
+# Warning Strings
+LOW_MODEL_CAPACITY_WARNING = "Input size greater than hidden size. This may result in a low capacity network"

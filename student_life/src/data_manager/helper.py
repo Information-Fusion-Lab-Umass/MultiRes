@@ -25,7 +25,7 @@ def get_data_for_single_day(training_values, covariate_values, missing_values,
     """
     day_string_format = '%Y-%m-%d'
     day_string = label_idx.to_pydatetime().strftime(day_string_format)
-
+    # todo(@abhinavshaw): For covariates adjust wth delta as you can carry the original label here.
     return (training_values.loc[day_string, :].values.tolist(),
             missing_values.loc[day_string, :].values.tolist(),
             time_delta.loc[day_string, :].values.tolist(),
@@ -64,6 +64,10 @@ def get_histogram(training_values: pd.DataFrame) -> pd.DataFrame:
     rule = {}
 
     for feature in training_values.columns:
+        # Skip if not in config. A simple way to controll what feature to process.
+        if feature not in HISTOGRAM_CONFIGS.keys():
+            continue
+
         feature_rule = processing_helper.get_aggregation_rule_for_histogram(feature,
                                                                             HISTOGRAM_CONFIGS[feature])
 
