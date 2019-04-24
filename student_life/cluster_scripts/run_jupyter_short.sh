@@ -2,8 +2,8 @@
 #SBATCH --partition 1080ti-short
 #SBATCH --gres gpu:1
 #SBATCH --mem=15000
-#SBATCH --ntasks-per-node=2
-#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=4
+#SBATCH --nodes=1
 #SBATCH --output jupyter-notebook-short.log
 
 # get tunneling info
