@@ -1,7 +1,7 @@
 student_life_var_binned_data:
   # Two splitting strategy supported - Days and Time Delta of hours from the labels.
   default_splitting_strategy: 'time_delta'
-  normalize_strategy: 'min_max'
+  normalize_strategy: 'mean'
   # Default student list for data manager.
   student_list: [35]
   feature_list: ['epoch_of_day', 'time_since_last_label' , 'time_to_next_label',
