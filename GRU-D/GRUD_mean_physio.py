@@ -250,7 +250,8 @@ all_x_add = np.zeros((input_length, 1))
 
 label_dict = {'0': '0', '1': '1'}
 q = 0
-d = pd.read_pickle('../cluster_attn/data/phy_data_set_1.pkl')
+dataset_num = 3
+d = pd.read_pickle('../cluster_attn/data/3Sets_Physionet_avg_Covs_InHosp_set' + str(dataset_num) + '.pkl')
 # print(d.keys())
 df = pd.DataFrame.from_dict(d['data'])
 # print(df)
@@ -259,7 +260,7 @@ order = ['train_ids', 'val_ids', 'test_ids']
 features_list = sorted(inputdict.keys())
 for o in order:
     for id in tqdm.tqdm(d[o]):
-        osaka_outcomes.append(label_dict[str(df[id][3])])
+        osaka_outcomes.append(label_dict[str(df[id][4])])
 
         marray = 1 - np.asarray(df[id][1])
         xarray = np.multiply(np.asarray(df[id][0]), marray)
@@ -415,6 +416,8 @@ np.save('./Data/x_median_physio', nor_median)
 np.save('./Data/dataset_physio', dataset)
 np.save('./Data/outcomes_physio', osaka_outcomes)
 
+
+# Start code from here to avoid preprocessing time
 
 # define model
 class GRUD(torch.nn.Module):
@@ -793,7 +796,7 @@ def data_dataloader(dataset, outcomes, train_proportion=0.80, dev_proportion=0.1
 t_dataset = np.load('./Data/dataset_physio.npy')
 osaka_outcomes = np.load('./Data/outcomes_physio.npy')
 t_out = np.asarray(osaka_outcomes)
-t_out.resize((-1, 1))
+t_out = np.resize(t_out, (3934, 1))
 print(t_dataset[0][0][0])
 print(t_out[0])
 print(t_dataset.shape)
@@ -1041,7 +1044,7 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         plt.title('GRU-D Physionet')
         plt.xticks([])
         ax.legend()
-        plt.savefig(str(epoch) + "_GRUD_Physio_1.jpg")
+        plt.savefig(str(epoch) + "_GRUD_Physio_Easy_" + str(dataset_num) + ".png")
         # plt.show()
         # save the parameters
         train_log = []
@@ -1105,7 +1108,7 @@ def fit(model, criterion, learning_rate,\
         train_dataloader, dev_dataloader, test_dataloader,\
         learning_rate_decay=0, n_epochs=30):
 '''
-learning_rate = 0.01
+learning_rate = 0.2  # 0.01 for hard labels
 learning_rate_decay = 15
 n_epochs = 30
 
