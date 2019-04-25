@@ -1,238 +1,38 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import math
 import numbers
 import warnings
 
+import matplotlib
+
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torch.utils.data as utils
-
-# In[2]:
-
-
-inputpath = '../cluster_attn/set-a/'
-inputdict = {
-    "ALP": 0,  # o
-    "ALT": 1,  # o
-    "AST": 2,  # o
-    "Albumin": 3,  # o
-    "BUN": 4,  # o
-    "Bilirubin": 5,  # o
-    "Cholesterol": 6,  # o
-    "Creatinine": 7,  # o
-    "DiasABP": 8,  # o
-    "FiO2": 9,  # o
-    "GCS": 10,  # o
-    "Glucose": 11,  # o
-    "HCO3": 12,  # o
-    "HCT": 13,  # o
-    "HR": 14,  # o
-    "K": 15,  # o
-    "Lactate": 16,  # o
-    "MAP": 17,  # o
-    "Mg": 18,  # o
-    "Na": 19,  # o
-    "PaCO2": 20,  # o
-    "PaO2": 21,  # o
-    "Platelets": 22,  # o
-    "RespRate": 23,  # o
-    "SaO2": 24,  # o
-    "SysABP": 25,  # o
-    "Temp": 26,  # o
-    "Tropl": 27,  # o
-    "TroponinI": 27,  # temp: regarded same as Tropl
-    "TropT": 28,  # o
-    "TroponinT": 28,  # temp: regarded same as TropT
-    "Urine": 29,  # o
-    "WBC": 30,  # o
-    "Weight": 31,  # o
-    "pH": 32,  # o
-    "NIDiasABP": 33,  # unused variable
-    "NIMAP": 34,  # unused variable
-    "NISysABP": 35,  # unused variable
-    "MechVent": 36,  # unused variable
-    "RecordID": 37,  # unused variable
-    "Age": 38,  # unused variable
-    "Gender": 39,  # unused variable
-    "ICUType": 40,  # unused variable
-    "Height": 41  # unused variable
-}
+import tqdm
+from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_fscore_support
 
 
-# In[3]:
-
-
-# functions to process the time in the data
 def timeparser(time):
     return pd.to_timedelta(time + ':00')
 
 
 def timedelta_to_day_figure(timedelta):
-    print(timedelta, timedelta.days, timedelta.seconds)
     return timedelta.days + (timedelta.seconds / 86400)  # (24*60*60)
 
 
-# In[4]:
-
-
-# group the data by time
-def df_to_inputs(df, inputdict, inputs):
-    grouped_data = df.groupby('Time')
-
-    for row_index, value in df.iterrows():
-        '''
-        t = colum ~ time frame
-        agg_no = row ~ variable
-        '''
-
-        agg_no = inputdict[value.Parameter]
-
-        # print('agg_no : {}\t  value : {}'.format(agg_no, value.Value))
-        inputs[agg_no].append(value.Value)
-
-    return inputs
-
-
-# In[5]:
-
-
-inputs = []
-
-# prepare empty list to put data
-# len(inputdict)-2: two items has same agg_no
-# for i in range(len(inputdict)-2):
-#    t = []
-#    inputs.append(t)
-
-q = 0
-# read all the files in the input folder
-# for filename in os.listdir(inputpath):
-# with open('order.txt','r') as f:
-#   for line in f:
-#       #print(line)
-#       line = line.rstrip('\n')
-#       print(q, line)
-#       q+=1
-#       df = pd.read_csv(inputpath + line, header=0, parse_dates=['Time'], date_parser=timeparser) 
-#       inputs = df_to_inputs(df=df, inputdict=inputdict, inputs=inputs)
-
-# print(inputs[0][0])
-
-
-# In[6]:
-
-
-# save inputs just in case
-# np.save('./input/inputs_oursplit', inputs)
-# inputs = np.load('./input/inputs_oursplit.npy')
-# print(inputs[0][0])
-
-
-# In[7]:
-
-
-# make input items list
-input_columns = list(inputdict.keys())
-
-'''
-remove two overlaped items
-"TroponinI" : 27, #temp
-"TroponinT" : 28, #temp
-
-'''
-input_columns.remove("TroponinI")
-input_columns.remove("TroponinT")
-print(input_columns)
-print(len(input_columns))
-
-
-# In[8]:
-
-
-# describe the data
-# print count, min, max, mean, median, std, var and histogram if hist == True
-# return values as a list
-def describe(inputs, input_columns, inputdict, hist=False):
-    desc = []
-
-    for i in range(len(inputdict) - 2):
-        input_arr = np.asarray(inputs[i])
-
-        des = []
-
-        des.append(input_arr.size)
-        des.append(np.amin(input_arr))
-        des.append(np.amax(input_arr))
-        des.append(np.mean(input_arr))
-        des.append(np.median(input_arr))
-        des.append(np.std(input_arr))
-        des.append(np.var(input_arr))
-
-        desc.append(des)
-
-        # print histgram
-        if hist:
-            a = np.hstack(input_arr)
-            plt.hist(a, bins='auto')
-            plt.title("Histogram about {}".format(input_columns[i]))
-            plt.show()
-
-        print('count: {}, min: {}, max: {}'.format(des[0], des[1], des[2]))
-        print('mean: {}, median: {}, std: {}, var: {}'.format(des[3], des[4], des[5], des[6]))
-
-    return desc
-
-
-# In[9]:
-# print('Describing ...')
-
-# desc = describe(loaded_inputs, input_columns, inputdict, hist=True)
-# desc = np.asarray(desc)
-# desc.shape
-
-
-# In[10]:
-
-
-# save desc
-# 0: count, 1: min, 2: max, 3: mean, 4: median, 5: std, 6: var
-# np.save('./input/desc', desc)
-# loaded_desc = np.load('./input/desc.npy')
-
-
-# In[11]:
-
-
-def normalization(desc, inputs):
-    # for each catagory
-    for i in range(desc.shape[0]):
-        # for each value
-        for j in range(len(inputs[i])):
-            inputs[i][j] = (inputs[i][j] - desc[i][3]) / desc[i][5]
-    return inputs
-
-
-# In[22]:
-
-# print('Dataframe to dataset....')
-'''
-dataframe to dataset
-'''
-
-
-def df_to_x_m_d(df, inputdict, size, id_posistion, split):
+def df_to_x_m_d(df, dfm, inputdict, size, id_posistion, split, features_list):
     grouped_data = df.groupby('Time')
 
     # generate input vectors
-    x = np.zeros((len(inputdict) - 2, grouped_data.ngroups))
-    masking = np.zeros((len(inputdict) - 2, grouped_data.ngroups))
+    x = np.zeros((len(inputdict), grouped_data.ngroups))
+
+    # print("X Shape", x.shape)
+    masking = np.zeros((len(inputdict), grouped_data.ngroups))
+    # print("Masking Shape", masking.shape)
     delta = np.zeros((split, size))
+    # print('Delta shape ', delta.shape)
     timetable = np.zeros(grouped_data.ngroups)
     id = 0
 
@@ -246,35 +46,32 @@ def df_to_x_m_d(df, inputdict, size, id_posistion, split):
         pre_time = pd.to_timedelta(0)
         t = 0
         for row_index, value in df.iterrows():
-            '''
-            t = colum, time frame
-            agg_no = row, variable
-            '''
+            #     '''
+            #     t = colum, time frame
+            #     agg_no = row, variable
+            #     '''
             # print(value)
-            agg_no = inputdict[value.Parameter]
+            # agg_no = inputdict[value.Parameter]
 
-            # same timeline check.        
+            # same timeline check.
             if pre_time != value.Time:
                 pre_time = value.Time
+                timetable[t] = value.Time
                 t += 1
-                timetable[t] = timedelta_to_day_figure(value.Time)
 
             # print('agg_no : {}\t t : {}\t value : {}'.format(agg_no, t, value.Value))
-            x[agg_no, t] = value.Value
-            masking[agg_no, t] = 1
+            # x[agg_no, t] = value.Value
+            # masking[agg_no, t] = 1
 
-        '''
-        # generate random index array 
-        ran_index = np.random.choice(grouped_data.ngroups, size=size, replace=False)
-        ran_index.sort()
-        ran_index[0] = 0
-        ran_index[size-1] = grouped_data.ngroups-1
-        '''
+        x = df.as_matrix(columns=features_list).T
+        masking = dfm.as_matrix(columns=features_list).T
+        # print(x.shape, masking.shape)
 
+        # print(x.shape)
         # generate index that has most parameters and first/last one.
         ran_index = grouped_data.count()
         ran_index = ran_index.reset_index()
-        ran_index = ran_index.sort_values('Value', ascending=False)
+        # ran_index = ran_index.sort_values('Value', ascending=False)
         ran_index = ran_index[:size]
         ran_index = ran_index.sort_index()
         ran_index = np.asarray(ran_index.index.values)
@@ -284,7 +81,7 @@ def df_to_x_m_d(df, inputdict, size, id_posistion, split):
         # print(ran_index)
 
         # take id for outcome comparing
-        id = x[id_posistion, 0]
+        # id = x[id_posistion, 0]
 
         # remove unnesserly parts(rows)
         x = x[:split, :]
@@ -343,20 +140,24 @@ def df_to_x_m_d(df, inputdict, size, id_posistion, split):
             agg_no = row, variable
             '''
             # print(value)
-            agg_no = inputdict[value.Parameter]
+            # agg_no = inputdict[value.Parameter]
 
-            # same timeline check.        
+            # same timeline check.
             if pre_time != value.Time:
                 pre_time = value.Time
+                timetable[t] = value.Time
                 t += 1
-                timetable[t] = timedelta_to_day_figure(value.Time)
 
             # print('agg_no : {}\t t : {}\t value : {}'.format(agg_no, t, value.Value))
-            x[agg_no, t] = value.Value
-            masking[agg_no, t] = 1
+            # x[agg_no, t] = value.Value
+            # masking[agg_no, t] = 1
 
         # take id for outcome comparing
-        id = x[id_posistion, 0]
+        x = df.as_matrix(columns=features_list).T
+        masking = dfm.as_matrix(columns=features_list).T
+        # print(x.shape, masking.shape)
+
+        # id = x[id_posistion, 0]
 
         # remove unnesserly parts(rows)
         x = x[:split, :]
@@ -393,30 +194,88 @@ def df_to_x_m_d(df, inputdict, size, id_posistion, split):
     return s_dataset, all_x, id
 
 
-# In[23]:
-
-
-# def df_to_x_m_d(df, inputdict, mean, std, size, id_posistion, split):
-size = 49  # steps ~ from the paper
 id_posistion = 37
-input_length = 33  # input variables ~ from the paper
+
+inputdict = {
+    "A": 0,  # o
+    "B": 1,  # o
+    "C": 2,  # o
+    "D": 3,  # o
+    "E": 4,  # o
+    "F": 5,  # o
+    "G": 6,  # o
+    "H": 7,  # o
+    "I": 8,  # o
+    "J": 9,  # o
+    "K": 10,  # o
+    "L": 11,  # o
+    "M": 12,  # o
+    "N": 13,  # o
+    "O": 14,  # o
+    "P": 15,  # o
+    "Q": 16,  # o
+    "R": 17,  # o
+    "S": 18,  # o
+    "T": 19,  # o
+    "U": 20,
+    "V": 21,  # o
+    "W": 22,  # o
+    "X": 23,  # o
+    "Y": 24,  # o
+    "Z": 25,  # o
+    "A1": 26,  # o
+    "A2": 27,  # o
+    "A3": 28,  # o
+    "A4": 29,  # o
+    "A5": 30,  # o
+    "A6": 31,
+    "A7": 32,
+    "A8": 33,
+    "A9": 34,
+    "A10": 35,
+    "A11": 36
+}
+
+size = 49  # steps ~ from the paper
+input_length = 37  # Number of features
+# print(d)
+# print(len(df['T0_ID271435_Walk1.csv'][0]))
+# print(len(d['train_ids'])+len(d['val_ids'])+len(d['test_ids']))
+# for id in d['train_ids']:
+#     x = np.asarray(df[id][0])
+#     print(x.shape)
 dataset = np.zeros((1, 3, input_length, size))
 
 all_x_add = np.zeros((input_length, 1))
 
+label_dict = {'0': '0', '1': '1'}
 q = 0
-# for filename in os.listdir(inputpath):
-with open('../cluster_attn/order.txt', 'r') as f:
-    for line in f:
-        line = line.rstrip('\n')
-        print(q, line)
-        q += 1
-        df = pd.read_csv(inputpath + line, header=0, parse_dates=['Time'], date_parser=timeparser)
-        s_dataset, all_x, id = df_to_x_m_d(df=df, inputdict=inputdict, size=size, id_posistion=id_posistion,
-                                           split=input_length)
+d = pd.read_pickle('../cluster_attn/data/phy_data_set_1.pkl')
+# print(d.keys())
+df = pd.DataFrame.from_dict(d['data'])
+# print(df)
+osaka_outcomes = []
+order = ['train_ids', 'val_ids', 'test_ids']
+features_list = sorted(inputdict.keys())
+for o in order:
+    for id in tqdm.tqdm(d[o]):
+        osaka_outcomes.append(label_dict[str(df[id][3])])
+
+        marray = 1 - np.asarray(df[id][1])
+        xarray = np.multiply(np.asarray(df[id][0]), marray)
+        df_subject = pd.DataFrame(xarray, columns=features_list)
+        df_masking = pd.DataFrame(marray, columns=features_list)
+        n_rows = len(df_subject['A'])
+        df_subject['Time'] = pd.Series(np.arange(n_rows), index=df_subject.index)
+        # print(df_subject)
+        s_dataset, all_x, _ = df_to_x_m_d(df=df_subject, dfm=df_masking, inputdict=inputdict, size=size,
+                                          id_posistion=id_posistion,
+                                          split=input_length, features_list=features_list)
 
         dataset = np.concatenate((dataset, s_dataset[np.newaxis, :, :, :]))
         all_x_add = np.concatenate((all_x_add, all_x), axis=1)
+
+print(len(osaka_outcomes))
 
 dataset = dataset[1:, :, :, :]
 # (total datasets, kind of data(x, masking, and delta), input length, num of varience)
@@ -428,7 +287,9 @@ print(all_x_add.shape)
 all_x_add = all_x_add[:, 1:]
 print(all_x_add.shape)
 
-trp = 0.64
+# In[24]:
+
+trp = 0.80
 
 
 def get_mean(x):
@@ -474,6 +335,9 @@ def get_var(x):
         var = np.var(x[i][:l])
         x_var.append(var)
     return x_var
+
+
+# In[28]:
 
 
 x_mean = get_mean(all_x_add)
@@ -546,116 +410,10 @@ nor_mean, nor_median, nor_std, nor_var = normalize_chk(dataset)
 # In[35]:
 
 print('Saving new dataset....')
-np.save('./input/x_mean_aft_nor_70split_33', nor_mean)
-np.save('./input/x_median_aft_nor_70split_33', nor_median)
-np.save('./input/dataset_70split_33', dataset)
-# print('Loading new dataset 36......')
-# t_dataset = np.load('./input/dataset.npy')
-
-# print(t_dataset.shape)
-
-
-# In[26]:
-
-
-'''
-Y values
-'''
-
-
-def df_to_y3(df):
-    '''
-    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
-    '''
-    output = np.zeros((4000, 3))
-
-    for row_index, value in df.iterrows():
-        los = value[3]  # Length_of_stay
-        sur = value[4]  # Survival
-        ihd = value[5]  # In-hospital_death
-
-        output[row_index][0] = ihd
-        output[row_index][1] = ihd
-
-        # length-of-stay less than 3 yes/no 1/0
-        if los < 3:
-            output[row_index][2] = 0
-        else:
-            output[row_index][2] = 1
-
-    return output
-
-
-# In[27]:
-
-
-# only check In-hospital_death
-def df_to_y1(df):
-    output = df.values
-    output = output[:, 5:]
-
-    return output
-
-
-# only check In-hospital_death
-def df_to_survival(df):
-    output = np.zeros((4000, 1))
-
-    for row_index, value in df.iterrows():
-        sur = value[4]  # Survival
-        if sur != -1:
-            output[row_index] = 1
-        else:
-            output[row_index] = 0
-
-    return output
-
-
-# In[28]:
-
-
-# A_outcomes = pd.read_csv('./input/temp/Outcomes-a.txt')
-y1_outcomes = df_to_y1(A_outcomes)
-# y1_outcomes = np.load('./input/y1_out.npy')
-print(y1_outcomes.shape)
-np.save('./input/y1_out', y1_outcomes)
-
-
-# print('Getting survival outcomes.....')
-# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
-# survival_outcomes = df_to_survival(A_outcomes)
-# print(survival_outcomes)
-# np.save('./input/survival_out', survival_outcomes)
-
-# In[29]:
-
-
-def df_to_y2(df):
-    '''
-    RecordID  SAPS-I  SOFA  Length_of_stay  Survival  In-hospital_death
-    '''
-    output = np.zeros((4000, 2))
-
-    for row_index, value in df.iterrows():
-        ihd = value[5]  # In-hospital_death
-
-        output[row_index][0] = ihd
-        output[row_index][1] = ihd
-
-    return output
-
-
-# In[30]:
-
-
-# A_outcomes = pd.read_csv('./input/Outcomes-a.txt')
-# y2_outcomes = df_to_y2(A_outcomes)
-# y2_outcomes = np.load('./input/y2_out.npy')
-# print(y2_outcomes.shape)
-# np.save('./input/y2_out', y2_outcomes)
-
-
-# In[4]:
+np.save('./Data/x_mean_physio', nor_mean)
+np.save('./Data/x_median_physio', nor_median)
+np.save('./Data/dataset_physio', dataset)
+np.save('./Data/outcomes_physio', osaka_outcomes)
 
 
 # define model
@@ -998,26 +756,26 @@ def count_parameters(model):
 # In[6]:
 
 
-def data_dataloader(dataset, outcomes, train_proportion=0.64, dev_proportion=0.2, test_proportion=0.16):
+def data_dataloader(dataset, outcomes, train_proportion=0.80, dev_proportion=0.10, test_proportion=0.1):
     train_index = int(np.floor(dataset.shape[0] * train_proportion))
     dev_index = int(np.floor(dataset.shape[0] * (train_proportion + dev_proportion)))
 
     # split dataset to tarin/dev/test set
     train_data, train_label = dataset[:train_index, :, :, :], outcomes[:train_index, :]
-    test_data, test_label = dataset[train_index:dev_index, :, :, :], outcomes[train_index:dev_index, :]
-    dev_data, dev_label = dataset[dev_index:, :, :, :], outcomes[dev_index:, :]
+    dev_data, dev_label = dataset[train_index:dev_index, :, :, :], outcomes[train_index:dev_index, :]
+    test_data, test_label = dataset[dev_index:, :, :, :], outcomes[dev_index:, :]
 
     # ndarray to tensor
-    train_data, train_label = torch.Tensor(train_data), torch.Tensor(train_label)
-    dev_data, dev_label = torch.Tensor(dev_data), torch.Tensor(dev_label)
-    test_data, test_label = torch.Tensor(test_data), torch.Tensor(test_label)
+    train_data, train_label = torch.Tensor(train_data), torch.Tensor(train_label.astype(int))
+    dev_data, dev_label = torch.Tensor(dev_data), torch.Tensor(dev_label.astype(int))
+    test_data, test_label = torch.Tensor(test_data), torch.Tensor(test_label.astype(int))
 
     # tensor to dataset
     train_dataset = utils.TensorDataset(train_data, train_label)
     dev_dataset = utils.TensorDataset(dev_data, dev_label)
     test_dataset = utils.TensorDataset(test_data, test_label)
 
-    # dataset to dataloader 
+    # dataset to dataloader
     train_dataloader = utils.DataLoader(train_dataset)
     dev_dataloader = utils.DataLoader(dev_dataset)
     test_dataloader = utils.DataLoader(test_dataset)
@@ -1032,28 +790,16 @@ def data_dataloader(dataset, outcomes, train_proportion=0.64, dev_proportion=0.2
 # In[7]:
 
 
-t_dataset = np.load('./input/dataset_70split_33.npy')
-# t_dataset_old = np.load('./input/dataset.npy')
-# print(t_dataset_old[0][0][0])
-# t_out = np.load('./input/y1_out.npy')
-# outcomes_oursplit = []
-# with open('outcomes.txt', 'r') as f:
-#     for line in f:
-#         line = line.rstrip('\n')
-#         outcomes_oursplit.append(int(line))
-print(outcomes_oursplit)
-t_out = np.asarray(outcomes_oursplit)
-t_out.resize((4000, 1))
-# t_out = np.load('./input/survival_out.npy')
+t_dataset = np.load('./Data/dataset_physio.npy')
+osaka_outcomes = np.load('./Data/outcomes_physio.npy')
+t_out = np.asarray(osaka_outcomes)
+t_out.resize((-1, 1))
 print(t_dataset[0][0][0])
 print(t_out[0])
 print(t_dataset.shape)
-print(t_out.shape)
+print(len(t_out))
 
 train_dataloader, dev_dataloader, test_dataloader = data_dataloader(t_dataset, t_out)
-
-# In[8]:
-
 
 '''
 in the paper : 49 layers, 33 input, 18838 parameters
@@ -1071,14 +817,11 @@ weights = 10*33*49(16170) + 33*5(165) = 16335 gap : 2503
 '''
 
 
-# In[8]:
-
-
 def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_dataloader, learning_rate_decay=0,
         n_epochs=30):
     epoch_losses = []
 
-    # to check the update 
+    # to check the update
     old_state_dict = {}
     for key in model.state_dict():
         old_state_dict[key] = model.state_dict()[key].clone()
@@ -1104,10 +847,13 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         label, pred = [], []
         y_pred_col = []
         model.train()
+        q = 0
         for train_data, train_label in train_dataloader:
             # Zero the parameter gradients
             optimizer.zero_grad()
-
+            q += 1
+            if q % 100 == 0:
+                print(q)
             # Squeeze the data [1, 33, 49], [1,5] to [33, 49], [5]
             train_data = torch.squeeze(train_data)
             train_label = torch.squeeze(train_label)
@@ -1122,17 +868,19 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
             # print(train_label.shape)
 
             # Save predict and label
-            y_pred_col.append(y_pred.item())
-            pred.append(y_pred.item())
+            # y_pred_col.append(y_pred.item())
+            pred.append(torch.argmax(y_pred))
             label.append(train_label.item())
 
             # print('y_pred: {}\t label: {}'.format(y_pred, train_label))
-
+            # print(y_pred.size())
+            y_pred = y_pred.view((1, -1))
+            train_label = torch.LongTensor([train_label])
             # Compute loss
             loss = criterion(y_pred, train_label)
             acc.append(
                 torch.eq(
-                    (torch.sigmoid(y_pred).data > 0.5).float(),
+                    torch.argmax(y_pred),
                     train_label)
             )
             losses.append(loss.item())
@@ -1151,8 +899,8 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         train_label_out = label
 
         train_p2 = pred
-        train_p2[train_p2 >= 0.5] = 1
-        train_p2[train_p2 < 0.5] = 0
+        # train_p2[train_p2 >= 0.5] = 1
+        # train_p2[train_p2 < 0.5] = 0
 
         # save new params
         new_state_dict = {}
@@ -1169,6 +917,9 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         label, pred = [], []
         model.eval()
         for dev_data, dev_label in dev_dataloader:
+            q += 1
+            if q % 100 == 0:
+                print(q)
             # Squeeze the data [1, 33, 49], [1,5] to [33, 49], [5]
             dev_data = torch.squeeze(dev_data)
             dev_label = torch.squeeze(dev_label)
@@ -1177,14 +928,16 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
             y_pred = model(dev_data)
 
             # Save predict and label
-            pred.append(y_pred.item())
+            pred.append(torch.argmax(y_pred))
             label.append(dev_label.item())
 
             # Compute loss
+            y_pred = y_pred.view((1, -1))
+            dev_label = torch.LongTensor([dev_label])
             loss = criterion(y_pred, dev_label)
             acc.append(
                 torch.eq(
-                    (torch.sigmoid(y_pred).data > 0.5).float(),
+                    torch.argmax(y_pred),
                     dev_label)
             )
             losses.append(loss.item())
@@ -1199,14 +952,17 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         dev_label_out = label
 
         dev_p2 = pred
-        dev_p2[dev_p2 >= 0.5] = 1
-        dev_p2[dev_p2 < 0.5] = 0
+        # dev_p2[dev_p2 >= 0.5] = 1
+        # dev_p2[dev_p2 < 0.5] = 0
 
         # test loss
         losses, acc = [], []
         label, pred = [], []
         model.eval()
         for test_data, test_label in test_dataloader:
+            q += 1
+            if q % 100 == 0:
+                print(q)
             # Squeeze the data [1, 33, 49], [1,5] to [33, 49], [5]
             test_data = torch.squeeze(test_data)
             test_label = torch.squeeze(test_label)
@@ -1215,14 +971,17 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
             y_pred = model(test_data)
 
             # Save predict and label
-            pred.append(y_pred.item())
+            pred.append(np.argmax(y_pred.detach().numpy()))
             label.append(test_label.item())
 
             # Compute loss
+            y_pred = y_pred.view((1, -1))
+            test_label = torch.LongTensor([test_label])
+
             loss = criterion(y_pred, test_label)
             acc.append(
                 torch.eq(
-                    (torch.sigmoid(y_pred).data > 0.5).float(),
+                    torch.argmax(y_pred),
                     test_label)
             )
             losses.append(loss.item())
@@ -1244,17 +1003,17 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         label = np.asarray(label)
         # print(train_acc, dev_acc, test_acc)
         # print(pred, label)
-        auc_score = roc_auc_score(label, pred)
+        # auc_score = roc_auc_score(label, pred)
         test_p2 = pred
-        test_p2[test_p2 >= 0.5] = 1
-        test_p2[test_p2 < 0.5] = 0
+        # test_p2[test_p2 >= 0.5] = 1
+        # test_p2[test_p2 < 0.5] = 0
         # print(p2, label)
         # print(precision_recall_fscore_support(label,p2,average='weighted'))
 
         # print("Epoch: {} Train: {:.4f}/{:.2f}%, Dev: {:.4f}/{:.2f}%, Test: {:.4f}/{:.2f}% AUC: {:.4f}".format(
         #     epoch, train_loss, train_acc*100, dev_loss, dev_acc*100, test_loss, test_acc*100, auc_score))
-        print("Epoch: {} Train loss: {:.4f}, Dev loss: {:.4f}, Test loss: {:.4f}, Test AUC: {:.4f}".format(
-            epoch, train_loss, dev_loss, test_loss, auc_score))
+        print("Epoch: {} Train loss: {:.4f}, Dev loss: {:.4f}, Test loss: {:.4f}".format(
+            epoch, train_loss, dev_loss, test_loss))
         prf_train = precision_recall_fscore_support(train_label_out, train_p2, average='weighted')
         prf_val = precision_recall_fscore_support(dev_label_out, dev_p2, average='weighted')
         prf_test = precision_recall_fscore_support(test_label_out, test_p2, average='weighted')
@@ -1282,8 +1041,8 @@ def fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_
         plt.title('GRU-D Physionet')
         plt.xticks([])
         ax.legend()
-        plt.savefig(str(epoch) + "_GRUD.jpg")
-        plt.show()
+        plt.savefig(str(epoch) + "_GRUD_Physio_1.jpg")
+        # plt.show()
         # save the parameters
         train_log = []
         train_log.append(model.state_dict())
@@ -1313,19 +1072,19 @@ def plot_roc_and_auc_score(outputs, labels, title):
 # In[10]:
 
 
-input_size = 33  # num of variables base on the paper
-hidden_size = 33  # same as inputsize
-output_size = 1
+input_size = 37  # num of variables base on the paper
+hidden_size = 37  # same as inputsize
+output_size = 2
 num_layers = 49  # num of step or layers base on the paper
 
-x_mean = torch.Tensor(np.load('./input/x_mean_aft_nor_70split_33.npy'))
-x_median = torch.Tensor(np.load('./input/x_median_aft_nor_70split_33.npy'))
+x_mean = torch.Tensor(np.load('./Data/x_mean_physio.npy'))
+x_median = torch.Tensor(np.load('./Data/x_median_physio.npy'))
 
 # In[23]:
 
 
 # dropout_type : Moon, Gal, mloss
-model = GRUD(input_size=input_size, hidden_size=hidden_size, output_size=output_size, dropout=0, dropout_type='mloss',
+model = GRUD(input_size=input_size, hidden_size=hidden_size, output_size=output_size, dropout=0.1, dropout_type='mloss',
              x_mean=x_mean, num_layers=num_layers)
 
 # load the parameters
@@ -1336,7 +1095,7 @@ count = count_parameters(model)
 print('number of parameters : ', count)
 print(list(model.parameters())[0].grad)
 
-criterion = torch.nn.BCELoss()
+criterion = torch.nn.CrossEntropyLoss()
 
 # In[24]:
 
@@ -1347,8 +1106,8 @@ def fit(model, criterion, learning_rate,\
         learning_rate_decay=0, n_epochs=30):
 '''
 learning_rate = 0.01
-learning_rate_decay = 7
-n_epochs = 18
+learning_rate_decay = 15
+n_epochs = 30
 
 # learning_rate = 0.1 learning_rate_decay=True
 epoch_losses = fit(model, criterion, learning_rate, train_dataloader, dev_dataloader, test_dataloader,
@@ -1357,8 +1116,8 @@ epoch_losses = fit(model, criterion, learning_rate, train_dataloader, dev_datalo
 # In[25]:
 
 
-test_preds, test_labels = epoch_losses[11][8], epoch_losses[11][11]
+# test_preds, test_labels = epoch_losses[11][8], epoch_losses[11][11]
 
-plot_roc_and_auc_score(test_preds, test_labels, 'GRU-D PhysioNet mortality prediction')
+# plot_roc_and_auc_score(test_preds, test_labels, 'GRU-D PhysioNet mortality prediction')
 
 # In[ ]:
