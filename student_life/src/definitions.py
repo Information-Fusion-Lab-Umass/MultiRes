@@ -19,7 +19,8 @@ DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_mana
 MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
 
 # Frequency constants
-DEFAULT_BASE_FREQ = 'min'
+DEFAULT_BASE_FREQ = '1 min'
+DEFAULT_EXPLODING_BASE_FREQ = '1 min'
 
 # Data manager config Keys
 VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"
@@ -28,11 +29,23 @@ VAR_BINNED_DATA_MANAGER_ROOT = "student_life_var_binned_data"
 STUDENT_LIST_CONFIG_KEY = "student_list"
 FEATURE_LIST_CONFIG_KEY = "feature_list"
 LABEL_LIST_CONFIG_KEY = "label_list"
+COVARIATE_LIST_CONFIG_KEY = "covariate_list"
 RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Data Folder Paths - LOCAL
-MINIMAL_PROCESSED_DATA_PATH = str(os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data"))
-BINNED_ON_VAR_FREQ_DATA_PATH = str(os.path.join(ROOT_DIR, "../data/student_life_var_binned_data"))
+MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
+BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
+SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_covariates")
+STUDENT_RAW_DATA_ANALYSIS_ROOT = os.path.join(ROOT_DIR, "../data/raw_student_data_information")
+
+# Data Tuple Indices
+DATA_TUPLE_LEN = 6
+ACTUAL_DATA_IDX = 0
+MISSING_FLAGS_IDX = 1
+TIME_DELTA_IDX = 2
+COVARIATE_DATA_IDX = 3
+HISTOGRAM_IDX = 4
+LABELS_IDX = -1  # Always last!
 
 # Data Folder Paths - CLUSTER
 # Overwrite Global Constants when cluster mode on.
@@ -43,3 +56,5 @@ if config['cluster_mode']:
         os.path.join(cluster_data_root, "student_life_minimal_processed_data"))
     BINNED_ON_VAR_FREQ_DATA_PATH = pathlib.Path(
         os.path.join(cluster_data_root, "student_life_var_binned_data"))
+    SURVEYS_AND_COVARIATES_DATA_PATH = pathlib.Path(
+        os.path.join(cluster_data_root, "surveys_and_covariates"))

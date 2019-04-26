@@ -30,10 +30,13 @@ def run():
     global AVAILABLE_STUDENTS
     ############## Main Loop To Process Data ##################
 
+    if students:
+        AVAILABLE_STUDENTS = list(set(students).intersection(set(AVAILABLE_STUDENTS)))
+
     for student_id in AVAILABLE_STUDENTS:
-        if student_id not in [53,24,7,22,49,46]: continue
+
         student_data = []
-        if VERBOSE: print("[SID]: {}\n\t features".format(str(student_id)))
+
         for idx, feature in enumerate(AVAILABLE_FEATURE):
             feature_data_path = os.path.join(MINIMAL_PROCESSED_DATA_PATH,
                                             STUDENT_FOLDER_NAME_PREFIX + str(student_id),
@@ -45,27 +48,16 @@ def run():
 
         student_data_flattened = helper.get_flattened_student_data_from_list(student_data, student_id)
         student_data_flattened = helper.replace_neg_one_with_nan(student_data_flattened)
-        student_data_flattened_processed = helper.remove_days_with_no_stress_label(student_data_flattened)
-        if (FFILL_STRESS):
-            cols = list(student_data_flattened_processed)
-            stress_keys = list(filter(lambda x: 'stress' in x, cols))
-            student_data_flattened.loc[:, stress_keys] = student_data_flattened.loc[:, stress_keys].fillna(method='ffill')
-        
-        if VERBOSE: print("\t covariates")
-        student_data_flattened_processed = helper.process_covariates(student_data_flattened_processed, COVARIATES)
-
-        if VERBOSE: print("\t missing values")
+        student_data_flattened_processed = helper.process_covariates(student_data_flattened, COVARIATES)
         missing_value_mask = helper.get_missing_data_mask(student_data_flattened_processed)
-
-        if VERBOSE: print("\t deltas")
         time_deltas_min = helper.get_time_deltas_min(student_data_flattened_processed)
+        student_data_flattened_processed = helper.impute_missing_feature(student_data_flattened_processed)
 
         ############################### Writing the files to csv #############################
-        student_binned_data_dir_path = str(os.path.join(
+        student_binned_data_dir_path = os.path.join(
             BINNED_ON_VAR_FREQ_DATA_PATH,
             "student_{}".format(student_id)
-        ))
-        if VERBOSE: print("\t writing to {}".format(student_binned_data_dir_path))
+        )
         df_to_csv(student_data_flattened_processed, file_name="var_binned_data.csv",
                 path_to_folder=student_binned_data_dir_path)
         df_to_csv(missing_value_mask, file_name="missing_values_mask.csv",
@@ -75,8 +67,9 @@ def run():
 
         print("Processed for student_id: {}".format(student_id))
 
-
 if __name__ == '__main__':
-    # run()
-    print("test")
+    run()
+    print("generating")
+
+
 

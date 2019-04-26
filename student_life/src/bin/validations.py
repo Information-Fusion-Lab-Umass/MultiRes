@@ -2,9 +2,11 @@
 Stores all validations required by the Lib.
 """
 import pandas as pd
+import torch
+
+from src import definitions
 
 DATA_DICT_KEYS = ['data', 'train_ids', 'test_ids', 'val_ids']
-DATA_TUPLE_LEN = 4
 
 
 def validate_student_id_in_data(*data: pd.DataFrame):
@@ -35,9 +37,46 @@ def validate_data_dict_keys(data_dict):
     assert all([k in DATA_DICT_KEYS for k in data_dict.keys()])
 
 
-def validate_data_dict_data_len(data_dict):
+def validate_all_data_present_in_data_dict_for_key(data_dict: dict, key):
     validate_data_dict_keys(data_dict)
     first_key = next(iter(data_dict['data'].keys()))
-    assert len(data_dict['data'][first_key]) == DATA_TUPLE_LEN, \
-        "More elements in data tuple. Expected: {} found: {}".format(DATA_TUPLE_LEN,
-                                                                     len(data_dict['data'][first_key]))
+    assert len(data_dict['data'][first_key]) == definitions.DATA_TUPLE_LEN, \
+        "Data Tuple len mismatch. Expected: {} Found: {}. If found less than expected, one of these could be missing -'Actual Data', 'Covariate','Missing Flags', 'Time Deltas', 'Label'".format(
+            definitions.DATA_TUPLE_LEN,
+            len(data_dict['data'][first_key]))
+
+
+def validate_all_data_present_in_data_dict(data_dict: dict):
+    for key in data_dict['data']:
+        validate_all_data_present_in_data_dict_for_key(data_dict, key)
+
+
+def validate_no_nans_in_tensor(tensor):
+    assert not (tensor != tensor).any(), "null exists in input!"
+
+
+def validate_all_columns_present_in_data_frame(*data_frames: pd.DataFrame, columns: list):
+    for df in list(data_frames):
+        assert len(df.columns) >= len(columns), "More columns requested than available in data frame."
+        assert all([column in df.columns for column in columns]
+                   ), "These columns missing in data frame: {}".format(
+            [col if col not in df.columns else None for col in columns])
+
+
+def check_if_enough_indices_in_data_frame(training_vales: pd.DataFrame, time_indices_to_keep):
+    """
+
+    @brief: Checks if the data frame has the indices required.
+            This is done by intersection operation of the indices.
+    @return: True, if enough data available.
+    """
+    required_len = len(time_indices_to_keep)
+    intersection_len = len(training_vales.index.intersection(time_indices_to_keep))
+
+    return required_len == intersection_len
+
+
+def validate_integrity_of_covariates(covariates, covariate_data):
+    assert (covariates == 0 and covariate_data is None
+            ) or (covariates > 0 and covariate_data is not None
+                  ), "Mismatch in covariate initialization and covariate data."

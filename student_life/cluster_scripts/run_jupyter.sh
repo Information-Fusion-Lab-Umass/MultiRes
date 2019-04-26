@@ -1,7 +1,9 @@
 #!/bin/bash
-#SBATCH --partition m40-short
+#SBATCH --partition 1080ti-long
 #SBATCH --gres gpu:1
-#SBATCH --mem=6000
+#SBATCH --mem=15000
+#SBATCH --ntasks-per-node=4
+#SBATCH --nodes=2
 #SBATCH --output jupyter-notebook.log
 
 # get tunneling info
