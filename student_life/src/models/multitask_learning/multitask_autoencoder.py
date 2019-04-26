@@ -17,7 +17,6 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                  user_dense_layer_hidden_size,
                  num_classes,
                  num_covariates=0,
-                 covariate_expansion_layer_size=0,
                  shared_layer_dropout_prob=0,
                  user_head_dropout_prob=0,
                  ordinal_regression_head=False,
@@ -39,9 +38,6 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         if train_only_with_covariates:
             assert num_covariates > 0, "The model has to be provided either input sequence or covariates."
 
-        if num_covariates > 0 :
-            assert covariate_expansion_layer_size > 0, "If passing covariates, must pass a hidden layer size for covariates"
-
         self.is_cuda_avail = True if torch.cuda.device_count() > 0 else False
         self.users = users
         self.autoencoder_input_size = autoencoder_input_size
@@ -56,7 +52,6 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         self.user_head_dropout_prob = user_head_dropout_prob
         self.ordinal_regression_head = ordinal_regression_head
         self.train_only_with_covariates = train_only_with_covariates
-        self.covariate_expansion_layer_size = covariate_expansion_layer_size
 
         # Layer initialization.
         if not train_only_with_covariates:
@@ -65,10 +60,7 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                                                   self.autoencoder_num_layers,
                                                   self.is_cuda_avail)
 
-        self.covariate_expansion_layer = nn.Linear(self.num_covariates, self.covariate_expansion_layer_size)
-        total_shared_layer_size = self.autoencoder_bottleneck_feature_size + self.covariate_expansion_layer_size
-
-        self.shared_linear = nn.Linear(total_shared_layer_size,
+        self.shared_linear = nn.Linear(self.autoencoder_bottleneck_feature_size + self.num_covariates,
                                        self.shared_hidden_layer_size)
 
         self.shared_activation = nn.ReLU()
@@ -109,9 +101,7 @@ class MultiTaskAutoEncoderLearner(nn.Module):
             bottle_neck = object_generator.get_tensor_on_correct_device([])
 
         if covariate_data is not None:
-            covariate_date_unsqueezed = covariate_data.unsqueeze(0)
-            covariate_date_unsqueezed = self.covariate_expansion_layer(covariate_date_unsqueezed)
-            bottle_neck = torch.cat((bottle_neck, covariate_date_unsqueezed), dim=1)
+            bottle_neck = torch.cat((bottle_neck, covariate_data.unsqueeze(0)), dim=1)
 
         shared_hidden_state = self.shared_linear(bottle_neck)
         shared_hidden_state = self.shared_activation(shared_hidden_state)
