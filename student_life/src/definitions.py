@@ -18,6 +18,7 @@ BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min"
 FEATURE_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/feature_processing.yaml")
 DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_manager_config.yaml")
 MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
+GRID_SEARCH_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/grid_search.yaml")
 
 # Frequency constants
 DEFAULT_BASE_FREQ = '1 min'
