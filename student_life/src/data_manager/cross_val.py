@@ -2,11 +2,7 @@ import numpy as np
 
 from random import shuffle
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
-from src.utils import data_conversion_utils as conversions
-
-
-SPLITTER_RANDOM_STATE = 100
+from src.utils import data_conversion_utils as conversions_utils
 
 
 def random_stratified_splits(data: dict, stratify_by="labels"):
@@ -17,11 +13,11 @@ def random_stratified_splits(data: dict, stratify_by="labels"):
            Accepts - `labels` and `students`.
     @return: Return splits which are randomize and stratified by labels.
     """
-    keys, labels = conversions.extract_keys_and_labels_from_dict(data)
+    keys, labels = conversions_utils.extract_keys_and_labels_from_dict(data)
     keys, labels = np.array(keys), np.array(labels)
 
     if stratify_by == "students":
-        student_ids = conversions.extract_student_ids_from_keys(keys)
+        student_ids = conversions_utils.extract_student_ids_from_keys(keys)
         stratification_array = np.array(student_ids)
     else:
         stratification_array = labels
@@ -50,13 +46,13 @@ def leave_one_subject_out_split(data: dict):
              with test and val belonging to the left out student.
     """
 
-    keys, labels = conversions.extract_keys_and_labels_from_dict(data)
-    student_ids = conversions.extract_distinct_student_idsfrom_keys(keys)
+    keys, labels = conversions_utils.extract_keys_and_labels_from_dict(data)
+    student_ids = conversions_utils.extract_distinct_student_idsfrom_keys(keys)
 
     for idx, left_out_student in enumerate(student_ids):
         students_for_training = student_ids[:idx] + student_ids[idx + 1:]
-        train_ids = conversions.get_filtered_keys_for_these_students(*students_for_training, keys=keys)
-        val_test_ids = conversions.get_filtered_keys_for_these_students(left_out_student, keys=keys)
+        train_ids = conversions_utils.get_filtered_keys_for_these_students(*students_for_training, keys=keys)
+        val_test_ids = conversions_utils.get_filtered_keys_for_these_students(left_out_student, keys=keys)
 
         shuffle(train_ids)
         shuffle(val_test_ids)
@@ -67,23 +63,3 @@ def leave_one_subject_out_split(data: dict):
         data['test_ids'] = []
 
         yield data, left_out_student
-
-
-def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5):
-
-    splits = []
-
-    data_keys = data['data'].keys()
-    student_ids = conversions.extract_student_ids_from_keys(data_keys)
-    student_ids = np.array(conversions.convert_list_of_strings_to_list_of_ints(student_ids))
-    data_keys = np.array(list(data_keys))
-
-    splitter = StratifiedKFold(n_splits=n_splits, random_state=SPLITTER_RANDOM_STATE)
-
-    for train_index, val_index in splitter.split(X=data_keys, y=student_ids):
-        splitting_dict = {}
-        splitting_dict['train_ids'] = data_keys[train_index].tolist()
-        splitting_dict['val_ids'] = data_keys[val_index].tolist()
-        splits.append(splitting_dict)
-
-    return splits

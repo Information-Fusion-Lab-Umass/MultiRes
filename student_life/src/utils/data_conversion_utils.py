@@ -215,15 +215,6 @@ def convert_to_string_if_int(value):
     return str(value) if isinstance(value, int) else value
 
 
-def convert_to_int_if_str(value):
-    if value.isdigit():
-        return int(value)
-
-
-def convert_list_of_strings_to_list_of_ints(string_list):
-    return [convert_to_int_if_str(x) for x in string_list]
-
-
 def prepend_ids_with_string(ids, string):
     return [string + str(x) for x in ids]
 
