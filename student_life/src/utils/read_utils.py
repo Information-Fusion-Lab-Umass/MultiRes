@@ -15,7 +15,7 @@ def read_yaml(file_path):
 
 def read_pickle(file_path):
     if not os.path.exists(file_path):
-        raise "FIle as {} does not exist.".format(file_path)
+        raise "File as {} does not exist.".format(file_path)
 
     with (open(file_path, "rb")) as file:
         data = pickle.load(file)
