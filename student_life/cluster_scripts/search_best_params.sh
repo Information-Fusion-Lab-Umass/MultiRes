@@ -9,6 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --ntasks-per-node=6
 #SBATCH --nodes=1
+#SBATCH --time=14-00:00:00
 #SBATCH --mail-user=abhinavshaw@umass.edu
 
 # Log the jobid.
