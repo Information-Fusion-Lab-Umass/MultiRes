@@ -14,9 +14,9 @@ multitask_learner_auto_encoder:
   user_dense_layer_hidden_size: [64, 128, 256]
   num_classes: [3]
   shared_layer_dropout_prob: [0]
-  user_head_dropout_prob: [0, 0.15, 0.25]
+  user_head_dropout_prob: [0, 0.15]
   learning_rate: [0.00005]
-  n_epochs: [1]
+  n_epochs: [400]
   decay: [0.0001]
   # Data
   hitogram_seq_len: [24]

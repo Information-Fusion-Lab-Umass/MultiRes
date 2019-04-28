@@ -3,6 +3,7 @@
 #SBATCH --mem=15000
 #SBATCH --job-name=student-life-grid-search
 #SBATCH --partition=1080ti-long
+#SBATCH --gres=gpu:1
 #SBATCH --output=grid_search-%A.out
 #SBATCH --error=grid_search-%A.err
 #SBATCH --mail-type=ALL
