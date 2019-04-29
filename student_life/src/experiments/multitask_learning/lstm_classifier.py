@@ -83,8 +83,8 @@ for split_no, split in enumerate(splits):
 
     validation_user_statistics_over_epochs = []
 
-    # class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.95, 0.80, 1])
+    class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+    # class_weights = torch.tensor([0.95, 0.80, 1])
     print("Class Weights: ", class_weights)
 
     model = autoencoder_classifier.AutoEncoderClassifier(
