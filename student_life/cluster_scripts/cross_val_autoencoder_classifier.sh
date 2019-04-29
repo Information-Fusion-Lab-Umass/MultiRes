@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=15000
+#SBATCH --mem=5000
 #SBATCH --job-name=ae-classifier
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1

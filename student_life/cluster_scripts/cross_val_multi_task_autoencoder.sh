@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=15000
+#SBATCH --mem=5000
 #SBATCH --job-name=student-life-mul-ae
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --ntasks-per-node=6
 #SBATCH --nodes=1
-#SBATCH --time=1-00:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mail-user=abhinavshaw@umass.edu
 
 # Log the jobid.
