@@ -158,5 +158,5 @@ for split_no, split in enumerate(splits):
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
-scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder.pkl")
+scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_lstm.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
