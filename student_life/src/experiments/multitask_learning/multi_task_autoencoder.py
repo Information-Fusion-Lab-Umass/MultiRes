@@ -84,8 +84,8 @@ for split_no, split in enumerate(splits):
     validation_user_statistics_over_epochs = []
 
     class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.93, 0.82, 1])
-    print(class_weights)
+    class_weights = torch.tensor([0.95, 0.80, 1])
+    print("Class Weights:", class_weights)
 
     model = multitask_autoencoder.MultiTaskAutoEncoderLearner(
         conversions.prepend_ids_with_string(student_list, "student_"),
@@ -150,7 +150,7 @@ for split_no, split in enumerate(splits):
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
 
-        print("Score This Epoch: {} Best Score: {}".format(val_scores[2], best_split_score))
+        print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)

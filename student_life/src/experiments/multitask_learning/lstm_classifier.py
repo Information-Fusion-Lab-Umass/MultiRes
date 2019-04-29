@@ -27,7 +27,6 @@ data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
-splits = [{'train_ids':data['train_ids'], 'val_ids':data['val_ids']}]
 print("Splits: ", len(splits))
 
 ############ Stats #############
@@ -84,9 +83,9 @@ for split_no, split in enumerate(splits):
 
     validation_user_statistics_over_epochs = []
 
-    class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.93, 0.82, 1])
-    print(class_weights)
+    # class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+    class_weights = torch.tensor([0.95, 0.80, 1])
+    print("Class Weights: ", class_weights)
 
     model = autoencoder_classifier.AutoEncoderClassifier(
         conversions.prepend_ids_with_string(student_list, "student_"),
@@ -154,7 +153,7 @@ for split_no, split in enumerate(splits):
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
 
-        print("Score This Epoch: {} Best Score: {}".format(val_scores[2], best_split_score))
+        print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)
