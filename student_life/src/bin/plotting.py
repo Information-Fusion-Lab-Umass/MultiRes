@@ -74,6 +74,8 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
 
     for key in scores_over_n_epochs:
         f1_score = []
+        if len(scores_over_n_epochs[key]) == 0:
+            continue
         for epoch in range(n_epochs):
             f1_score.append(scores_over_n_epochs[key][epoch][f1_score_key])
 
