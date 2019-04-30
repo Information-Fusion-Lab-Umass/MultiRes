@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import torch
 
 from collections import Counter
 from tabulate import tabulate
@@ -87,8 +88,11 @@ def convert_label_counters_to_list(*counters):
 
 def tensor_preds_to_scalar_counter(tensor_preds):
     preds_list = []
-    for pred in tensor_preds:
-        preds_list.append(pred.item())
+    if isinstance(tensor_preds, torch.Tensor):
+        for pred in tensor_preds:
+            preds_list.append(pred.item())
+    else:
+        pred_list = tensor_preds
 
     return Counter(preds_list)
 
