@@ -155,6 +155,7 @@ for split_no, split in enumerate(splits):
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)
 
+print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
