@@ -69,18 +69,32 @@ def leave_one_subject_out_split(data: dict):
         yield data, left_out_student
 
 
-def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5):
+def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5, stratification_type="student_label"):
 
     splits = []
 
     data_keys = data['data'].keys()
-    student_ids = conversions.extract_student_ids_from_keys(data_keys)
-    student_ids = np.array(conversions.convert_list_of_strings_to_list_of_ints(student_ids))
+    keys, labels = conversions.extract_keys_and_labels_from_dict(data)
+    student_ids = conversions.extract_student_ids_from_keys(keys)
+    student_ids_label = []
+
+    for i in range(len(student_ids)):
+        student_ids_label.append(str(student_ids[i]) + "_" + str(labels[i]))
+
+    student_ids_label = np.array(student_ids_label)
     data_keys = np.array(list(data_keys))
+    student_ids = conversions.convert_list_of_strings_to_list_of_ints(student_ids)
+
+    if stratification_type == "student":
+        stratification_column = student_ids
+    else:
+        stratification_column = student_ids_label
+
+    print(stratification_type)
 
     splitter = StratifiedKFold(n_splits=n_splits, random_state=SPLITTER_RANDOM_STATE)
+    for train_index, val_index in splitter.split(X=data_keys, y=stratification_column):
 
-    for train_index, val_index in splitter.split(X=data_keys, y=student_ids):
         splitting_dict = {}
         splitting_dict['train_ids'] = data_keys[train_index].tolist()
         splitting_dict['val_ids'] = data_keys[val_index].tolist()
