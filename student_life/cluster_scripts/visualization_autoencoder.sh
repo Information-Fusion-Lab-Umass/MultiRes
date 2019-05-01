@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 #SBATCH --mem=10000
-#SBATCH --job-name=viz-mul
+#SBATCH --job-name=viz-ae
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
 #SBATCH --output=visualization_autoencoder-%A.out
