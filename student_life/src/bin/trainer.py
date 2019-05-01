@@ -116,7 +116,7 @@ def evaluate_multitask_learner(data,
                                                         covariate_data if use_covariates else None)
 
         # decoded output is `None` if training on only co-variates.
-        reconstruction_loss = reconstruction_criterion(actual_data, decoded_output) if decoded_output else object_generator.get_tensor_on_correct_device([0])
+        reconstruction_loss = reconstruction_criterion(actual_data, decoded_output) if decoded_output is not None else object_generator.get_tensor_on_correct_device([0])
         total_reconstruction_loss += reconstruction_loss.item()
 
         if ordinal_regression:
