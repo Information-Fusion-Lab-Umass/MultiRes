@@ -1,11 +1,13 @@
 from src import definitions
-from src.utils import student_utils
-from src.utils import read_utils
-from src.data_manager import splitter
-from src.utils import set_utils
 from src.bin import validations as validations
-from src.utils import data_conversion_utils as conversions
+from src.data_manager import splitter
 from src.data_manager import helper as data_manager_helper
+from src.data_processing import normalizer
+from src.utils import read_utils
+from src.utils import student_utils
+from src.utils import set_utils
+from src.utils import data_conversion_utils as conversions
+from src.data_processing import covariates
 
 VAR_BINNED_DATA_CONFIG = read_utils.read_yaml(definitions.DATA_MANAGER_CONFIG_FILE_PATH)[
     definitions.VAR_BINNED_DATA_MANAGER_ROOT]
@@ -19,6 +21,7 @@ DEFAULT_STUDENT_LIST = list(set(DEFAULT_STUDENT_LIST).intersection(set(available
 FEATURE_LIST = VAR_BINNED_DATA_CONFIG[definitions.FEATURE_LIST_CONFIG_KEY]
 LABEL_LIST = VAR_BINNED_DATA_CONFIG[definitions.LABEL_LIST_CONFIG_KEY]
 COVARIATE_LIST = VAR_BINNED_DATA_CONFIG[definitions.COVARIATE_LIST_CONFIG_KEY]
+NORMALIZE_STRAT = VAR_BINNED_DATA_CONFIG['normalize_strategy']
 
 if VAR_BINNED_DATA_CONFIG['process_covariates_as_regular_features']:
     FEATURE_LIST = FEATURE_LIST + COVARIATE_LIST
@@ -38,8 +41,10 @@ SPLITTING_STRATEGY_FUNCTION_MAP = {
 }
 
 
-def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_values, missing_values, time_delta,
-                                                    y_labels, splitting_strategy, flatten_sequence_to_cols):
+def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_values,
+                                                    missing_values, time_delta,
+                                                    y_labels, splitting_strategy,
+                                                    flatten_sequence_to_cols, normalize=False):
     """
 
     @param training_values: Training values of students.
@@ -51,6 +56,7 @@ def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_v
             1) days - Each label will have one day's worth of data.
             2) time_delta -  Each label will contain data x hours beihind and y hours ahead (configurable by data_manager.yaml)
     @param flatten_sequence_to_cols: If true, the sequences are flattened into columns.
+    @param normalize: If true, data is normalized based on global statistics. Expensive operation.
     @return: Trimmed data based on time delta.
     """
     validations.validate_data_integrity_for_len(training_values, missing_values, time_delta, y_labels)
@@ -72,16 +78,20 @@ def get_data_based_on_labels_and_splitting_strategy(training_values, covariate_v
                                                                    y_labels.index[label_idx])
 
         if data:
-            month_day_hour = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
-                             + str(y_labels.index[label_idx].hour)
+            month_day_hour_key = str(y_labels.index[label_idx].month) + '_' + str(y_labels.index[label_idx].day) + '_' \
+                                 + str(y_labels.index[label_idx].hour)
             data = conversions.flatten_data(data) if flatten_sequence_to_cols else data
-            data_list.append((month_day_hour, data))
+            data_list.append((month_day_hour_key, data))
 
-    return data_list
+    return normalizer.normalize_data_list(data_list, normalize_strat=NORMALIZE_STRAT) if normalize else data_list
 
 
-def process_student_data(raw_data, student_id: int, splitting_strategy, normalize: bool, fill_na: bool,
-                         flatten_sequence: bool):
+def process_student_data(raw_data, student_id: int,
+                         splitting_strategy,
+                         normalize: bool,
+                         fill_na: bool,
+                         flatten_sequence: bool,
+                         split_type='percentage'):
     """
     Processes student data from a large DF of all students. This data is then transformed to the kind
     acceptable by DBM and VDB.
@@ -97,7 +107,10 @@ def process_student_data(raw_data, student_id: int, splitting_strategy, normaliz
     validations.validate_all_columns_present_in_data_frame(student_data, columns=LABEL_LIST)
 
     training_values = student_data.loc[:, FEATURE_LIST]
+
     covariate_values = student_data.loc[:, COVARIATE_LIST]
+    covariate_values = covariates.exam_period(covariate_values)
+
     missing_values = missing_data.loc[:, FEATURE_LIST]
     time_deltas = time_delta.loc[:, FEATURE_LIST]
     y_labels = student_data.loc[:, LABEL_LIST]
@@ -106,13 +119,10 @@ def process_student_data(raw_data, student_id: int, splitting_strategy, normaliz
     if ADJUST_LABELS_WRT_MEDIAN:
         y_labels['stress_level_mode'] = y_labels['stress_level_mode'].map(conversions.adjust_classes_wrt_median,
                                                                           na_action='ignore')
-        if 'previous_stress_label' in FEATURE_LIST:
-            training_values['previous_stress_label'] = training_values['previous_stress_label'].map(
+        if 'previous_stress_label' in COVARIATE_LIST:
+            covariate_values['previous_stress_label'] = covariate_values['previous_stress_label'].map(
                 conversions.adjust_classes_wrt_median,
                 na_action='ignore')
-
-    if normalize:
-        training_values = conversions.normalize(training_values)
 
     # Filling missing Values
     if fill_na:
@@ -124,28 +134,13 @@ def process_student_data(raw_data, student_id: int, splitting_strategy, normaliz
                                                                 time_deltas,
                                                                 y_labels,
                                                                 splitting_strategy,
-                                                                flatten_sequence)
+                                                                flatten_sequence,
+                                                                normalize)
 
-    # Splitting data into Train, Val  and Test Split.
-    train_set, end_idx = splitter.split_data_by_percentage(data_list, start_index=0, percent=25)
-    val_set, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=15)
-    test_set, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=1)
-
-    train_set_2, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=25)
-    val_set_2, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=15)
-    test_set_2, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=1)
-
-    train_set_3, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=10)
-    val_set_3, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=1)
-    test_set_3, end_idx = splitter.split_data_by_percentage(data_list, start_index=end_idx, percent=-1)
-
-    train_set = train_set + train_set_2 + train_set_3
-    val_set = val_set + val_set_2 + val_set_3
-    test_set = test_set + test_set_2 + test_set_3
-
-    train_set = [month_day for month_day, data in train_set]
-    val_set = [month_day for month_day, data in val_set]
-    test_set = [month_day for month_day, data in test_set]
+    if split_type == 'percentage':
+        train_set, val_set, test_set = splitter.get_data_split_by_percentage(data_list)
+    else:
+        train_set, val_set, test_set = splitter.get_data_split_by_date(data_list)
 
     return data_list, train_set, val_set, test_set
 
@@ -154,7 +149,8 @@ def get_data_for_training_in_dict_format(*student_ids,
                                          splitting_strategy=DEFAULT_SPLITTING_STRATEGY,
                                          normalize=False,
                                          fill_na=True,
-                                         flatten_sequence=False):
+                                         flatten_sequence=False,
+                                         split_type='percentage'):
     """
 
     @attention: If no student_ids given to function the default students are returned.
@@ -165,7 +161,7 @@ def get_data_for_training_in_dict_format(*student_ids,
     else:
         student_ids = list(student_ids)
 
-    #todo(abhinavshaw) Change to a function.
+    # todo(abhinavshaw) Change to a function.
     data = dict()
     data["train_ids"] = []
     data["val_ids"] = []
@@ -175,12 +171,14 @@ def get_data_for_training_in_dict_format(*student_ids,
     raw_data = student_utils.get_var_binned_data_for_students(*student_ids)
 
     for it, student_id in enumerate(student_ids):
+        print("Student: {}".format(student_id))
         data_list, train_ids, val_ids, test_ids = process_student_data(raw_data,
                                                                        student_id,
                                                                        splitting_strategy=splitting_strategy,
                                                                        normalize=normalize,
                                                                        fill_na=fill_na,
-                                                                       flatten_sequence=flatten_sequence)
+                                                                       flatten_sequence=flatten_sequence,
+                                                                       split_type=split_type)
 
         # Prefixing the IDs with student_id.
         for month_day, daily_data in data_list:

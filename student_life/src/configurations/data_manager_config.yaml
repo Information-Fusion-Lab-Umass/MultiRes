@@ -1,6 +1,7 @@
 student_life_var_binned_data:
   # Two splitting strategy supported - Days and Time Delta of hours from the labels.
   default_splitting_strategy: 'time_delta'
+  normalize_strategy: 'mean'
   # Default student list for data manager.
   student_list: [35]
 
@@ -17,8 +18,7 @@ student_life_var_binned_data:
   # The covariates are flattened by taking the nearest value. If empty nothing will be flattened.
   covariate_list: ['day_of_week',
                    'sleep_rating_robust_sum',
-                   'hours_slept_robust_sum',
-                   'previous_stress_label']
+                   'hours_slept_robust_sum']
   process_covariates_as_regular_features: False
   label_list: ['stress_level_mode']
   train_set_size: 60
@@ -50,25 +50,25 @@ student_life_var_binned_data:
       custom_aggregates: ['time']
     activity_inference_mode:
       simple_aggregates: []
-      custom_aggregates: ['0', '1', '2', '3']
-    audio_activity_inference_mode:
-      simple_aggregates: []
-      custom_aggregates: ['0', '1', '2']
-    activity_inference_inferred_feature:
-      simple_aggregates: []
-      custom_aggregates: ['0', '1', '2', '3']
-    audio_activity_inference_inferred_feature:
-      simple_aggregates: []
-      custom_aggregates: ['0', '1', '2']
+      custom_aggregates: ['1', '2']
+#    activity_inference_inferred_feature:
+#      simple_aggregates: []
+#      custom_aggregates: ['0', '1', '2', '3']
+#    audio_activity_inference_mode:
+#      simple_aggregates: []
+#      custom_aggregates: ['0', '1', '2', '3']
+#    audio_activity_inference_inferred_feature:
+#      simple_aggregates: []
+#      custom_aggregates: ['0', '1', '2']
     conv_duration_min_inferred_mode:
       simple_aggregates: []
-      custom_aggregates: ['0', '1']
+      custom_aggregates: ['1']
     phonecharge_duration_min_inferred_mode:
       simple_aggregates: []
-      custom_aggregates: ['0', '1']
+      custom_aggregates: ['1']
     phonelock_duration_min_inferred_mode:
       simple_aggregates: []
-      custom_aggregates: ['0', '1']
-    dark_duration_min_inferred_mode:
-      simple_aggregates: []
-      custom_aggregates: ['0', '1']
+      custom_aggregates: ['1']
+  #  dark_duration_min_inferred_mode:
+  #    simple_aggregates: []
+  #    custom_aggregates: ['1']

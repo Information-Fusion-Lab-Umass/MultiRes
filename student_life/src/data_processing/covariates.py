@@ -98,6 +98,20 @@ def time_to_next_deadline(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     return flattened_student_data.drop(columns='deadlines')
 
 
+def exam_period(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
+    flattened_student_data.insert(loc=0,
+                                  column='exam_period',
+                                  value=deepcopy(flattened_student_data.index))
+
+    non_exam_mask = (flattened_student_data['exam_period'] < definitions.MIDTERM_START_DATE) | (
+            flattened_student_data['exam_period'] > definitions.MIDTERM_END_DATE)
+
+    flattened_student_data['exam_period_inferred'] = 1
+    flattened_student_data.loc[non_exam_mask, 'exam_period_inferred'] = 0
+
+    return flattened_student_data.drop(columns='exam_period')
+
+
 def evaluate_gender(flattened_student_data: pd.DataFrame) -> pd.DataFrame:
     # todo(abhinavshaw): Implement this.
     return

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from src import definitions
 import src.bin.validations as validations
 
 
@@ -86,7 +87,6 @@ def add_mean_vector_to_data(data: dict):
 
 
 def adjust_classes_wrt_median(label):
-
     if label < 2:
         return 0
     elif label > 2:
@@ -101,7 +101,8 @@ def flatten_matrix(matrix):
     @param matrix: Accepts numpy matrix of list to be flattened.
     @return: Flattened list or Matrix.
     """
-    assert isinstance(matrix, np.ndarray) or isinstance(matrix, list), "Invalid data type, please give either np.ndarray or a lists."
+    assert isinstance(matrix, np.ndarray) or isinstance(matrix,
+                                                        list), "Invalid data type, please give either np.ndarray or a lists."
 
     if isinstance(matrix, np.ndarray):
         return matrix.flatten()
@@ -115,7 +116,7 @@ def extract_keys_and_labels_from_dict(data: dict):
 
     for key in data['data']:
         keys.append(key)
-        labels.append(data['data'][key][-1])
+        labels.append(data['data'][key][definitions.LABELS_IDX])
 
     return keys, labels
 
@@ -148,6 +149,26 @@ def extract_actual_missing_and_time_delta_from_raw_data_for_student(raw_data, st
     return student_data, missing_data, time_delta
 
 
+def extract_keys_of_student_from_data(data: dict, student_id):
+    keys = []
+
+    for key in data['data']:
+        if str(student_id) == extract_student_id_from_key(key):
+            keys.append(key)
+
+    return keys
+
+
+def extract_labels_for_student_id_form_data(data: dict, student_id):
+    student_keys = extract_keys_of_student_from_data(data, student_id)
+    labels = []
+
+    for key in student_keys:
+        labels.append(data['data'][key][definitions.LABELS_IDX])
+
+    return labels
+
+
 def get_filtered_keys_for_these_students(*student_id, keys):
     filtered_keys = []
     student_ids = list(student_id)
@@ -164,7 +185,7 @@ def flatten_data(data: list):
     """
 
     @param data: Data to be flattened, i.e. the rows will be appended as columns.
-    @return: Flattened_data.
+    @return: Convert sequences to columns by flattening all rows into a single row.
     """
     assert len(data) == 4, "Missing either of the one in data - Actual data, missing flags, time deltas or label"
     flattened_data_list = []
@@ -199,12 +220,21 @@ def get_indices_list_in_another_list(a, b):
     return indices
 
 
-def drop_duplicate_indices_from_df(df:pd.DataFrame) -> pd.DataFrame:
+def drop_duplicate_indices_from_df(df: pd.DataFrame) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="first")]
 
 
 def convert_to_string_if_int(value):
     return str(value) if isinstance(value, int) else value
+
+
+def convert_to_int_if_str(value):
+    if value.isdigit():
+        return int(value)
+
+
+def convert_list_of_strings_to_list_of_ints(string_list):
+    return [convert_to_int_if_str(x) for x in string_list]
 
 
 def prepend_ids_with_string(ids, string):
