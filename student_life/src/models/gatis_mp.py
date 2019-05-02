@@ -25,11 +25,14 @@ class GatisNet(torch.nn.Module):
         self.hidden_dims        = hidden_dims 
         self.dense              = nn.Sequential(
             nn.Linear(n_feature, hidden_dims[0]),
-            nn.Tanh(),
+            nn.ReLU(),
+            nn.Dropout(p=0.35),
             nn.Linear(hidden_dims[0], hidden_dims[1]),
-            nn.Tanh(),
+            nn.ReLU(),
+            nn.Dropout(p=0.25),
             nn.Linear(hidden_dims[1], hidden_dims[2]),
-            nn.Tanh(),
+            nn.ReLU(),
+            nn.Dropout(p=0.15),
             nn.Linear(hidden_dims[2], hidden_dims[3]),
             nn.Softmax()
         )

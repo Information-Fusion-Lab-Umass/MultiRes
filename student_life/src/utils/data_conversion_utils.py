@@ -4,6 +4,24 @@ import pandas as pd
 import src.bin.validations as validations
 
 
+def normalize(data_frame: pd.DataFrame, norm_type="mean",
+              df_mean: pd.Series = None, df_std: pd.Series = None,
+              df_min: pd.Series = None, df_max: pd.Series = None) -> pd.DataFrame:
+    if norm_type == "min_max":
+        if df_min is None:
+            df_min = data_frame.min()
+        if df_max is None:
+            df_max = data_frame.max()
+        result = (data_frame - df_min) / (df_max - df_min)
+    else:
+        if df_mean is None:
+            df_mean = data_frame.mean()
+        if df_std is None:
+            df_std = data_frame.std()
+        result = (data_frame - df_mean) / df_std
+
+    return result.fillna(0)
+
 def convert_logical_not_missing_flags(data):
     validations.validate_data_dict_keys(data)
 
@@ -23,11 +41,9 @@ def convert_logical_not_missing_flags(data):
 
     return new_dict
 
-
 def transpose_data(data: list):
     np_data_array = np.array(data, dtype=np.float32)
     return np.transpose(np_data_array)
-
 
 def get_transposed_data(data: dict):
     validations.validate_data_dict_keys(data)
@@ -37,17 +53,14 @@ def get_transposed_data(data: dict):
 
     return data
 
-
 def get_mean_for_series(series, mask):
     assert len(series) == len(mask), "Length mismatch of series: {} and mask: {}".format(
         len(series),
         len(mask))
     return np.mean(series[mask.astype(bool)])
 
-
 def get_mean_for_series(series, mask):
     return np.mean(series[mask.astype(bool)])
-
 
 def add_mean_vector_to_data(data: dict):
     validations.validate_data_dict_keys(data)
@@ -70,15 +83,6 @@ def add_mean_vector_to_data(data: dict):
         data['data'][key] = data_tuple
 
     return data
-
-
-def normalize(data_frame: pd.DataFrame, norm_type="mean") -> pd.DataFrame:
-    if norm_type == "min_max":
-        result = (data_frame - data_frame.min()) / (data_frame.max() - data_frame.min())
-    else:
-        result = (data_frame - data_frame.mean())/data_frame.std()
-
-    return result.fillna(0)
 
 
 def adjust_classes_wrt_median(label):
