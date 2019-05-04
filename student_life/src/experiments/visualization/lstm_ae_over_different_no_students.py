@@ -39,7 +39,7 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 use_historgram = True
 autoencoder_bottle_neck_feature_size = 128
 autoencoder_num_layers = 1
-alpha, beta = 0.001, 1
+alpha, beta = 0, 1
 decay = 0.0001
 first_key = next(iter(data['data'].keys()))
 if use_historgram:
@@ -50,8 +50,8 @@ num_covariates = len(data['data'][first_key][definitions.COVARIATE_DATA_IDX])
 shared_hidden_layer_size = 256
 user_dense_layer_hidden_size = 64
 num_classes = 3
-learning_rate = 0.000001
-n_epochs = 350
+learning_rate = 0.000005
+n_epochs = 500
 shared_layer_dropout_prob=0.00
 user_head_dropout_prob=0.00
 
@@ -158,9 +158,6 @@ for student_filter_ids in student_filter_list:
         split_val_scores.append(best_split_score)
         best_score_epoch_log.append(epoch_at_best_score)
 
+    print("Students: {}".format(student_filter_ids))
     print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
     print("Students Used for Training: {}".format(student_filter_ids))
-
-# scores_and_epochs = (split_val_scores, epoch_at_best_score)
-# scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder.pkl")
-# write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
