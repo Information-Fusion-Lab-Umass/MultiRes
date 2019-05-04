@@ -12,6 +12,7 @@ from src import definitions
 from src.bin import tensorify
 from src.bin import statistics
 from src.bin import trainer
+from src.bin import checkpointing
 from src.data_manager import cross_val
 from src.data_manager import student_life_var_binned_data_manager as data_manager
 from src.models import autoencoder_classifier
@@ -57,6 +58,11 @@ device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu'
 print("Num Features:", num_features)
 print("Device: ", device)
 print("Num_covariates:", num_covariates)
+print("learning rate: ", learning_rate)
+
+# class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()
 tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
@@ -66,6 +72,15 @@ student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].ke
 
 split_val_scores = []
 best_score_epoch_log = []
+best_model = None
+generate_model_only = True
+
+print("generate_model_only : ", generate_model_only)
+
+# For generating a model, just run the scrip.
+if generate_model_only:
+    splits = [splits[0]]
+
 
 for split_no, split in enumerate(splits):
     print("Split No: ", split_no)
@@ -82,10 +97,6 @@ for split_no, split in enumerate(splits):
     tensorified_data['test_ids'] = []
 
     validation_user_statistics_over_epochs = []
-
-    class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
-    print("Class Weights: ", class_weights)
 
     model = autoencoder_classifier.AutoEncoderClassifier(
         conversions.prepend_ids_with_string(student_list, "student_"),
@@ -152,6 +163,7 @@ for split_no, split in enumerate(splits):
         if val_scores[2] > best_split_score:
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
+            best_model = deepcopy(model)
 
         print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
@@ -163,3 +175,7 @@ print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/lstm_classifier.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
+
+model_file_name = "saved_models/multitask_lstm.model"
+model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
+checkpointing.save_checkpoint(best_model.state_dict(), model_file_name)
