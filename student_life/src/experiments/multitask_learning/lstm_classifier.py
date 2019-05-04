@@ -176,6 +176,6 @@ scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/lstm_classifier.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
-model_file_name = "saved_models/multitask_lstm.model"
+model_file_name = "saved_models/lstm.model"
 model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
 checkpointing.save_checkpoint(best_model.state_dict(), model_file_name)

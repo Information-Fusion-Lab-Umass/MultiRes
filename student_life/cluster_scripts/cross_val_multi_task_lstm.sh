@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 #SBATCH --mem=5000
-#SBATCH --job-name=student-life-mul-lstm
+#SBATCH --job-name=mul-lstm
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
 #SBATCH --output=cross_val_multi_task_lstm-%A.out
