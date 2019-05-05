@@ -73,7 +73,7 @@ student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].ke
 split_val_scores = []
 best_score_epoch_log = []
 best_model = None
-generate_model_only = True
+generate_model_only = False
 
 print("generate_model_only : ", generate_model_only)
 
