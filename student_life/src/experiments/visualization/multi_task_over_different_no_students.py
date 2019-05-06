@@ -1,8 +1,5 @@
 student_filter_list = [[1],
-                       [1, 57],
-                       [1, 57, 24, 33, 49],
-                       [24, 57, 42, 7, 2, 46, 33, 49, 4, 22],
-                       None
+                       [1, 57]
                        ]
 
 import os
@@ -51,7 +48,7 @@ shared_hidden_layer_size = 256
 user_dense_layer_hidden_size = 64
 num_classes = 3
 learning_rate = 0.000001
-n_epochs = 350
+n_epochs = 500
 shared_layer_dropout_prob=0.00
 user_head_dropout_prob=0.00
 

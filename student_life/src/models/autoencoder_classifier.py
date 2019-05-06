@@ -88,7 +88,7 @@ class AutoEncoderClassifier(nn.Module):
 
         shared_hidden_state = self.shared_linear(bottle_neck)
         shared_hidden_state = self.shared_activation(shared_hidden_state)
-        shared_hidden_state = self.shared_layer_dropout(shared_hidden_state)
+        # shared_hidden_state = self.shared_layer_dropout(shared_hidden_state)
         shared_hidden_state_1 = self.shared_linear_1(shared_hidden_state)
         shared_hidden_state_1 = self.shared_activation_1(shared_hidden_state_1)
 
