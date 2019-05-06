@@ -51,6 +51,7 @@ learning_rate = 0.000001
 n_epochs = 500
 shared_layer_dropout_prob=0.00
 user_head_dropout_prob=0.00
+train_only_with_covariate = True
 
 device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu')
 
@@ -97,7 +98,8 @@ for split_no, split in enumerate(splits):
         num_classes,
         num_covariates,
         shared_layer_dropout_prob,
-        user_head_dropout_prob)
+        user_head_dropout_prob,
+        train_only_with_covariates=train_only_with_covariate)
     if cuda_enabled:
         model.cuda()
         class_weights = class_weights.cuda()
@@ -159,5 +161,5 @@ print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
-scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder.pkl")
+scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder_only_covariates.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
