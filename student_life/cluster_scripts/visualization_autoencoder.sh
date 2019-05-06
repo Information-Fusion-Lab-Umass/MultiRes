@@ -16,4 +16,4 @@
 echo $SLURM_JOBID - `hostname` >> ~/gypsum-jobs.txt
 
 cd ~/projects/MultiRes/student_life
-PYTHONPATH=../ python -m src.experiments.visualization.lstv_ae_over_different_no_students
+PYTHONPATH=../ python -m src.experiments.visualization.lstm_ae_over_different_no_students
