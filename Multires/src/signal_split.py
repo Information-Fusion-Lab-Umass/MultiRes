@@ -5,6 +5,15 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.autograd as autograd
 
+# Set random seeds
+#import numpy as np
+#import random
+#random.seed(1)
+#np.random.seed(1)
+#torch.manual_seed(1)
+#torch.cuda.manual_seed(1)
+
+
 class Model(nn.Module):
     def __init__(self, params):
         super(Model, self).__init__()
@@ -12,27 +21,22 @@ class Model(nn.Module):
         self.layers = params['layers']
         self.dropout = params['dropout']
         self.tagset_size = params['tagset_size']
+        self.batch_size = params['batch_size']
 
-        #self.num_slow_feats = len(params['slow_features_indexes'])
-        #self.num_moderate_feats = len(params['moderate_features_indexes'])
-        #self.num_fast_feats = len(params['fast_features_indexes'])
-
-
-        self.num_slow_feats = 37
-        self.num_moderate_feats = 26
-        self.num_fast_feats = 4
+        self.num_slow_feats = len(params['slow_features_indexes']) + len(params['moderate_features_indexes']) + len(params['fast_features_indexes'])
+        self.num_moderate_feats = len(params['moderate_features_indexes']) + len(params['fast_features_indexes'])
+        self.num_fast_feats = len(params['fast_features_indexes'])
         self.lstm_output_type = params['lstm_output_type']    
         self.use_second_attention = params['use_second_attention']
 
         if params['lstm_output_type']  == 'different':      
-            self.hidden_dim_slow = params['hidden_constant']*self.num_slow_feats
-            self.hidden_dim_moderate =  params['hidden_constant']*self.num_moderate_feats
-            self.hidden_dim_fast = params['hidden_constant']*self.num_fast_feats
+            self.hidden_dim_slow = params['hidden_dim_slow']                # params['hidden_constant']*self.num_slow_feats
+            self.hidden_dim_moderate = params['hidden_dim_moderate']        # params['hidden_constant']*self.num_moderate_feats
+            self.hidden_dim_fast = params['hidden_dim_fast']                # params['hidden_constant']*self.num_fast_feats
     
             self.lstm_slow = nn.LSTM(self.num_slow_feats, int(self.hidden_dim_slow / 2), num_layers=self.layers, bidirectional=True, batch_first=True, dropout=self.dropout)
             self.lstm_moderate = nn.LSTM(self.num_moderate_feats, int(self.hidden_dim_moderate / 2), num_layers=self.layers, bidirectional=True, batch_first=True, dropout=self.dropout)
             self.lstm_fast = nn.LSTM(self.num_fast_feats, int(self.hidden_dim_fast / 2), num_layers=self.layers, bidirectional=True, batch_first=True, dropout=self.dropout)
-    
             
             self.attn_slow = DotAttentionLayer( self.hidden_dim_slow ).cuda()
             self.attn_moderate = DotAttentionLayer(self.hidden_dim_moderate ).cuda()
@@ -121,38 +125,30 @@ class Model(nn.Module):
 
         lenghts = [features.shape[1]]  # timesteps
         lengths = torch.cuda.LongTensor(lenghts)
-        #lengths = torch.LongTensor(lenghts)
         lengths = autograd.Variable(lengths)
 
         packed = pack_padded_sequence(features, lengths, batch_first=True)
-        batch_size = 1
 
         # LSTM Layers
-        self.hidden = self.init_hidden(batch_size, frequency_flag=flag)                                     # Tuple, length 2  Size of [0] and [1]: (2,1,d*10)
+        self.hidden = self.init_hidden(self.batch_size, frequency_flag=flag)                                     # Tuple, length 2  Size of [0] and [1]: (2,1,d*10)
         #packed_output, self.hidden = self.lstm_fast(packed, self.hidden)
         #lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]                                    # Size: (1, timesteps, 2*d*10)
 
         # Attention
         if flag == 'fast':
-            
             packed_output, self.hidden = self.lstm_fast(packed, self.hidden)
             lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
             pad_attn = self.attn_fast((lstm_out, torch.cuda.LongTensor(lengths)))
-            #pad_attn = self.attn_fast((lstm_out, torch.LongTensor(lengths)))
         elif flag == 'slow':
             packed_output, self.hidden = self.lstm_slow(packed, self.hidden)
             lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
             pad_attn = self.attn_slow((lstm_out, torch.cuda.LongTensor(lengths)))
-            #pad_attn = self.attn_slow((lstm_out, torch.LongTensor(lengths)))
         elif flag == 'moderate':
             packed_output, self.hidden = self.lstm_moderate(packed, self.hidden)
             lstm_out = pad_packed_sequence(packed_output, batch_first=True)[0]
             pad_attn = self.attn_moderate((lstm_out, torch.cuda.LongTensor(lengths)))
-            #pad_attn = self.attn_moderate((lstm_out, torch.LongTensor(lengths)))
         else:
             pad_attn = 0 #error
-
-
                                  
         return pad_attn
 
@@ -177,16 +173,6 @@ class Model(nn.Module):
                 autograd.Variable(torch.cuda.FloatTensor(self.layers*2,
                                                             batch_size,
                                                             hidden_dim/2).fill_(0)))
-        '''
-        return (autograd.Variable(torch.FloatTensor(self.layers*2,
-                                                        batch_size,
-                                                        int(hidden_dim/2)).fill_(0)),
-            autograd.Variable(torch.FloatTensor(self.layers*2,
-                                                        batch_size,
-                                                        int(hidden_dim/2)).fill_(0)))
-        '''
-
-                        
 
 
 class DotAttentionLayer(nn.Module):
@@ -216,4 +202,3 @@ class DotAttentionLayer(nn.Module):
         output = torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)
 
         return output
-
