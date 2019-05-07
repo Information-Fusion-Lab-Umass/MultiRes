@@ -3,7 +3,7 @@
 #  hyper_parameter_2: [List of things]
 #  hyper_parameter_3: SomeThing
 
-data_file_name: "training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl"
+data_file_name: "training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl"
 
 multitask_learner_auto_encoder:
   alpha: [0.0001, 0.005]
