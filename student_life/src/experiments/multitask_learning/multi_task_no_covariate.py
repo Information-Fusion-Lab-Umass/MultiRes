@@ -25,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl')
+                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
