@@ -18,6 +18,7 @@ from src.data_manager import cross_val
 from src.models.multitask_learning import multitask_autoencoder
 from src.utils.read_utils import read_pickle
 from src.utils import write_utils
+from src.bin import checkpointing
 
 feature_list = data_manager.FEATURE_LIST
 
@@ -67,12 +68,15 @@ student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].ke
 
 split_val_scores = []
 best_score_epoch_log = []
+best_models = []
 
+splits = [splits[3]]
 for split_no, split in enumerate(splits):
     print("Split No: ", split_no)
 
     best_split_score = -1
     epoch_at_best_score = 0
+    best_model = None
 
     tensorified_data['train_ids'] = split['train_ids']
     data['train_ids'] = split['train_ids']
@@ -151,15 +155,22 @@ for split_no, split in enumerate(splits):
         if val_scores[2] > best_split_score:
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
+            best_model = deepcopy(model)
 
         print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)
+    best_models.append(deepcopy(best_model))
 
 print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
+max_idx = split_val_scores.index(max(split_val_scores))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder_only_covariates.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
+
+model_file_name = "saved_models/multitask_lstm_ae_only_covariate.model"
+model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
+checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
