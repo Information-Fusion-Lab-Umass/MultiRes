@@ -129,8 +129,8 @@ def plot_line_chart_using_bokeh(x_axis_data: list, y_axis_data: list, colors: li
 
 
 def line_plot_as_pdf(*y, x, xlabel, ylabel, file_name,
-                     line_lw=1, fig_size=(7, 5),
-                     labelsize='small', markersize=5):
+                     line_lw=1, fig_size=(9, 5),
+                     labelsize='large', markersize=8):
     matplotlib.use('PDF')
     fig = plt.figure()
 
@@ -139,10 +139,8 @@ def line_plot_as_pdf(*y, x, xlabel, ylabel, file_name,
     plt.rc('xtick', labelsize=labelsize)
     plt.rc('ytick', labelsize=labelsize)
 
-    plt.rc('font', weight='bold', size='12')
-
+    plt.rc('font', weight='bold', size='12', family='serif')
     plt.rc('axes', linewidth=1)
-    plt.rc('font', family='serif')
     plt.rc('lines',
            linewidth=line_lw,
            markersize=markersize)
@@ -152,12 +150,12 @@ def line_plot_as_pdf(*y, x, xlabel, ylabel, file_name,
 
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set_prop_cycle(color=['r', 'b', 'g', 'y'],
-                      marker=["v", ".", "d", "+"])
+                      marker=["v", "o", "d", "+"])
 
-    ax.set_xlabel(xlabel, weight='bold')
-    ax.set_ylabel(ylabel, weight='bold')
+    ax.set_xlabel(xlabel, weight='bold', size=22)
+    ax.set_ylabel(ylabel, weight='bold', size=22)
 
     for y_val, label in list(y):
         ax.plot(x, y_val, label=label)
-    plt.legend(loc='upper right', prop={'size': 10})
-    fig.savefig(file_name)
+    plt.legend(loc='upper right', prop={'size': 14})
+    fig.savefig(file_name, bbox_inches='tight', dpi=1000)
