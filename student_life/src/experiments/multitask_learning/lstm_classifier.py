@@ -25,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl')
+                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -151,8 +151,6 @@ for split_no, split in enumerate(splits):
                                                                                                        val_preds,
                                                                                                        val_users))
 
-        print("Val pred list: ", val_pred_list)
-
         if val_scores[2] > best_split_score:
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
@@ -165,6 +163,8 @@ for split_no, split in enumerate(splits):
     best_models.append(deepcopy(best_model))
 
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
+print("alpha: {} Beta: {}".format(alpha, beta))
+print("Data File Path:", data_file_path)
 max_idx = split_val_scores.index(max(split_val_scores))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)

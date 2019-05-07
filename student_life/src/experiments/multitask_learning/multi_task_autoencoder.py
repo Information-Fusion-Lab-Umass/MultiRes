@@ -14,6 +14,7 @@ from torch import nn
 from copy import deepcopy
 from src import definitions
 from src.bin import statistics
+from src.bin import checkpointing
 from src.data_manager import cross_val
 from src.models.multitask_learning import multitask_autoencoder
 from src.utils.read_utils import read_pickle
@@ -24,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl')
+                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -66,12 +67,14 @@ student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].ke
 
 split_val_scores = []
 best_score_epoch_log = []
+best_models = []
 
 for split_no, split in enumerate(splits):
     print("Split No: ", split_no)
 
     best_split_score = -1
     epoch_at_best_score = 0
+    best_model = None
 
     tensorified_data['train_ids'] = split['train_ids']
     data['train_ids'] = split['train_ids']
@@ -149,15 +152,23 @@ for split_no, split in enumerate(splits):
         if val_scores[2] > best_split_score:
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
+            best_model = deepcopy(model)
 
         print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)
+    best_models.append(deepcopy(best_model))
 
 print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
+max_idx = split_val_scores.index(max(split_val_scores))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_autoencoder.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
+
+
+model_file_name = "saved_models/multitask_lstm-ae.model"
+model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
+checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
