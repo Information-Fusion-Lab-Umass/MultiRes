@@ -28,3 +28,9 @@ def user_accuracy(user_data):
 
     return metrics.accuracy_score(user_data['label'], user_data['prediction'])
 
+
+def label_count(user_data):
+    validations.validate_user_data(user_data)
+    validations.validate_single_values_column_in_df(user_data, 'user')
+
+    return len(user_data['label'])

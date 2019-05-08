@@ -18,6 +18,7 @@ BINNED_DATA_TIME_DELTA_FILE_NAME = "time_deltas_min"
 FEATURE_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/feature_processing.yaml")
 DATA_MANAGER_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/data_manager_config.yaml")
 MODEL_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/model_config.yaml")
+GRID_SEARCH_CONFIG_FILE_PATH = os.path.join(ROOT_DIR, "configurations/grid_search.yaml")
 
 # Frequency constants
 DEFAULT_BASE_FREQ = '1 min'
@@ -34,6 +35,7 @@ COVARIATE_LIST_CONFIG_KEY = "covariate_list"
 RESAMPLE_FREQ_CONFIG_KEY = "resample_freq_min"
 
 # Data Folder Paths - LOCAL
+DATA_DIR = os.path.join(ROOT_DIR, "../data")
 MINIMAL_PROCESSED_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_minimal_processed_data")
 BINNED_ON_VAR_FREQ_DATA_PATH = os.path.join(ROOT_DIR, "../data/student_life_var_binned_data")
 SURVEYS_AND_COVARIATES_DATA_PATH = os.path.join(ROOT_DIR, "../data/surveys_and_covariates")

@@ -31,7 +31,7 @@ class UserDenseHead(nn.Module):
             sequential_liner = nn.Sequential(
                 nn.Linear(self.input_size, self.hidden_size),
                 nn.ReLU(),
-                nn.Dropout(p=dropout),
+                # nn.Dropout(p=dropout),
                 nn.Linear(self.hidden_size, self.num_classes))
 
             if ordinal_regression_head:

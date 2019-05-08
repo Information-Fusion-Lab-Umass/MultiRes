@@ -1,6 +1,8 @@
 import os
-import matplotlib.pyplot as plt
+import matplotlib
 
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from bokeh.plotting import figure, output_file, show, save
 from src import definitions
 
@@ -74,6 +76,8 @@ def plot_score_over_n_epochs(scores_over_n_epochs: dict,
 
     for key in scores_over_n_epochs:
         f1_score = []
+        if len(scores_over_n_epochs[key]) == 0:
+            continue
         for epoch in range(n_epochs):
             f1_score.append(scores_over_n_epochs[key][epoch][f1_score_key])
 
@@ -122,3 +126,36 @@ def plot_line_chart_using_bokeh(x_axis_data: list, y_axis_data: list, colors: li
     output_file(output_file_name)
     if show_fig:
         show(p)
+
+
+def line_plot_as_pdf(*y, x, xlabel, ylabel, file_name,
+                     line_lw=1, fig_size=(9, 5),
+                     labelsize='large', markersize=8):
+    matplotlib.use('PDF')
+    fig = plt.figure()
+
+    plt.rc('figure', figsize=fig_size)
+
+    plt.rc('xtick', labelsize=labelsize)
+    plt.rc('ytick', labelsize=labelsize)
+
+    plt.rc('font', weight='bold', size='12', family='serif')
+    plt.rc('axes', linewidth=1)
+    plt.rc('lines',
+           linewidth=line_lw,
+           markersize=markersize)
+
+    plt.ylim(0.4, 0.8)
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_prop_cycle(color=['r', 'b', 'g', 'y'],
+                      marker=["v", "o", "d", "+"])
+
+    ax.set_xlabel(xlabel, weight='bold', size=22)
+    ax.set_ylabel(ylabel, weight='bold', size=22)
+
+    for y_val, label in list(y):
+        ax.plot(x, y_val, label=label)
+    plt.legend(loc='upper right', prop={'size': 14})
+    fig.savefig(file_name, bbox_inches='tight', dpi=1000)
