@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=5000
+#SBATCH --mem=10000
 #SBATCH --job-name=mul-lstm
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
