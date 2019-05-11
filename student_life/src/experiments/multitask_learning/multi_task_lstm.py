@@ -14,7 +14,6 @@ from torch import nn
 from copy import deepcopy
 from src import definitions
 from src.bin import statistics
-from src.bin import checkpointing
 from src.data_manager import cross_val
 from src.models.multitask_learning import multitask_autoencoder
 from src.utils.read_utils import read_pickle
@@ -25,7 +24,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
+                              'training_data_normalized_no_prev_stress_students_greater_than_40_labels.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -61,8 +60,8 @@ print("Num_covariates:", num_covariates)
 print("Learning Rate: ", learning_rate)
 print("alpha: {} Beta: {}".format(alpha, beta))
 
-# class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+# class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
 print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()
@@ -169,6 +168,7 @@ scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_lstm.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
+# Saving Model.
 model_file_name = "saved_models/multitask_lstm.model"
 model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
-checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
+torch.save(best_models[max_idx], model_file_name)

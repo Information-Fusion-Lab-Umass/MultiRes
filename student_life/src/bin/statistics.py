@@ -54,7 +54,7 @@ def get_train_test_val_label_counts_from_raw_data(data: dict):
     return tabulate(overall_counts, headers=LABEL_COUNT_HEADERS)
 
 
-def get_label_count_in_split(data: dict, split: str):
+def get_label_count_in_split(data: dict, split: str = None):
     """
 
     @param data: Data in dictionary format.
@@ -62,12 +62,18 @@ def get_label_count_in_split(data: dict, split: str):
                   Accepts 'test', 'train' and 'val'.
     @return: Label count for the given split.
     """
-    assert split in ['train', 'test', 'val']
+    assert split in ['train', 'test', 'val', None]
 
     labels = []
-    for split_id in data[split + "_ids"]:
-        label = data['data'][split_id][definitions.LABELS_IDX]
-        labels.append(label)
+
+    if split is None:
+        for split_id in data['data']:
+            label = data['data'][split_id][definitions.LABELS_IDX]
+            labels.append(label)
+    else:
+        for split_id in data[split + "_ids"]:
+            label = data['data'][split_id][definitions.LABELS_IDX]
+            labels.append(label)
 
     counters = Counter(labels)
     return counters
@@ -108,7 +114,7 @@ def get_train_test_val_label_counts_from_predictions(*predictions):
 
 
 def get_class_weights_in_inverse_proportion(data: dict):
-    train_label_counts = get_label_count_in_split(data, 'train')
+    train_label_counts = get_label_count_in_split(data)
     train_label_counts = [train_label_counts[label] for label in definitions.LABELS]
 
     # Weight All classes equally if any one class label missing.

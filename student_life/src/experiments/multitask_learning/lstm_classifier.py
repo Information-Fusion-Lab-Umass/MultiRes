@@ -60,8 +60,8 @@ print("Device: ", device)
 print("Num_covariates:", num_covariates)
 print("learning rate: ", learning_rate)
 
-# class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+# class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
 print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()

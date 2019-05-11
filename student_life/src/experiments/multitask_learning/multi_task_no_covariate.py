@@ -25,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
+                              'training_data_normalized_no_prev_stress_students_greater_than_40_labels.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -77,7 +77,7 @@ for split_no, split in enumerate(splits):
 
     best_split_score = -1
     epoch_at_best_score = 0
-    best_model=None
+    best_model = None
 
     tensorified_data['train_ids'] = split['train_ids']
     data['train_ids'] = split['train_ids']
@@ -90,7 +90,7 @@ for split_no, split in enumerate(splits):
     validation_user_statistics_over_epochs = []
 
     class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+    # class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
     print("Class Weights: ", class_weights)
 
     model = multitask_autoencoder.MultiTaskAutoEncoderLearner(
@@ -175,7 +175,7 @@ scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR,
                                            "cross_val_scores/multitask_autoencoder_only_covariates.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
+# Saving Model.
 model_file_name = "saved_models/multitask_lstm_no_covariate.model"
 model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
-checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
-
+torch.save(best_models[max_idx], model_file_name)
