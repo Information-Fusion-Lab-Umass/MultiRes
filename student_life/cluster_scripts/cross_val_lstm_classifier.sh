@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=5000
+#SBATCH --mem=25000
 #SBATCH --job-name=lstm-classifier
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
