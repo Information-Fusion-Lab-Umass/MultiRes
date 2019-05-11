@@ -25,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
+                              'training_data_normalized_no_prev_stress_students_greater_than_40_labels.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -171,6 +171,7 @@ scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/lstm_classifier.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
+# Saving Best model
 model_file_name = "saved_models/lstm.model"
 model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
-checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
+torch.save(best_models[max_idx], model_file_name)
