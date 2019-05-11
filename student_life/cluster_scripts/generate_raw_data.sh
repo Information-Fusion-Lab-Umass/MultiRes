@@ -14,4 +14,4 @@
 echo $SLURM_JOBID - `hostname` >> ~/gypsum-jobs.txt
 
 cd ~/projects/MultiRes/student_life
-PYTHONPATH=../ python -m src.experiments.generate_data
+PYTHONPATH=../ python -m src.data_manager.generate_data
