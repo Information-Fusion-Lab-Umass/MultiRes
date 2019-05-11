@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=2000
+#SBATCH --mem=10000
 #SBATCH --job-name=new_data
 #SBATCH --partition=titanx-long
 #SBATCH --output=new_data-%A.out
