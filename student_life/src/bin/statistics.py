@@ -14,7 +14,8 @@ LABEL_COUNT_HEADERS = ['Train', 'Val', 'Test']
 USER_TRAIN_STATISTICS_MAP = {
     'confusion_matrix': user_statistics.user_confusion_matrix,
     'f1_score': user_statistics.user_f1_score,
-    'accuracy': user_statistics.user_accuracy
+    'accuracy': user_statistics.user_accuracy,
+    'label_count': user_statistics.label_count
 }
 
 

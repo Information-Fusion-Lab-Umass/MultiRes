@@ -1,5 +1,11 @@
-# Don't track the content of these folders.
+Physionet_rev/slurm
+Physionet_rev/*.pyc
+student_life/data
+Multires/*.pyc
 data/
+Data/
+Models/
+Multires/stdout/
 
 # ignore pycharm project files
 .idea/

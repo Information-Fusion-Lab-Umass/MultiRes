@@ -12,6 +12,7 @@ from src import definitions
 from src.bin import tensorify
 from src.bin import statistics
 from src.bin import trainer
+from src.bin import checkpointing
 from src.data_manager import cross_val
 from src.data_manager import student_life_var_binned_data_manager as data_manager
 from src.models import autoencoder_classifier
@@ -24,7 +25,7 @@ feature_list = data_manager.FEATURE_LIST
 # ##### Pickle #####
 data_file_path = os.path.join(definitions.DATA_DIR,
                               'training_data/shuffled_splits',
-                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_2.pkl')
+                              'training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl')
 data = read_pickle(data_file_path)
 splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
 print("Splits: ", len(splits))
@@ -57,6 +58,11 @@ device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu'
 print("Num Features:", num_features)
 print("Device: ", device)
 print("Num_covariates:", num_covariates)
+print("learning rate: ", learning_rate)
+
+# class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()
 tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
@@ -66,12 +72,14 @@ student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].ke
 
 split_val_scores = []
 best_score_epoch_log = []
+best_models = []
 
 for split_no, split in enumerate(splits):
     print("Split No: ", split_no)
 
     best_split_score = -1
     epoch_at_best_score = 0
+    best_model = None
 
     tensorified_data['train_ids'] = split['train_ids']
     data['train_ids'] = split['train_ids']
@@ -82,10 +90,6 @@ for split_no, split in enumerate(splits):
     tensorified_data['test_ids'] = []
 
     validation_user_statistics_over_epochs = []
-
-    class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-    class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
-    print("Class Weights: ", class_weights)
 
     model = autoencoder_classifier.AutoEncoderClassifier(
         conversions.prepend_ids_with_string(student_list, "student_"),
@@ -147,19 +151,26 @@ for split_no, split in enumerate(splits):
                                                                                                        val_preds,
                                                                                                        val_users))
 
-        print("Val pred list: ", val_pred_list)
-
         if val_scores[2] > best_split_score:
             best_split_score = val_scores[2]
             epoch_at_best_score = epoch
+            best_model = deepcopy(model)
 
         print("Split: {} Score This Epoch: {} Best Score: {}".format(split_no, val_scores[2], best_split_score))
 
     split_val_scores.append(best_split_score)
     best_score_epoch_log.append(epoch_at_best_score)
+    best_models.append(deepcopy(best_model))
 
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
+print("alpha: {} Beta: {}".format(alpha, beta))
+print("Data File Path:", data_file_path)
+max_idx = split_val_scores.index(max(split_val_scores))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
 scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/lstm_classifier.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
+
+model_file_name = "saved_models/lstm.model"
+model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
+checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
