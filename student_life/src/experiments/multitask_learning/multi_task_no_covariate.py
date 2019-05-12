@@ -14,11 +14,11 @@ from torch import nn
 from copy import deepcopy
 from src import definitions
 from src.bin import statistics
-from src.bin import checkpointing
 from src.data_manager import cross_val
 from src.models.multitask_learning import multitask_autoencoder
 from src.utils.read_utils import read_pickle
 from src.utils import write_utils
+from src.bin import checkpointing
 
 feature_list = data_manager.FEATURE_LIST
 
@@ -37,33 +37,30 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 use_historgram = True
 autoencoder_bottle_neck_feature_size = 128
 autoencoder_num_layers = 1
-alpha, beta = 0, 1
+alpha, beta = 0.0001, 1
 decay = 0.0001
 first_key = next(iter(data['data'].keys()))
 if use_historgram:
     num_features = len(data['data'][first_key][4][0])
 else:
     num_features = len(data['data'][first_key][0][0])
-num_covariates = len(data['data'][first_key][definitions.COVARIATE_DATA_IDX])
+# num_covariates = len(data['data'][first_key][definitions.COVARIATE_DATA_IDX])
+num_covariates = 0
 shared_hidden_layer_size = 256
 user_dense_layer_hidden_size = 64
 num_classes = 3
 learning_rate = 0.000001
-n_epochs = 350
-shared_layer_dropout_prob=0.00
-user_head_dropout_prob=0.00
+n_epochs = 500
+shared_layer_dropout_prob = 0.00
+user_head_dropout_prob = 0.00
+train_only_with_covariate = False
+use_covariates = False
 
 device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu')
 
 print("Num Features:", num_features)
 print("Device: ", device)
 print("Num_covariates:", num_covariates)
-print("Learning Rate: ", learning_rate)
-print("alpha: {} Beta: {}".format(alpha, beta))
-
-# class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
-print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()
 tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
@@ -80,7 +77,7 @@ for split_no, split in enumerate(splits):
 
     best_split_score = -1
     epoch_at_best_score = 0
-    best_model = None
+    best_model=None
 
     tensorified_data['train_ids'] = split['train_ids']
     data['train_ids'] = split['train_ids']
@@ -92,6 +89,10 @@ for split_no, split in enumerate(splits):
 
     validation_user_statistics_over_epochs = []
 
+    class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
+    class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
+    print("Class Weights: ", class_weights)
+
     model = multitask_autoencoder.MultiTaskAutoEncoderLearner(
         conversions.prepend_ids_with_string(student_list, "student_"),
         num_features,
@@ -102,7 +103,8 @@ for split_no, split in enumerate(splits):
         num_classes,
         num_covariates,
         shared_layer_dropout_prob,
-        user_head_dropout_prob)
+        user_head_dropout_prob,
+        train_only_with_covariates=train_only_with_covariate)
     if cuda_enabled:
         model.cuda()
         class_weights = class_weights.cuda()
@@ -124,7 +126,8 @@ for split_no, split in enumerate(splits):
                                                                                       optimizer=optimizer,
                                                                                       alpha=alpha,
                                                                                       beta=beta,
-                                                                                      use_histogram=use_historgram)
+                                                                                      use_histogram=use_historgram,
+                                                                                      use_covariates=use_covariates)
 
         (val_total_loss, val_total_reconstruction_loss, val_total_classification_loss,
          val_labels, val_preds, val_users) = trainer.evaluate_multitask_learner(tensorified_data,
@@ -136,7 +139,8 @@ for split_no, split in enumerate(splits):
                                                                                 device,
                                                                                 alpha=alpha,
                                                                                 beta=beta,
-                                                                                use_histogram=use_historgram)
+                                                                                use_histogram=use_historgram,
+                                                                                use_covariates=use_covariates)
 
         ######## Appending Metrics ########
         train_label_list = conversions.tensor_list_to_int_list(train_labels)
@@ -162,13 +166,16 @@ for split_no, split in enumerate(splits):
     best_score_epoch_log.append(epoch_at_best_score)
     best_models.append(deepcopy(best_model))
 
+print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 max_idx = split_val_scores.index(max(split_val_scores))
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
-scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR, "cross_val_scores/multitask_lstm.pkl")
+scores_and_epochs_file_name = os.path.join(definitions.DATA_DIR,
+                                           "cross_val_scores/multitask_autoencoder_only_covariates.pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
-model_file_name = "saved_models/multitask_lstm.model"
+model_file_name = "saved_models/multitask_lstm_no_covariate.model"
 model_file_name = os.path.join(definitions.DATA_DIR, model_file_name)
 checkpointing.save_checkpoint(best_models[max_idx].state_dict(), model_file_name)
+

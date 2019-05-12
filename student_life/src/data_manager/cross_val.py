@@ -69,14 +69,18 @@ def leave_one_subject_out_split(data: dict):
         yield data, left_out_student
 
 
-def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5, stratification_type="student_label"):
-
+def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5,
+                                                      stratification_type="student_label",
+                                                      filter_by_student_ids=None):
     splits = []
 
     data_keys = data['data'].keys()
     keys, labels = conversions.extract_keys_and_labels_from_dict(data)
     student_ids = conversions.extract_student_ids_from_keys(keys)
     student_ids_label = []
+
+    if filter_by_student_ids is not None:
+        student_ids, labels, data_keys = filter_student_id(filter_by_student_ids, student_ids, labels, list(data_keys))
 
     for i in range(len(student_ids)):
         student_ids_label.append(str(student_ids[i]) + "_" + str(labels[i]))
@@ -101,3 +105,15 @@ def get_k_fod_cross_val_splits_stratified_by_students(data: dict, n_splits=5, st
         splits.append(splitting_dict)
 
     return splits
+
+
+def filter_student_id(filter_by_student_ids, student_id_list, labels_list, data_keys):
+    filtered_student_id_list, filtered_labels_list, filtered_data_keys = [], [], []
+
+    for idx, student_id in enumerate(student_id_list):
+        if conversions.convert_to_int_if_str(student_id) in filter_by_student_ids:
+            filtered_student_id_list.append(student_id)
+            filtered_labels_list.append(labels_list[idx])
+            filtered_data_keys.append(data_keys[idx])
+
+    return filtered_student_id_list, filtered_labels_list, filtered_data_keys
