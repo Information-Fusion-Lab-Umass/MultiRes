@@ -2,8 +2,8 @@
 #SBATCH --partition 1080ti-long
 #SBATCH --gres gpu:1
 #SBATCH --mem=15000
-#SBATCH --ntasks-per-node=6
-#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --nodes=2
 #SBATCH --output jupyter-notebook.log
 
 # get tunneling info
@@ -25,6 +25,7 @@ localhost:${port}  (prefix w/ https:// if using password)
 # load modules or conda environments here
 # e.g. farnam:
 # module load Python/2.7.13-foss-2016b
+# module add cuda91
 
 # DON'T USE ADDRESS BELOW.
 # DO USE TOKEN BELOW

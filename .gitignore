@@ -1,5 +1,6 @@
 Physionet_rev/slurm
 Physionet_rev/*.pyc
+student_life/data
 Multires/*.pyc
 data/
 Data/

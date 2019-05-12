@@ -1,3 +1,4 @@
+import sys, os
 import torch
 import torch.nn as nn
 
@@ -5,6 +6,7 @@ from src.models import autoencoder
 from src.models import user_dense_heads
 from src.bin import validations
 from src.utils import object_generator_utils as object_generator
+
 
 
 class MultiTaskAutoEncoderLearner(nn.Module):
@@ -42,7 +44,8 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         self.users = users
         self.autoencoder_input_size = autoencoder_input_size
         # Ignore the autoencoder input feature if you are just training on sequences.
-        self.autoencoder_bottleneck_feature_size = autoencoder_bottleneck_feature_size if not train_only_with_covariates else 0
+#         self.autoencoder_bottleneck_feature_size = autoencoder_bottleneck_feature_size if not train_only_with_covariates else 0
+        self.autoencoder_bottleneck_feature_size = autoencoder_bottleneck_feature_size
         self.autoencoder_num_layers = autoencoder_num_layers
         self.shared_hidden_layer_size = shared_hidden_layer_size
         self.user_dense_layer_hidden_size = user_dense_layer_hidden_size
@@ -52,6 +55,9 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         self.user_head_dropout_prob = user_head_dropout_prob
         self.ordinal_regression_head = ordinal_regression_head
         self.train_only_with_covariates = train_only_with_covariates
+        
+        print("## DEBUG ## - train_only_covariate (shold be false) {}".format(self.train_only_with_covariates))
+        print("## DEBUG ## - shared layer size {}".format(self.autoencoder_bottleneck_feature_size + self.num_covariates))
 
         # Layer initialization.
         if not train_only_with_covariates:
@@ -59,7 +65,12 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                                                   self.autoencoder_bottleneck_feature_size,
                                                   self.autoencoder_num_layers,
                                                   self.is_cuda_avail)
-
+        else:
+            self.simple_encoder = nn.LSTM(input_size=self.autoencoder_input_size, 
+                                          hidden_size=self.autoencoder_bottleneck_feature_size,
+                                          batch_first=True)
+            self.simple_encoder_relu = nn.ReLU()
+            
         self.shared_linear = nn.Linear(self.autoencoder_bottleneck_feature_size + self.num_covariates,
                                        self.shared_hidden_layer_size)
 
@@ -75,7 +86,7 @@ class MultiTaskAutoEncoderLearner(nn.Module):
                                                          self.user_head_dropout_prob,
                                                          self.ordinal_regression_head)
 
-    def forward(self, user, input_seq, covariate_data=None):
+    def forward(self, user, input_seq, covariate_data=None, plotting=False):
         """
         Slightly complex forward pass. The autoencoder part return the decoded output
         which needs to be trained using MAE or MSE. The user head returns a vector of
@@ -93,22 +104,34 @@ class MultiTaskAutoEncoderLearner(nn.Module):
         """
         validations.validate_integrity_of_covariates(self.num_covariates, covariate_data)
         # If not training on sequences, do not put the sequences through he auto encoder.
+        autoencoder = None
+        bottle_neck = None
         if not self.train_only_with_covariates:
             autoencoder_out = self.autoencoder(input_seq)
             bottle_neck = self.autoencoder.get_bottleneck_features(input_seq)
             bottle_neck = bottle_neck[:, -1, :]
         else:
-            bottle_neck = object_generator.get_tensor_on_correct_device([])
-
+#             bottle_neck = object_generator.get_tensor_on_correct_device([])
+            bottle_neck, _ = self.simple_encoder(input_seq)
+            bottle_neck = self.simple_encoder_relu(bottle_neck)
+            bottle_neck = bottle_neck[:, -1, :]
+            
         if covariate_data is not None:
             bottle_neck = torch.cat((bottle_neck, covariate_data.unsqueeze(0)), dim=1)
 
-        shared_hidden_state = self.shared_linear(bottle_neck)
-        shared_hidden_state = self.shared_activation(shared_hidden_state)
-        shared_hidden_state = self.shared_layer_dropout(shared_hidden_state)
-        shared_hidden_state_1 = self.shared_linear_1(shared_hidden_state)
-        shared_hidden_state_1 = self.shared_activation_1(shared_hidden_state_1)
+        shared_hidden_state_0 = self.shared_linear(bottle_neck)
+        shared_hidden_state_1 = self.shared_activation(shared_hidden_state_0)
+        shared_hidden_state_2 = self.shared_layer_dropout(shared_hidden_state_1)
+        shared_hidden_state_1x = self.shared_linear_1(shared_hidden_state_2)
+        shared_hidden_state_2x = self.shared_activation_1(shared_hidden_state_1x)
 
-        y_out = self.user_heads(user, shared_hidden_state_1)
-
-        return autoencoder_out if not self.train_only_with_covariates else None, y_out
+        y_out = self.user_heads(user, shared_hidden_state_1x)
+        if plotting:
+            return (autoencoder_out, 
+                bottle_neck,
+                shared_hidden_state_0,
+                shared_hidden_state_1,
+                shared_hidden_state_1x,
+                shared_hidden_state_2x) if not self.train_only_with_covariates else (None, y_out)
+        else:
+            return autoencoder_out if not self.train_only_with_covariates else None, y_out
