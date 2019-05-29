@@ -20,8 +20,18 @@ def data_debug_string(data: dict, seq_limit):
 
 
 def debug_set(train_set, val_set, test_set, title):
-
     print(title)
     print("Train Set: {}".format(train_set))
     print("Val Set: {}".format(val_set))
     print("Test Set: {}".format(test_set))
+
+
+def print_experiment_output(**kwargs):
+    print_kwargs(**kwargs)
+
+
+def print_kwargs(**kwargs):
+    kwargs = dict(kwargs)
+
+    for key in kwargs:
+        print(key + ": ", kwargs[key])

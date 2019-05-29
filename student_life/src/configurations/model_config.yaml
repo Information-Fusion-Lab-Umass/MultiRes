@@ -7,3 +7,25 @@ gru_d:
   learning_rate_decay: 100
   epochs: 20
   student_list: [35]
+lstm_n_multitask:
+  use_histogram: True
+  autoencoder_bottle_neck_feature_size: 128
+  autoencoder_num_layers: 1
+  shared_hidden_layer_size: 256
+  user_dense_layer_hidden_size: 64
+  num_classes: 3
+  decay: 0.0001
+  shared_layer_dropout_prob: 0.00
+  user_head_dropout_prob: 0.00
+
+  lstm_classifier:
+    alpha: 0
+    beta: 1
+    learning_rate: 0.000005
+    n_epochs: 500
+  lstm_multitask:
+    alpha: 0
+    beta: 1
+    learning_rate: 0.000005
+    n_epochs: 500
+  calm_net:
