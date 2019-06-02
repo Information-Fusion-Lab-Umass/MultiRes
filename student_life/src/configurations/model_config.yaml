@@ -23,9 +23,13 @@ lstm_n_multitask:
     beta: 1
     learning_rate: 0.000005
     n_epochs: 500
-  lstm_multitask:
+  multi_task_lstm:
     alpha: 0
     beta: 1
     learning_rate: 0.000005
     n_epochs: 500
-  calm_net:
+  multi_task_autoencoder:
+    alpha: 0.001
+    beta: 1
+    learning_rate: 0.000005
+    n_epochs: 500
