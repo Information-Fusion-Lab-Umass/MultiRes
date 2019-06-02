@@ -54,7 +54,8 @@ LABELS_IDX = -1  # Always last!
 # Data Folder Paths - CLUSTER
 # Overwrite Global Constants when cluster mode on.
 config = read_yaml(FEATURE_CONFIG_FILE_PATH)
-if config['cluster_mode']:
+CLUSTER_MODE = config['cluster_mode']
+if CLUSTER_MODE:
     cluster_data_root = config['data_paths']['cluster_data_path']
     MINIMAL_PROCESSED_DATA_PATH = pathlib.Path(
         os.path.join(cluster_data_root, "student_life_minimal_processed_data"))

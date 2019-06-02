@@ -1,8 +1,15 @@
-from src.experiments.multitask_learning.experiment_imports import *
 import inspect
 
+from src import definitions
+from src.experiments.multitask_learning.experiment_imports import *
+
 # Derive Model name from the experiment script calling this module.
-frame_info = inspect.stack()[-1]
+stack_trace = inspect.stack()
+frame_info = stack_trace[-1]
+
+if definitions.CLUSTER_MODE:
+    frame_info = stack_trace[-3]
+
 file_name = frame_info[1]
 model_name = os.path.basename(file_name).replace(".py", "")
 print("Model Name:", model_name)
