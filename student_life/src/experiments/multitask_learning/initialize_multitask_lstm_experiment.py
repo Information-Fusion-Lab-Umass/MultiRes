@@ -1,4 +1,4 @@
-from experiments.multitask_learning.experiment_imports import *
+from src.experiments.multitask_learning.experiment_imports import *
 import inspect
 
 # Derive Model name from the experiment script calling this module.

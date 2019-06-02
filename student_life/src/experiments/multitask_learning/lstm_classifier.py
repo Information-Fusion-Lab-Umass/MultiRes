@@ -1,4 +1,4 @@
-from src.experiments .multitask_learning.initialize_multitask_lstm_experiment import *
+from src.experiments.multitask_learning.initialize_multitask_lstm_experiment import *
 
 feature_list = data_manager.FEATURE_LIST
 
