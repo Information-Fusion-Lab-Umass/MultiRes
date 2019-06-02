@@ -95,3 +95,12 @@ def check_if_all_columns_present_in_df(df: pd.DataFrame, columns:list):
 
 def validate_user_data(user_data):
     assert check_if_all_columns_present_in_df(user_data, ['label', 'user', 'prediction'])
+
+
+def validate_sequential_model_size_parameters(*size_params):
+    size_params = list(size_params)
+    for i in range(2, len(size_params), 2):
+        previous_size = size_params[i - 1]
+        cur_size = size_params[i]
+
+        assert previous_size == cur_size, "Miss-match in size parameters of the network."

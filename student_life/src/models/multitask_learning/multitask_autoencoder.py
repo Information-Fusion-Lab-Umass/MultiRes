@@ -62,7 +62,6 @@ class MultiTaskAutoEncoderLearner(nn.Module):
 
         self.shared_linear = nn.Linear(self.autoencoder_bottleneck_feature_size + self.num_covariates,
                                        self.shared_hidden_layer_size)
-
         self.shared_activation = nn.ReLU()
         self.shared_layer_dropout = nn.Dropout(p=self.shared_layer_dropout_prob)
         self.shared_linear_1 = nn.Linear(self.shared_hidden_layer_size, self.shared_hidden_layer_size // 2)
