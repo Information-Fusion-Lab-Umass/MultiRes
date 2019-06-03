@@ -47,11 +47,29 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 
 tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
 
+print("Global Parameters :")
+print_utils.print_experiment_output(use_histogram=use_histogram,
+                                    autoencoder_bottle_neck_feature_size=autoencoder_bottle_neck_feature_size,
+                                    autoencoder_num_layers=autoencoder_num_layers,
+                                    shared_hidden_layer_size=shared_hidden_layer_size,
+                                    user_dense_layer_hidden_size=user_dense_layer_hidden_size,
+                                    num_classes=num_classes,
+                                    decay=decay,
+                                    shared_layer_dropout_prob=shared_layer_dropout_prob,
+                                    user_head_dropout_prob=user_head_dropout_prob,
+                                    alpha=alpha,
+                                    beta=beta,
+                                    learning_rate=learning_rate,
+                                    n_epochs=n_epochs,
+                                    bidirectional=bidirectional)
+
+print("Derived Params :")
 print_utils.print_experiment_output(num_features=num_features,
                                     device=device,
                                     num_covariates=num_covariates,
                                     learning_rate=learning_rate,
-                                    class_weights=class_weights)
+                                    class_weights=class_weights,
+                                    )
 
 # K fold Cross val score.
 split_val_scores = []
