@@ -17,7 +17,8 @@ class AutoEncoderClassifier(nn.Module):
                  num_covariates=0,
                  shared_layer_dropout_prob=0,
                  user_head_dropout_prob=0,
-                 ordinal_regression_head=False):
+                 ordinal_regression_head=False,
+                 bidirectional=False):
         """
         This model has a dense layer for each student. This is used for MultiTask learning.
 
@@ -43,12 +44,14 @@ class AutoEncoderClassifier(nn.Module):
         self.shared_layer_dropout_prob = shared_layer_dropout_prob
         self.user_head_dropout_prob = user_head_dropout_prob
         self.ordinal_regression_head = ordinal_regression_head
+        self.bidirectional = bidirectional
 
         # Layer initialization.
         self.autoencoder = autoencoder.LSTMAE(self.autoencoder_input_size,
                                               self.autoencoder_bottleneck_feature_size,
                                               self.autoencoder_num_layers,
-                                              self.is_cuda_avail)
+                                              self.is_cuda_avail,
+                                              self.bidirectional)
 
         self.shared_linear = nn.Linear(self.autoencoder_bottleneck_feature_size + self.num_covariates,
                                        self.shared_hidden_layer_size)

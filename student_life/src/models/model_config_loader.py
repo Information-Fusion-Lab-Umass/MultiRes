@@ -27,6 +27,7 @@ def load_static_configs_for_lstm_n_multitask_models(model):
     beta = model_config[model]['beta']
     learning_rate = model_config[model]['learning_rate']
     n_epochs = model_config[model]['n_epochs']
+    bidirectional = model_config[model]['bidirectional']
 
     return (use_histogram,
             autoencoder_bottle_neck_feature_size,
@@ -40,7 +41,8 @@ def load_static_configs_for_lstm_n_multitask_models(model):
             alpha,
             beta,
             learning_rate,
-            n_epochs)
+            n_epochs,
+            bidirectional)
 
 
 def load_derived_configs_for_lstm_n_multitask_models(use_histogram, data):
