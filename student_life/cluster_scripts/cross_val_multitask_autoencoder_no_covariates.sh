@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
 #SBATCH --mem=25000
-#SBATCH --job-name=mul-lstm
+#SBATCH --job-name=no-variates-only-seq
 #SBATCH --partition=1080ti-long
 #SBATCH --gres=gpu:1
-#SBATCH --output=cross_val_multi_task_lstm-%A.out
-#SBATCH --error=cross_val_multi_task_lstm-%A.err
+#SBATCH --output=cross_val_multitask_autoencoder_no_covariates-%A.out
+#SBATCH --error=cross_val_multitask_autoencoder_no_covariates-%A.err
 #SBATCH --mail-type=ALL
 #SBATCH --ntasks-per-node=6
 #SBATCH --nodes=1
@@ -16,4 +16,4 @@
 echo $SLURM_JOBID - `hostname` >> ~/gypsum-jobs.txt
 
 cd ~/projects/MultiRes/student_life
-PYTHONPATH=../ python -m src.experiments.multitask_learning.multi_task_lstm
+PYTHONPATH=../ python -m src.experiments.multitask_learning.multitask_no_covariate
