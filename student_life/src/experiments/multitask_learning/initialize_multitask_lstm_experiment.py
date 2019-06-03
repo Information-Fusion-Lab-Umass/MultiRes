@@ -47,7 +47,7 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 
 tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
 
-print("Global Parameters :")
+print("\nGlobal Parameters :")
 print_utils.print_experiment_output(use_histogram=use_histogram,
                                     autoencoder_bottle_neck_feature_size=autoencoder_bottle_neck_feature_size,
                                     autoencoder_num_layers=autoencoder_num_layers,
@@ -63,7 +63,7 @@ print_utils.print_experiment_output(use_histogram=use_histogram,
                                     n_epochs=n_epochs,
                                     bidirectional=bidirectional)
 
-print("Derived Params :")
+print("\nDerived Params :")
 print_utils.print_experiment_output(num_features=num_features,
                                     device=device,
                                     num_covariates=num_covariates,
