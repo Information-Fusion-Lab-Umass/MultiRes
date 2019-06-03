@@ -30,7 +30,7 @@ for split_no, split in enumerate(splits):
         num_covariates,
         shared_layer_dropout_prob,
         user_head_dropout_prob,
-        bidirectional)
+        bidirectional=bidirectional)
     if cuda_enabled:
         model.cuda()
         class_weights = class_weights.cuda()
