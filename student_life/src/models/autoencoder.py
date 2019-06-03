@@ -33,9 +33,6 @@ class EncoderRNN(nn.Module):
         encoded_input = self.relu(encoded_input)
         return encoded_input
 
-    def get_encoded_hidden_size(self):
-        return self.hidden_size
-
 
 class DecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, num_layers, isCuda):
@@ -76,7 +73,7 @@ class LSTMAE(nn.Module):
                                   num_layers,
                                   isCuda,
                                   bidirectional)
-        self.decoder = DecoderRNN(self.encoder.get_encoded_hidden_size(),
+        self.decoder = DecoderRNN(hidden_size,
                                   input_size,
                                   num_layers,
                                   isCuda)
