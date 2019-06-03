@@ -1,77 +1,10 @@
-import os
-import torch
-import tqdm
-
-import src.bin.tensorify as tensorify
-import src.utils.data_conversion_utils as conversions
-import src.data_manager.student_life_var_binned_data_manager as data_manager
-import src.bin.trainer as trainer
-from statistics import mean as list_mean
-
-from sklearn import metrics
-
-from torch import nn
-from copy import deepcopy
-from src import definitions
-from src.bin import statistics
-from src.data_manager import cross_val
-from src.models.multitask_learning import multitask_autoencoder
-from src.utils.read_utils import read_pickle
-from src.utils import write_utils
-from src.bin import checkpointing
+from src.experiments.multitask_learning.initialize_multitask_lstm_experiment import *
 
 feature_list = data_manager.FEATURE_LIST
 
-# ##### Pickle #####
-data_file_path = os.path.join(definitions.DATA_DIR,
-                              'training_data/shuffled_splits',
-                              'training_data_normalized_no_prev_stress_students_greater_than_40_labels.pkl')
-data = read_pickle(data_file_path)
-splits = cross_val.get_k_fod_cross_val_splits_stratified_by_students(data=data, n_splits=5)
-print("Splits: ", len(splits))
-
-############ Stats #############
-print(statistics.get_train_test_val_label_counts_from_raw_data(data))
-
-################################## Init ##################################
-use_historgram = True
-autoencoder_bottle_neck_feature_size = 128
-autoencoder_num_layers = 1
-bidirectional = True
-alpha, beta = 0.0001, 1
-decay = 0.0001
-first_key = next(iter(data['data'].keys()))
-if use_historgram:
-    num_features = len(data['data'][first_key][4][0])
-else:
-    num_features = len(data['data'][first_key][0][0])
-# num_covariates = len(data['data'][first_key][definitions.COVARIATE_DATA_IDX])
 num_covariates = 0
-shared_hidden_layer_size = 256
-user_dense_layer_hidden_size = 64
-num_classes = 3
-learning_rate = 0.000001
-n_epochs = 500
-shared_layer_dropout_prob = 0.00
-user_head_dropout_prob = 0.00
 train_only_with_covariate = False
 use_covariates = False
-
-device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu')
-
-print("Num Features:", num_features)
-print("Device: ", device)
-print("Num_covariates:", num_covariates)
-
-cuda_enabled = torch.cuda.is_available()
-tensorified_data = tensorify.tensorify_data_gru_d(deepcopy(data), cuda_enabled)
-student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].keys())
-
-# K fold Cross val score.
-
-split_val_scores = []
-best_score_epoch_log = []
-best_models = []
 
 for split_no, split in enumerate(splits):
     print("Split No: ", split_no)
@@ -128,7 +61,7 @@ for split_no, split in enumerate(splits):
                                                                                       optimizer=optimizer,
                                                                                       alpha=alpha,
                                                                                       beta=beta,
-                                                                                      use_histogram=use_historgram,
+                                                                                      use_histogram=use_histogram,
                                                                                       use_covariates=use_covariates)
 
         (val_total_loss, val_total_reconstruction_loss, val_total_classification_loss,
@@ -141,7 +74,7 @@ for split_no, split in enumerate(splits):
                                                                                 device,
                                                                                 alpha=alpha,
                                                                                 beta=beta,
-                                                                                use_histogram=use_historgram,
+                                                                                use_histogram=use_histogram,
                                                                                 use_covariates=use_covariates)
 
         ######## Appending Metrics ########
