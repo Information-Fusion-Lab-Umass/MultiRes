@@ -4,17 +4,20 @@ import numpy as np
 
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, isCuda):
+    def __init__(self, input_size, hidden_size, num_layers, isCuda, bidirectional=False):
         super(EncoderRNN, self).__init__()
         self.input_size = input_size
-        self.hidden_size = hidden_size
+        self.hidden_size = hidden_size // 2 if bidirectional else hidden_size
         self.num_layers = num_layers
         self.isCuda = isCuda
+        self.bidirectional = bidirectional
 
         self.lstm = nn.LSTM(input_size=self.input_size,
                             hidden_size=self.hidden_size,
                             num_layers=self.num_layers,
-                            batch_first=True)
+                            batch_first=True,
+                            bidirectional=self.bidirectional)
+
         self.relu = nn.ReLU()
 
         # initialize weights
@@ -30,7 +33,7 @@ class EncoderRNN(nn.Module):
         encoded_input = self.relu(encoded_input)
         return encoded_input
 
-    def get_encoded_input_size(self):
+    def get_encoded_hidden_size(self):
         return self.hidden_size
 
 
@@ -65,14 +68,15 @@ class DecoderRNN(nn.Module):
         return decoded_output
 
 
-class LSTMAE(nn.Module) :
-    def __init__(self, input_size, hidden_size, num_layers, isCuda=False):
+class LSTMAE(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, isCuda=False, bidirectional=False):
         super(LSTMAE, self).__init__()
         self.encoder = EncoderRNN(input_size,
                                   hidden_size,
                                   num_layers,
-                                  isCuda)
-        self.decoder = DecoderRNN(self.encoder.get_encoded_input_size(),
+                                  isCuda,
+                                  bidirectional)
+        self.decoder = DecoderRNN(self.encoder.get_encoded_hidden_size(),
                                   input_size,
                                   num_layers,
                                   isCuda)

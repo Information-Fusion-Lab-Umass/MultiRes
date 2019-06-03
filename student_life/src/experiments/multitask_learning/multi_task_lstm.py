@@ -36,6 +36,7 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 use_historgram = True
 autoencoder_bottle_neck_feature_size = 128
 autoencoder_num_layers = 1
+bidirectional=True
 alpha, beta = 0, 1
 decay = 0.0001
 first_key = next(iter(data['data'].keys()))
@@ -61,7 +62,6 @@ print("Learning Rate: ", learning_rate)
 print("alpha: {} Beta: {}".format(alpha, beta))
 
 class_weights = torch.tensor(statistics.get_class_weights_in_inverse_proportion(data))
-# class_weights = torch.tensor([0.6456, 0.5635, 1.0000])
 print("Class Weights: ", class_weights)
 
 cuda_enabled = torch.cuda.is_available()
@@ -101,7 +101,8 @@ for split_no, split in enumerate(splits):
         num_classes,
         num_covariates,
         shared_layer_dropout_prob,
-        user_head_dropout_prob)
+        user_head_dropout_prob,
+        bidirectional)
     if cuda_enabled:
         model.cuda()
         class_weights = class_weights.cuda()

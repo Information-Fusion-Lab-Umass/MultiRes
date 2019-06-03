@@ -37,7 +37,8 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
 use_historgram = True
 autoencoder_bottle_neck_feature_size = 128
 autoencoder_num_layers = 1
-alpha , beta = 0.0001, 1
+bidirectional = True
+alpha, beta = 0.0001, 1
 decay = 0.0001
 first_key = next(iter(data['data'].keys()))
 if use_historgram:
@@ -50,8 +51,8 @@ user_dense_layer_hidden_size = 64
 num_classes = 3
 learning_rate = 0.000001
 n_epochs = 500
-shared_layer_dropout_prob=0.00
-user_head_dropout_prob=0.00
+shared_layer_dropout_prob = 0.00
+user_head_dropout_prob = 0.00
 
 device = torch.device('cuda') if torch.cuda.is_available else torch.device('cpu')
 
@@ -100,7 +101,8 @@ for split_no, split in enumerate(splits):
         num_classes,
         num_covariates,
         shared_layer_dropout_prob,
-        user_head_dropout_prob)
+        user_head_dropout_prob,
+        bidirectional)
     if cuda_enabled:
         model.cuda()
         class_weights = class_weights.cuda()

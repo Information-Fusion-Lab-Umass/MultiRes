@@ -88,7 +88,8 @@ class MultiTaskLSTM(nn.Module):
 
         y_out = self.user_classifier(user, embedding)
 
-        return y_out
+        decoded_sequence = None
+        return decoded_sequence, y_out
 
 
 class MultiTaskMultiLSTMLearner(nn.Module):
