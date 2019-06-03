@@ -35,7 +35,8 @@ print(statistics.get_train_test_val_label_counts_from_raw_data(data))
  alpha,
  beta,
  learning_rate,
- n_epochs) = model_config_loader.load_static_configs_for_lstm_n_multitask_models(model_name)
+ n_epochs,
+ bidirectional) = model_config_loader.load_static_configs_for_lstm_n_multitask_models(model_name)
 
 (num_features,
  num_covariates,
