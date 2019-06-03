@@ -31,3 +31,4 @@ from src.utils import write_utils
 from src.utils.read_utils import read_pickle
 from src.utils import data_conversion_utils as conversions
 from src.utils import print_utils
+from src.bin import checkpointing

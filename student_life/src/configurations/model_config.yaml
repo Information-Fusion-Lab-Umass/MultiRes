@@ -43,7 +43,7 @@ lstm_n_multitask:
     n_epochs: 500
     bidirectional: True
   multitask_covariate:
-    alpha: 0.0001
+    alpha: 0.001
     beta: 1
     learning_rate: 0.000001
     n_epochs: 500
