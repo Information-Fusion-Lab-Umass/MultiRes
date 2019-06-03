@@ -39,7 +39,7 @@ lstm_n_multitask:
   multitask_autoencoder:
     alpha: 0.001
     beta: 1
-    learning_rate: 0.000005
+    learning_rate: 0.000001
     n_epochs: 500
     bidirectional: True
   multitask_covariate:
