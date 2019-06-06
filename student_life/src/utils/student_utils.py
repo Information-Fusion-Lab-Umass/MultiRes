@@ -33,10 +33,12 @@ def get_students_from_folder_names(prefix, folder_names):
     result = []
     for folder_name in folder_names:
         if folder_name.startswith(prefix):
+            val = None
             try:
-                result.append(int(folder_name[len(prefix):]))
-            except ValueError:
-                print("Student ID couldn't be converted to Integer!")
+                val = folder_name[len(prefix):]
+                result.append(int(val))
+            except ValueError as e:
+                print("Student ID couldn't be converted to Integer: {}".format(val))
 
     return result
 

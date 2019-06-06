@@ -172,27 +172,31 @@ def get_data_for_training_in_dict_format(*student_ids,
 
     for it, student_id in enumerate(student_ids):
         print("Student: {}".format(student_id))
-        data_list, train_ids, val_ids, test_ids = process_student_data(raw_data,
-                                                                       student_id,
-                                                                       splitting_strategy=splitting_strategy,
-                                                                       normalize=normalize,
-                                                                       fill_na=fill_na,
-                                                                       flatten_sequence=flatten_sequence,
-                                                                       split_type=split_type)
+        try:
 
-        # Prefixing the IDs with student_id.
-        for month_day, daily_data in data_list:
-            data_key = str(student_id) + "_" + month_day
-            data_dict[data_key] = daily_data
+            data_list, train_ids, val_ids, test_ids = process_student_data(raw_data,
+                                                                        student_id,
+                                                                        splitting_strategy=splitting_strategy,
+                                                                        normalize=normalize,
+                                                                        fill_na=fill_na,
+                                                                        flatten_sequence=flatten_sequence,
+                                                                        split_type=split_type)
 
-        train_ids, val_ids, test_ids = student_utils.prefix_list_of_strings_or_ids_with_student_id(train_ids,
-                                                                                                   val_ids,
-                                                                                                   test_ids,
-                                                                                                   student_id=student_id)
+            # Prefixing the IDs with student_id.
+            for month_day, daily_data in data_list:
+                data_key = str(student_id) + "_" + month_day
+                data_dict[data_key] = daily_data
 
-        data['data'] = data_dict
-        data['train_ids'] += train_ids
-        data['val_ids'] += val_ids
-        data['test_ids'] += test_ids
+            train_ids, val_ids, test_ids = student_utils.prefix_list_of_strings_or_ids_with_student_id(train_ids,
+                                                                                                    val_ids,
+                                                                                                    test_ids,
+                                                                                                    student_id=student_id)
+
+            data['data'] = data_dict
+            data['train_ids'] += train_ids
+            data['val_ids'] += val_ids
+            data['test_ids'] += test_ids
+        except: 
+            print("\tFailed, skipping...")
 
     return data

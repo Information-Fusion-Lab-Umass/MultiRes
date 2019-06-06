@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#SBATCH --mem=2000
+#SBATCH --mem=10000
 #SBATCH --job-name=new_data
 #SBATCH --partition=titanx-long
 #SBATCH --output=new_data-%A.out
@@ -14,4 +14,4 @@
 echo $SLURM_JOBID - `hostname` >> ~/gypsum-jobs.txt
 
 cd ~/projects/MultiRes/student_life
-PYTHONPATH=../ python -m src.experiments.generate_data
+PYTHONPATH=../ python -m src.data_manager.generate_data
