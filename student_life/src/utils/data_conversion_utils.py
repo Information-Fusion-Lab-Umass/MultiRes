@@ -234,3 +234,9 @@ def tensor_list_to_int_list(tensor_list):
         int_list.append(t.item())
 
     return int_list
+
+
+def get_model_parameters(model):
+    total_model_parameters = sum(p.numel() for p in
+                                 model.parameters() if p.requires_grad)
+    return total_model_parameters
