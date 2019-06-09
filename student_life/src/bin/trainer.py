@@ -143,6 +143,85 @@ def evaluate_multitask_learner(data,
     return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions, users
 
 
+def evaluate_multitask_learner_per_user(data,
+                               key_set: str,
+                               num_classes,
+                               multitask_lerner_model_dict,
+                               reconstruction_criterion,
+                               classification_criterion,
+                               device,
+                               optimize=False,
+                               alpha=1,
+                               beta=1,
+                               use_histogram=False,
+                               histogram_seq_len=None,
+                               ordinal_regression=False,
+                               use_covariates=True):
+    validations.validate_data_dict_keys(data)
+    validate_key_set_str(key_set)
+
+    total_reconstruction_loss = 0
+    total_classification_loss = 0
+    total_joint_loss = 0
+
+    labels = []
+    predictions = []
+    users = []
+
+    for key in data[key_set]:
+        student_id = conversions.extract_student_id_from_key(key)
+
+        multitask_lerner_model, optimizer = multitask_lerner_model_dict[student_id]
+
+        if not optimize:
+            multitask_lerner_model.eval()
+        else:
+            multitask_lerner_model.train()
+
+        student_key = 'student_' + str(student_id)
+        actual_data, covariate_data, histogram_data, train_label = data['data'][key]
+
+        if ordinal_regression:
+            train_label_vector = get_target_vector_for_ordinal_regression(train_label, num_classes, device)
+
+        actual_data = actual_data[0].unsqueeze(0)
+        if use_histogram:
+            if histogram_seq_len:
+                histogram_data = histogram_data[:max(histogram_seq_len, len(histogram_data))]
+            actual_data = histogram_data.unsqueeze(0)
+
+        decoded_output, y_pred = multitask_lerner_model(student_key,
+                                                        actual_data,
+                                                        covariate_data if use_covariates else None)
+
+        # decoded output is `None` if training on only co-variates.
+        reconstruction_loss = reconstruction_criterion(actual_data, decoded_output) if decoded_output is not None else object_generator.get_tensor_on_correct_device([0])
+        total_reconstruction_loss += reconstruction_loss.item()
+
+        if ordinal_regression:
+            classification_loss = classification_criterion(y_pred, train_label_vector)
+        else:
+            classification_loss = classification_criterion(y_pred, train_label)
+
+        total_classification_loss += classification_loss.item()
+
+        joint_loss = alpha * reconstruction_loss + beta * classification_loss
+        total_joint_loss += joint_loss.item()
+
+        # Check if training
+        if optimize:
+            multitask_lerner_model.zero_grad()
+            joint_loss.backward()
+            optimizer.step()
+
+        labels.append(train_label)
+        predicted_class = get_predicted_class(y_pred, ordinal_regression=ordinal_regression)
+        predictions.append(predicted_class)
+        users.append(student_id)
+
+    return total_joint_loss, total_reconstruction_loss, total_classification_loss, labels, predictions, users
+
+
 def evaluate_multitask_lstm_learner(data,
                                key_set: str,
                                multitask_lerner_model,

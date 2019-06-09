@@ -24,6 +24,12 @@ lstm_n_multitask:
     learning_rate: 0.000005
     n_epochs: 500
     bidirectional: True
+  lstm_classifier_per_user:
+    alpha: 0
+    beta: 1
+    learning_rate: 0.000005
+    n_epochs: 300
+    bidirectional: True
   autoencoder_classifier:
       alpha: 0.0001
       beta: 1
