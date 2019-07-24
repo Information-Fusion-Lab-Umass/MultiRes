@@ -10,7 +10,7 @@ from torch import nn
 from torch import functional
 
 
-class AdditiveAttentionEncoder(nn.Module):
+class AttentionEncoder(nn.Module):
     """
     This encoder pair is mainly referenced from
     https://github.com/abhinavshaw1993/pytorch-seq2seq/blob/master/3%20-%20Neural%20Machine%20Translation%20by%20Jointly%20Learning%20to%20Align%20and%20Translate.ipynb
@@ -21,25 +21,25 @@ class AdditiveAttentionEncoder(nn.Module):
 
     def __init__(self,
                  input_size,
-                 hidden_size,
+                 encoder_hidden_size,
                  num_layers,
                  is_cuda,
                  dropout_p=0):
-        super(AdditiveAttentionEncoder, self).__init__()
+        super(AttentionEncoder, self).__init__()
         # Input size is same as feature size.
         self.input_size = input_size
-        self.hidden_size = hidden_size
+        self.encoder_hidden_size = encoder_hidden_size
         self.num_layers = num_layers
         self.is_cuda = is_cuda
         self.dropout_p = dropout_p
 
         self.rnn = nn.LSTM(input_size=self.input_size,
-                           hidden_size=self.hidden_size,
+                           hidden_size=self.encoder_hidden_size,
                            num_layers=self.num_layers,
                            batch_first=True,
                            bidirectional=True)
 
-        self.linear = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        self.linear = nn.Linear(self.encoder_hidden_size * 2, self.encoder_hidden_size)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
@@ -63,15 +63,16 @@ class AdditiveAttentionEncoder(nn.Module):
         """
         hidden_forward, hidden_backward = hidden_state[-2, :, :], hidden_state[-1, :, :]
         combined_hidden_state = torch.cat((hidden_forward, hidden_backward), dim=1)
+        # note: Check this linear layer here. This is deviation from the paper. In might be wrong.
         context_vector = torch.tanh(self.linear(combined_hidden_state))
 
         return outputs, context_vector
 
     def get_encoder_dimensions(self):
-        encoder_output_dim = self.hidden_size * 2
-        context_vector_dim = self.hidden_size
+        encoder_output_size = self.encoder_hidden_size * 2
+        context_vector_size = self.encoder_hidden_size
 
-        return encoder_output_dim, context_vector_dim
+        return encoder_output_size, context_vector_size
 
 
 class AdditiveAttention(nn.Module):
@@ -80,48 +81,118 @@ class AdditiveAttention(nn.Module):
     This hidden state is the one that is used to calculate the energy between the Encoder outputs. (value a_ij)
     """
 
-    def __init_(self, encoder_output_dim, context_vector_dim, decoder_hidden_dim):
-        self.encoder_output_dim = encoder_output_dim
-        self.context_vector_dim = context_vector_dim
-        self.decoder_hidden_dim = decoder_hidden_dim
+    def __init__(self, encoder_output_size, context_vector_size):
+        super(AdditiveAttention, self).__init__()
+        self.encoder_output_size = encoder_output_size
+        self.context_vector_size = context_vector_size
 
-        self.attn = nn.Linear(input_size=self.encoder_output_dim + self.context_vector_dim,
-                                hidden_size=self.context_vector_dim)
+        # The scoring layer learns a function that calculates the score between the decoder hidden state and encoder output.
+        self.score = nn.Linear(self.encoder_output_size + self.context_vector_size,
+                               self.context_vector_size)
+
         # This matrix is multiplied by the energy which is a sequence of vectors of len [context_vector_dim]
         # To get a final vector of seq len, we need v to be [1, context_vector_dim, 1]
         # and the Energy to be [batch_size, seq_len, context_vector_dim]
-        self.v = nn.Parameter(torch.rand(self.context_vector_dim, 1))
+        self.v = nn.Parameter(torch.rand(self.context_vector_size, 1))
 
-    def froward(self, encoder_outputs, hidden):
+    def froward(self, encoder_outputs, decoder_hidden_state):
         """
 
         @param encoder_outputs(batch_size, seq_len, encoder_output_dim): The encoder_outputs that need to be used to calculate the energy
         between the last hidden state of the decoder.
 
-        @param hidden(batch_size, context_vector_dim): Last hidden state of the decoder. It is the last hidden state of the encoder at t=0.
+        @param decoder_hidden_state(batch_size, context_vector_dim): Last hidden state of the decoder. It is the last hidden state of the encoder at t=0.
         (initially)
         @return: Return the weights that need to be used to calculate the expected context vector.
         """
 
         # Preparing the hidden state to match the dimensions of the ended_outputs.
         batch_size, seq_len, encoder_hidden_size = encoder_outputs.shape
-        hidden = hidden.unsqueeze(1)
-        hidden = hidden.repeat(1, seq_len, 1)
+        decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
+        decoder_hidden_state = decoder_hidden_state.repeat(1, seq_len, 1)
 
         # Calculating energy between the hidden state and each encoder output.
         # concatenated = [batch_size, seq_len, encoder_output_dim + context_vector_dim]
-        concatenated = torch.cat((hidden, encoder_outputs), dim=2)
+        concatenated = torch.cat((decoder_hidden_state, encoder_outputs), dim=2)
         # energy = [batch_size, seq_len, context_vector_dim]
-        energy = torch.tanh(self.attn(concatenated))
+        energy = torch.tanh(self.score(concatenated))
 
         # v = [context_vector_dim, 1]
         v = self.v.unsqueeze(0).repeat(batch_size, 1, 1)
         # v = [batch_size, context_vector_dim, 1]
         attention = torch.bmm(energy, v).squeeze(2)
-        # attention = [batch size, src len]
+        # attention = [batch_size, seq_len]
         attention_weights = functional.softmax(attention, dim=1)
 
         return attention_weights
 
 
-# class AdditiveAttentionDecoder(nn.Module):
+class AttentionDecoder(nn.Module):
+    """
+    This class is AttentionDecoder.
+    """
+
+    def __init__(self,
+                 encoder_output_size,
+                 context_vector_size,
+                 decoder_hidden_size,
+                 attention,
+                 input_size,
+                 dropout):
+        """
+
+        @param attention: Attention model to be used for the decoder.
+        """
+        super(AttentionDecoder, self).__init__()
+        # The encoder_output_size should be equal to the decoder_hidden_state
+        # because this is what is used as the first hidden state in the decoder.
+        # This is used to calculate the expected context vector.
+        assert encoder_output_size == decoder_hidden_size, ""
+
+        self.encoder_output_size = encoder_output_size
+        self.context_vector_size = context_vector_size
+        self.decoder_hidden_size = decoder_hidden_size
+        self.input_size = input_size
+        self.dropout = dropout
+
+        self.attention = attention
+
+        # Decoder rnn. LSTM for now, but this could be changed to any RNN.
+        # todo(abhinavshaw): Make this configurable?
+        self.rnn = nn.LSTM(input_size=self.input_size + self.encoder_output_size,
+                           hidden_size=self.decoder_hidden_size,
+                           batch_first=True)
+        # This layer does a transform to a concatenated [encoder_outputs, decoder_rnn_output, input(target)]
+        self.output = nn.Linear(self.encoder_output_size + self.decoder_hidden_size + self.input_size)
+        self.dropout = nn.Dropout(p=self.dropout)
+
+    def forward(self, input_vector, encoder_outputs, previous_decoder_hidden_state):
+        """
+
+        @param input_vector(batch_size, input_size): The input vector that needs to be translated.
+        @param previous_decoder_hidden_state: Hidden state of the Decoder at t-1. In the first pass this
+        will be the last hidden state of the Encoder (context vector)
+        @param encoder_outputs(batch_size, seq_len, encoder_hidden_dim * 2): The sequence of Encoder ouputs.
+
+        @return: The predicted target that can be used to minimize the reconstruction loss.
+        """
+
+        attention_weights = self.attention(encoder_outputs, previous_decoder_hidden_state)
+        # attention weights = [batch_size,  seq_len]
+        attention_weights.unsqueeze(1)
+        # attention weights = [batch_size, 1,  seq_len]
+        expected_encoder_output = torch.bmm(attention_weights, encoder_outputs)
+        # expected_encoder_output = [batch_size, encoder_output_size], this is also the weighted encoder output.
+
+        rnn_input = torch.cat((input_vector, expected_encoder_output), dim=1)
+        # rnn_input = [batch_size, input_size + encoder_output_size]
+
+        rnn_output, hidden = self.rnn(rnn_input)
+        # rnn_output = [batch_size, 1, decoder_hidden_size]
+
+        assert (hidden == rnn_output).all(), "Since, n directions and num layers is always 1 the hidden state and output should be the same."
+
+        rnn_output = rnn_output.squeeze(1)
+        output = self.output(torch.cat((rnn_output, input_vector, expected_encoder_output), dim=1))
+
+        return output, hidden.squeeze(1)
