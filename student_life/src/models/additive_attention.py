@@ -7,7 +7,6 @@ Deviation from paper - Use of LSTM rather than GRU.
 """
 import torch
 from torch import nn
-from torch import functional
 
 
 class AttentionEncoder(nn.Module):
@@ -128,54 +127,26 @@ class AdditiveAttention(nn.Module):
         return attention_weights
 
 
-class AttentionDecoder(nn.Module):
+class ExpectedContextVectorAfterAttention(nn.Module):
     """
-    This class is AttentionDecoder.
+    This class encapsulates the procedure for calculating the expected vector from the attention weights and the
+    sequence of encoder outputs.
     """
 
-    def __init__(self,
-                 encoder_output_size,
-                 context_vector_size,
-                 decoder_hidden_size,
-                 attention,
-                 input_size,
-                 dropout):
+    def __init__(self, attention):
         """
 
-        @param attention: Attention model to be used for the decoder.
+        @param attention: The attention that needs to be used to calculate the expected vector.
         """
-        super(AttentionDecoder, self).__init__()
-        # The encoder_output_size should be equal to the decoder_hidden_state
-        # because this is what is used as the first hidden state in the decoder.
-        # This is used to calculate the expected context vector.
-        assert encoder_output_size == decoder_hidden_size, ""
-
-        self.encoder_output_size = encoder_output_size
-        self.context_vector_size = context_vector_size
-        self.decoder_hidden_size = decoder_hidden_size
-        self.input_size = input_size
-        self.dropout = dropout
-
+        super(ExpectedContextVectorAfterAttention, self).__init__()
         self.attention = attention
 
-        # Decoder rnn. LSTM for now, but this could be changed to any RNN.
-        # todo(abhinavshaw): Make this configurable?
-        self.rnn = nn.LSTM(input_size=self.input_size + self.encoder_output_size,
-                           hidden_size=self.decoder_hidden_size,
-                           batch_first=True)
-        # This layer does a transform to a concatenated [encoder_outputs, decoder_rnn_output, input(target)]
-        self.output = nn.Linear(self.encoder_output_size + self.decoder_hidden_size + self.input_size)
-        self.dropout = nn.Dropout(p=self.dropout)
-
-    def forward(self, input_vector, encoder_outputs, previous_decoder_hidden_state):
+    def forward(self, encoder_outputs, previous_decoder_hidden_state):
         """
-
-        @param input_vector(batch_size, input_size): The input vector that needs to be translated.
-        @param previous_decoder_hidden_state: Hidden state of the Decoder at t-1. In the first pass this
+        @param previous_decoder_hidden_state(batch_size, decoder_hidden_size): Hidden state of the Decoder at t-1. In the first pass this
         will be the last hidden state of the Encoder (context vector)
         @param encoder_outputs(batch_size, seq_len, encoder_hidden_dim * 2): The sequence of Encoder ouputs.
-
-        @return: The predicted target that can be used to minimize the reconstruction loss.
+        @return: expected_vector from encoder hidden states after attention. Shape (batch_size, 1, encoder_hidden_dim * 2)
         """
 
         attention_weights = self.attention(encoder_outputs, previous_decoder_hidden_state)
@@ -183,17 +154,72 @@ class AttentionDecoder(nn.Module):
         attention_weights = attention_weights.unsqueeze(1)
         # attention weights = [batch_size, 1,  seq_len]
         expected_encoder_output = torch.bmm(attention_weights, encoder_outputs)
-        # expected_encoder_output = [batch_size, encoder_output_size], this is also the weighted encoder output.
+        # expected_encoder_output = [batch_size, 1, encoder_output_size], this is also the weighted encoder output.
 
-        rnn_input = torch.cat((input_vector, expected_encoder_output), dim=1)
-        # rnn_input = [batch_size, input_size + encoder_output_size]
+        return expected_encoder_output
 
-        rnn_output, hidden = self.rnn(rnn_input)
-        # rnn_output = [batch_size, 1, decoder_hidden_size]
 
-        assert (hidden == rnn_output).all(), "Since, n directions and num layers is always 1 the hidden state and output should be the same."
+class AttentionDecoder(nn.Module):
+    """
+    This class is AttentionDecoder.
+    """
 
-        rnn_output = rnn_output.squeeze(1)
-        output = self.output(torch.cat((rnn_output, input_vector, expected_encoder_output), dim=1))
+    def __init__(self,
+                 output_size,
+                 encoder_output_size,
+                 decoder_hidden_size,
+                 attention,
+                 input_size,
+                 context_vector_size=None,
+                 dropout_p=0):
+        """
+        @param output_size: This is equal to input size if the Encoder-Decoder pair is used for dimensionality reduction.
+        @param context_vector_size: This is just accepted to assert the correct size of the decoder hidden state.
+        @param attention: Attention model to be used for the decoder.
+        """
+        super(AttentionDecoder, self).__init__()
+        # The encoder_output_size should be equal to the decoder_hidden_state
+        # because this is what is used as the first hidden state in the decoder.
+        # This is used to calculate the expected context vector.
+        if context_vector_size is not None:
+            assert context_vector_size == decoder_hidden_size, "context_vector size not equal to the decoder_hidden size."
+
+        self.output_size = output_size
+        self.encoder_output_size = encoder_output_size
+        self.decoder_hidden_size = decoder_hidden_size
+        self.input_size = input_size
+        self.dropout_p = dropout_p
+
+        self.expected_vector_from_attention = ExpectedContextVectorAfterAttention(attention)
+
+        # Decoder rnn. LSTM for now, but this could be changed to any RNN.
+        self.rnn = nn.LSTM(input_size=self.input_size + self.encoder_output_size,
+                           hidden_size=self.decoder_hidden_size,
+                           batch_first=True)
+        # This layer does a transform to a concatenated [encoder_outputs, decoder_rnn_output, input(target)]
+        self.output = nn.Linear(self.encoder_output_size + self.decoder_hidden_size + self.input_size, self.output_size)
+        self.dropout = nn.Dropout(p=self.dropout_p)
+
+    def forward(self, input_vector, encoder_outputs, previous_decoder_hidden_state):
+        """
+        @param input_vector(batch_size, input_size): The input vector that needs to be translated.
+        @param previous_decoder_hidden_state(batch_size, decoder_hidden_size): Hidden state of the Decoder at t-1. In the first pass this
+        will be the last hidden state of the Encoder (context vector)
+        @param encoder_outputs(batch_size, seq_len, encoder_hidden_dim * 2): The sequence of Encoder ouputs.
+
+        @return: The predicted target that can be used to minimize the reconstruction loss.
+        """
+
+        expected_encoder_output = self.expected_vector_from_attention(encoder_outputs, previous_decoder_hidden_state)
+        rnn_input = torch.cat((input_vector, expected_encoder_output), dim=2)
+        # rnn_input = [batch_size, 1, input_size + encoder_output_size]
+
+        rnn_output, (hidden, cell) = self.rnn(rnn_input)
+        # rnn_output = [batch_size, input_vector_seq_len, decoder_hidden_size] seq_len is 1, while decoding.
+
+        assert (hidden ==
+                rnn_output).all(), "Since, n directions and num layers is always 1 the hidden state and output should be the same."
+
+        output = self.output(torch.cat((rnn_output, input_vector, expected_encoder_output), dim=2))
 
         return output, hidden.squeeze(1)
