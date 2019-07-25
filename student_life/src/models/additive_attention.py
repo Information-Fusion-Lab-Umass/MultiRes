@@ -93,9 +93,10 @@ class AdditiveAttention(nn.Module):
         # This matrix is multiplied by the energy which is a sequence of vectors of len [context_vector_dim]
         # To get a final vector of seq len, we need v to be [1, context_vector_dim, 1]
         # and the Energy to be [batch_size, seq_len, context_vector_dim]
-        self.v = nn.Parameter(torch.rand(self.context_vector_size, 1))
+        self.v = nn.Parameter(torch.rand(self.context_vector_size, 1), requires_grad=True)
+        self.softmax = nn.Softmax(dim=1)
 
-    def froward(self, encoder_outputs, decoder_hidden_state):
+    def forward(self, encoder_outputs, decoder_hidden_state):
         """
 
         @param encoder_outputs(batch_size, seq_len, encoder_output_dim): The encoder_outputs that need to be used to calculate the energy
@@ -122,7 +123,7 @@ class AdditiveAttention(nn.Module):
         # v = [batch_size, context_vector_dim, 1]
         attention = torch.bmm(energy, v).squeeze(2)
         # attention = [batch_size, seq_len]
-        attention_weights = functional.softmax(attention, dim=1)
+        attention_weights = self.softmax(attention)
 
         return attention_weights
 
@@ -179,7 +180,7 @@ class AttentionDecoder(nn.Module):
 
         attention_weights = self.attention(encoder_outputs, previous_decoder_hidden_state)
         # attention weights = [batch_size,  seq_len]
-        attention_weights.unsqueeze(1)
+        attention_weights = attention_weights.unsqueeze(1)
         # attention weights = [batch_size, 1,  seq_len]
         expected_encoder_output = torch.bmm(attention_weights, encoder_outputs)
         # expected_encoder_output = [batch_size, encoder_output_size], this is also the weighted encoder output.
