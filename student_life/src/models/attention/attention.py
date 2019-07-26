@@ -4,6 +4,9 @@ BY JOINTLY LEARNING TO ALIGN AND TRANSLATE
 Author - Bahdanau et. al.
 
 Deviation from paper - Use of LSTM rather than GRU.
+
+This module is referred from -
+https://github.com/bentrevett/pytorch-seq2seq/blob/master/3%20-%20Neural%20Machine%20Translation%20by%20Jointly%20Learning%20to%20Align%20and%20Translate.ipynb
 """
 import torch
 from torch import nn
@@ -11,9 +14,6 @@ from torch import nn
 
 class AttentionEncoder(nn.Module):
     """
-    This encoder pair is mainly referenced from
-    https://github.com/abhinavshaw1993/pytorch-seq2seq/blob/master/3%20-%20Neural%20Machine%20Translation%20by%20Jointly%20Learning%20to%20Align%20and%20Translate.ipynb
-
     The RNN unit used here is LSTM.
     todo(abhinavshaw): Make the RNN configurable.
     """
@@ -74,25 +74,15 @@ class AttentionEncoder(nn.Module):
         return encoder_output_size, context_vector_size
 
 
-class AdditiveAttention(nn.Module):
+class Attention(nn.Module):
     """
-    s_t: Initially, the last hidden state of the Encoder is the initial hidden state of the Decoder.
-    This hidden state is the one that is used to calculate the energy between the Encoder outputs. (value a_ij)
+    A wrapper class to calculate the attention weights through softmax.
     """
 
-    def __init__(self, encoder_output_size, context_vector_size):
-        super(AdditiveAttention, self).__init__()
-        self.encoder_output_size = encoder_output_size
-        self.context_vector_size = context_vector_size
+    def __init__(self, align_function):
+        super(Attention, self).__init__()
 
-        # The scoring layer learns a function that calculates the score between the decoder hidden state and encoder output.
-        self.score = nn.Linear(self.encoder_output_size + self.context_vector_size,
-                               self.context_vector_size)
-
-        # This matrix is multiplied by the energy which is a sequence of vectors of len [context_vector_dim]
-        # To get a final vector of seq len, we need v to be [1, context_vector_dim, 1]
-        # and the Energy to be [batch_size, seq_len, context_vector_dim]
-        self.v = nn.Parameter(torch.rand(self.context_vector_size, 1), requires_grad=True)
+        self.align_function = align_function
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, encoder_outputs, decoder_hidden_state):
@@ -106,22 +96,7 @@ class AdditiveAttention(nn.Module):
         @return: Return the weights that need to be used to calculate the expected context vector.
         """
 
-        # Preparing the hidden state to match the dimensions of the ended_outputs.
-        batch_size, seq_len, encoder_hidden_size = encoder_outputs.shape
-        decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
-        decoder_hidden_state = decoder_hidden_state.repeat(1, seq_len, 1)
-
-        # Calculating energy between the hidden state and each encoder output.
-        # concatenated = [batch_size, seq_len, encoder_output_dim + context_vector_dim]
-        concatenated = torch.cat((decoder_hidden_state, encoder_outputs), dim=2)
-        # energy = [batch_size, seq_len, context_vector_dim]
-        energy = torch.tanh(self.score(concatenated))
-
-        # v = [context_vector_dim, 1]
-        v = self.v.unsqueeze(0).repeat(batch_size, 1, 1)
-        # v = [batch_size, context_vector_dim, 1]
-        attention = torch.bmm(energy, v).squeeze(2)
-        # attention = [batch_size, seq_len]
+        attention = self.align_function(encoder_outputs, decoder_hidden_state)
         attention_weights = self.softmax(attention)
 
         return attention_weights
