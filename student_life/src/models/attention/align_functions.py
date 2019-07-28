@@ -12,6 +12,7 @@ class AdditiveAlignment(nn.Module):
     Equation - score(s_t, h_i) = v_a_⊤ * tanh (W_a[s_t; h_i])
     """
     def __init__(self,  encoder_output_size, context_vector_size):
+        super(AdditiveAlignment, self).__init__()
         self.encoder_output_size = encoder_output_size
         self.context_vector_size = context_vector_size
 
