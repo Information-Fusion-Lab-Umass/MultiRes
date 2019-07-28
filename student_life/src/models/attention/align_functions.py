@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from src.models.attention import helper
+
 
 class AdditiveAlignment(nn.Module):
     """
@@ -8,6 +10,8 @@ class AdditiveAlignment(nn.Module):
     --------------------------------------------------------------------------
     s_t: Initially, the last hidden state of the Encoder is the initial hidden state of the Decoder.
     This hidden state is the one that is used to calculate the energy between the Encoder outputs. (value a_ij)
+
+    Note: aka concat attention.
     --------------------------------------------------------------------------
     Equation - score(s_t, h_i) = v_a_⊤ * tanh (W_a[s_t; h_i])
     """
@@ -33,11 +37,11 @@ class AdditiveAlignment(nn.Module):
 
         @param decoder_hidden_state(batch_size, context_vector_dim): Last hidden state of the decoder. It is the last hidden state of the encoder at t=0.
         (initially)
-        @return: Return the weights that need to be used to calculate the expected context vector.
+        @return: Return the alignment function that will go through the softmax for the final attention weights.
         """
 
         # Preparing the hidden state to match the dimensions of the ended_outputs.
-        batch_size, seq_len, encoder_hidden_size = encoder_outputs.shape
+        batch_size, seq_len, encoder_hidden_size = helper.get_dimensions_from_encoder_outputs(encoder_outputs)
         decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
         decoder_hidden_state = decoder_hidden_state.repeat(1, seq_len, 1)
 
@@ -54,3 +58,46 @@ class AdditiveAlignment(nn.Module):
         # attention = [batch_size, seq_len]
 
         return attention
+
+
+class GeneralAttention(nn.Module):
+    """
+    This attention is based on the equation in paper - Effective Approaches to Attention-based Neural Machine Translation
+    Luong et. al.
+    --------------------------------------------------------------------------
+    Equation for score function - s_t_T * W_a * h_i
+    --------------------------------------------------------------------------
+    """
+
+    def __init__(self, encoder_output_size, context_vector_size):
+        self.encoder_output_size = encoder_output_size
+        self.context_vector_size = context_vector_size
+
+        self.score = nn.Linear(encoder_output_size, context_vector_size)
+
+    def forward(self, encoder_outputs, decoder_hidden_state):
+        """
+        @param encoder_outputs(batch_size, seq_len, encoder_output_dim): The encoder_outputs that need to be used to calculate the energy
+        between the last hidden state of the decoder.
+        @param decoder_hidden_state(batch_size, context_vector_dim): Last hidden state of the decoder. It is the last hidden state of the encoder at t=0.
+        (initially)
+
+        @return(batch_size, seq_len): Return the weights that need to be used to calculate the expected context vector.
+        """
+
+        # Preparing the hidden state to match the dimensions of the ended_outputs.
+        batch_size, seq_len, encoder_hidden_size = helper.get_dimensions_from_encoder_outputs(encoder_outputs)
+        decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
+        print("decoder_hidden_state", decoder_hidden_state.shape)
+        # decoder_hidden_state = [batch_size, 1, context_vector_size]
+        decoder_hidden_state = decoder_hidden_state.permute(0, 2, 1)
+        print("decoder_hidden_state", decoder_hidden_state.shape)
+
+        attention = self.score(encoder_outputs)
+        # attention = [batch_size, seq_len, context_vector_dim]
+        attention = torch.bmm(attention, decoder_hidden_state).squeeze(2)
+        # attention = [batch_size, seq_len]
+
+        return attention
+
+

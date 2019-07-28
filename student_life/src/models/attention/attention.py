@@ -11,6 +11,8 @@ https://github.com/bentrevett/pytorch-seq2seq/blob/master/3%20-%20Neural%20Machi
 import torch
 from torch import nn
 
+from src.models.attention import helper
+
 
 class AttentionEncoder(nn.Module):
     """
@@ -81,7 +83,7 @@ class Attention(nn.Module):
 
     def __init__(self, align_function):
         super(Attention, self).__init__()
-
+        # The align function must always return a tensor of size [batch_size, seq_len]
         self.align_function = align_function
         self.softmax = nn.Softmax(dim=1)
 
@@ -97,6 +99,12 @@ class Attention(nn.Module):
         """
 
         attention = self.align_function(encoder_outputs, decoder_hidden_state)
+
+        assert len(attention.shape) == 2, "Attention tensor must have exactly two dimensions, being of the shape [batch_size, seq_len]"
+        b_s, s_len, encoder_h_s = helper.get_dimensions_from_encoder_outputs(encoder_outputs)
+        attention__b_s, attention_s_len = attention.shape
+        assert (b_s == attention__b_s) and (attention_s_len == s_len), "Attention vector must have shape of [batch_size, seq_len]."
+
         attention_weights = self.softmax(attention)
 
         return attention_weights
@@ -196,5 +204,6 @@ class AttentionDecoder(nn.Module):
                 rnn_output).all(), "Since, n directions and num layers is always 1 the hidden state and output should be the same."
 
         output = self.output(torch.cat((rnn_output, input_vector, expected_encoder_output), dim=2))
+        # output = [batch_size, 1, output_dim]
 
         return output, hidden.squeeze(1)
