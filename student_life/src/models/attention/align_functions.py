@@ -60,7 +60,7 @@ class AdditiveAlignment(nn.Module):
         return attention
 
 
-class GeneralAttention(nn.Module):
+class GeneralAlignment(nn.Module):
     """
     This attention is based on the equation in paper - Effective Approaches to Attention-based Neural Machine Translation
     Luong et. al.
@@ -70,6 +70,7 @@ class GeneralAttention(nn.Module):
     """
 
     def __init__(self, encoder_output_size, context_vector_size):
+        super(GeneralAlignment, self).__init__()
         self.encoder_output_size = encoder_output_size
         self.context_vector_size = context_vector_size
 
@@ -101,3 +102,33 @@ class GeneralAttention(nn.Module):
         return attention
 
 
+class DotAlignment(nn.Module):
+    """
+    DotAttention
+    --------------------------------------------------------------------------
+    Equation - s_t_T * h_i
+    --------------------------------------------------------------------------
+    """
+    def __init__(self, encoder_output_size, context_vector_size):
+        """
+        @attention: Context_vecto_size must be same as encoder_output_size as to calculate the dot product between these
+                    vectors we need them to be of the same dimension.
+        """
+        super(DotAlignment, self).__init__()
+        assert (encoder_output_size == context_vector_size), "context_vector_size must be same as the encoder_output_size"
+        self.encoder_output_size = encoder_output_size
+        self.context_vector_size = context_vector_size
+
+    def forward(self, encoder_outputs, decoder_hidden_state):
+        """
+        Parameter description same as other align function layers.
+        """
+        decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
+        print("decoder_hidden_state", decoder_hidden_state.shape)
+        # decoder_hidden_state = [batch_size, 1, context_vector_size]
+        decoder_hidden_state = decoder_hidden_state.permute(0, 2, 1)
+        # decoder_hidden_state = [batch_size, context_vector_size, 1]
+        print("decoder_hidden_state", decoder_hidden_state.shape)
+        attention = torch.bmm(encoder_outputs, decoder_hidden_state).squeeze(2)
+
+        return attention
