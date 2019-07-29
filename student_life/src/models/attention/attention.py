@@ -47,7 +47,7 @@ class AttentionEncoder(nn.Module):
     def forward(self, input_seq):
         """
 
-        @param input_seq: The input sequence that needs to be encoded.
+        @param input_seq(batch_size,seq_len,input_size): The input sequence that needs to be encoded.
         @return: Encoded input sequence and the context vector which
         is formed by the last hidden state of the RNN.
         @attention: The last hidden state (both the forward and the backward hidden states)
@@ -185,7 +185,7 @@ class AttentionDecoder(nn.Module):
 
     def forward(self, input_vector, encoder_outputs, previous_decoder_hidden_state):
         """
-        @param input_vector(batch_size, input_size): The input vector that needs to be translated.
+        @param input_vector(batch_size, 1, input_size): The input vector that needs to be translated.
         @param previous_decoder_hidden_state(batch_size, decoder_hidden_size): Hidden state of the Decoder at t-1. In the first pass this
         will be the last hidden state of the Encoder (context vector)
         @param encoder_outputs(batch_size, seq_len, encoder_hidden_dim * 2): The sequence of Encoder ouputs.
@@ -198,7 +198,8 @@ class AttentionDecoder(nn.Module):
         # rnn_input = [batch_size, 1, input_size + encoder_output_size]
 
         rnn_output, (hidden, cell) = self.rnn(rnn_input)
-        # rnn_output = [batch_size, input_vector_seq_len, decoder_hidden_size] seq_len is 1, while decoding.
+        # rnn_output = [batch_size, seq_len, input_vector_seq_len, decoder_hidden_size] seq_len is 1, while decoding
+        # since the input is a vector and not a sequence.
 
         assert (hidden ==
                 rnn_output).all(), "Since, n directions and num layers is always 1 the hidden state and output should be the same."
