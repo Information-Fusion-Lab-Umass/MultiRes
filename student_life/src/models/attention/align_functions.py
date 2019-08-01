@@ -89,10 +89,8 @@ class GeneralAlignment(nn.Module):
         # Preparing the hidden state to match the dimensions of the ended_outputs.
         batch_size, seq_len, encoder_hidden_size = helper.get_dimensions_from_encoder_outputs(encoder_outputs)
         decoder_hidden_state = decoder_hidden_state.unsqueeze(1)
-        print("decoder_hidden_state", decoder_hidden_state.shape)
         # decoder_hidden_state = [batch_size, 1, context_vector_size]
         decoder_hidden_state = decoder_hidden_state.permute(0, 2, 1)
-        print("decoder_hidden_state", decoder_hidden_state.shape)
 
         attention = self.score(encoder_outputs)
         # attention = [batch_size, seq_len, context_vector_dim]
